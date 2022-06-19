@@ -5,43 +5,6 @@
 #TODO:
 # - Implement back page data function in one task
 
-##Cutscene Command #######
-#TODO:
-# - Add tab completions for cutscene names
-# - Add play option
-# - Add remove option
-# - Add modify option
-dcutscene_command:
-    type: command
-    name: dcutscene
-    usage: /dcutscene
-    aliases:
-    - dscene
-    description: Cutscene command for DCutscene
-    tab completions:
-      1: <proc[dcutscene_command_list]>
-      2: <proc[dcutscene_data_list]>
-    permission: op.op
-    script:
-    - define a_1 <context.args.get[1].if_null[n]>
-    - define a_2 <context.args.get[2].if_null[n]>
-    - if <[a_1].equals[n]> || <[a_1]> == open:
-      - inventory open d:dcutscene_inventory_main
-      - ~run dcutscene_scene_show
-    - else:
-      - choose <[a_1]>:
-        - case load:
-          - if <[a_2].equals[n]>:
-            - ~run dcutscene_load_files
-          - else:
-            - ~run dcutscene_load_files def.cutscene:<[a_2]>
-        - case save:
-          - if !<[a_2].equals[n]>:
-            - ~run dcutscene_save_file def.cutscene:<[a_2]>
-          - else:
-            - ~run dcutscene_save_file
-########################
-
 ##Cutscene Events#######
 dcutscene_events:
     type: world
@@ -68,7 +31,7 @@ dcutscene_events:
           - case create_cam:
             - if <[msg]> == confirm:
               - run dcutscene_cam_keyframe_edit def:create
-          - case create_new_location:
+          - case create_present_cam:
             - if <[msg]> == confirm:
               - run dcutscene_cam_keyframe_edit def:edit|create_new_location
         - determine cancelled
@@ -94,17 +57,23 @@ dcutscene_events:
           - inventory open d:dcutscene_inventory_keyframe_modify
         #Modify present keyframe modifier
         - else if <[i].has_flag[keyframe_opt_modify]>:
+          #Modify type
           - choose <[i].flag[keyframe_opt_modify.type]>:
             - case camera:
-              - flag <player> dcutscene_tick_modify:<[i].flag[keyframe_modify]>
+              - flag <player> dcutscene_tick_modify:<[i].flag[keyframe_opt_modify.tick]>
               - inventory open d:dcutscene_inventory_keyframe_modify_camera
               - ~run dcutscene_cam_keyframe_edit def:edit|<[i].flag[keyframe_opt_modify]>
         #####################################
         ##Option GUI ###########
+        #Add a new camera
         after player clicks dcutscene_add_cam in dcutscene_inventory_keyframe_modify:
         - run dcutscene_cam_keyframe_edit def:new
+        #New location
         after player clicks dcutscene_camera_loc_modify in dcutscene_inventory_keyframe_modify_camera:
         - run dcutscene_cam_keyframe_edit def:edit|new_location
+        #Remove camera
+        after player clicks dcutscene_camera_remove_modify in dcutscene_inventory_keyframe_modify_camera:
+        - run dcutscene_cam_keyframe_edit def:edit|remove_camera
         #######################
         ##Next and Previous Buttons ###
         after player clicks dcutscene_next in dcutscene_inventory_keyframe:
@@ -429,7 +398,7 @@ dcutscene_sub_keyframe_modify:
         - define display "<aqua><bold>Tick <gray><bold><[tick]>t"
         - adjust <[item]> display:<[display]> save:item
         - define item <entry[item].result>
-        - define t_lore "<blue><bold>Keyframe Time <gray><bold><duration[<[time]>].formatted>"
+        - define t_lore "<blue><bold>Main Keyframe Time <gray><bold><duration[<[time]>].formatted>"
         - define s_lore "<green><bold>Tick to seconds <gray><bold><duration[<[tick]>t].in_seconds.round_down_to_precision[0.05]>s"
         - adjust <[item]> lore:<list[<[t_lore]>|<[s_lore]>]> save:item
         - define item <entry[item].result>
@@ -452,6 +421,7 @@ dcutscene_camera_entity:
         invulnerable: true
         gravity: false
 
+#Camera Modifier
 dcutscene_cam_keyframe_edit:
     type: task
     debug: true
@@ -504,7 +474,7 @@ dcutscene_cam_keyframe_edit:
             - define data <[arg]>
             - define modify_loc <item[dcutscene_camera_loc_modify]>
             - choose <[arg]>:
-              #preparation for new location in present camera
+              #preparation for new location in present camera keyframe
               - case new_location:
                 - flag <player> cutscene_modify:create_present_cam expire:120s
                 - spawn dcutscene_camera_entity <player.location> save:camera
@@ -515,7 +485,42 @@ dcutscene_cam_keyframe_edit:
                 - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
                 - adjust <player> gamemode:spectator
                 - inventory close
-              #- case create_new_location:
+              #create the new location in a present camera keyframe
+              - case create_new_location:
+                - flag <player> cutscene_modify:!
+                - adjust <player> gamemode:creative
+                - define camera <player.flag[dcutscene_camera]>
+                - teleport <[camera]> <player.location>
+                - define ray <player.eye_location.ray_trace[range=4;return=precise;default=air]>
+                - look <[camera]> <[ray]> duration:2t
+                - adjust <[camera]> armor_pose:[head=<player.location.pitch.to_radians>,0.0,0.0]
+                #data input
+                - define tick <player.flag[dcutscene_tick_modify]>
+                - define cam_keyframe <player.flag[cutscene_data.keyframes.camera.<[tick]>]>
+                - define cam_keyframe.eye_loc <[ray]>
+                - define cam_keyframe.location <player.location>
+                #fallback should they not exist
+                - define cam_keyframe.interpolation <[cam_keyframe.interpolation]||linear>
+                - define cam_keyframe.rotate <[cam_keyframe.rotate]||true>
+                - define cam_keyframe.move <[cam_keyframe.move]||true>
+                #final data input
+                - define data <player.flag[cutscene_data]>
+                - define name <[data.name]>
+                - define data.keyframes.camera.<[tick]>:<[cam_keyframe]>
+                - flag server dcutscenes.<[name]>:<[data]>
+                - define text "Camera location set to <green><player.location.simple> <gray>and look point <green><[ray].simple><gray> <gray>for keyframe tick <green><[tick]>t<gray>."
+                - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+                - inventory open d:dcutscene_inventory_keyframe_modify_camera
+              #Remove camera from keyframe
+              - case remove_camera:
+                - define tick <player.flag[dcutscene_tick_modify]>
+                - define cam_keyframe <player.flag[cutscene_data.keyframes.camera].deep_exclude[<[tick]>]>
+                - define data <player.flag[cutscene_data]>
+                - define data.keyframes.camera:<[cam_keyframe]>
+                - define name <[data.name]>
+                - flag server dcutscenes.<[name]>:<[data]>
+                - flag <player> cutscene_data:<server.flag[dcutscenes.<[name]>]>
+                - ~run dcutscene_sub_keyframe_modify def:<player.flag[dcutscene_sub_keyframe_back_data]>
           - else:
             - debug error "Could not determine argument for edit option in dcutscene_cam_keyframe_edit"
 ###################################################
@@ -607,7 +612,7 @@ dcutscene_inventory_keyframe_modify_camera:
     gui: true
     slots:
     - [] [] [] [] [] [] [] [] []
-    - [] [] [] [dcutscene_camera_loc_modify] [] [] [] [] []
+    - [] [] [] [dcutscene_camera_loc_modify] [] [dcutscene_camera_remove_modify] [] [] []
     - [] [] [] [] [] [] [] [] []
     - [] [] [] [] [] [] [] [] []
     - [] [] [] [] [] [] [] [] []
