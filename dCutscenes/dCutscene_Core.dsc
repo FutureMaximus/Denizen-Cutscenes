@@ -73,7 +73,7 @@ dcutscene_events:
               - inventory open d:dcutscene_inventory_keyframe_modify_camera
               - ~run dcutscene_cam_keyframe_edit def:edit|<[i].flag[keyframe_opt_modify]>
         #####################################
-        ##Option GUI ###########
+        ##Option GUI events ###########
         #Add a new camera
         after player clicks dcutscene_add_cam in dcutscene_inventory_keyframe_modify:
         - run dcutscene_cam_keyframe_edit def:new
@@ -83,8 +83,12 @@ dcutscene_events:
         #Remove camera
         after player clicks dcutscene_camera_remove_modify in dcutscene_inventory_keyframe_modify_camera:
         - run dcutscene_cam_keyframe_edit def:edit|remove_camera
+        #Teleport to camera
         after player clicks dcutscene_camera_teleport in dcutscene_inventory_keyframe_modify_camera:
         - run dcutscene_cam_keyframe_edit def:teleport
+        after player clicks dcutscene_camera_interp_modify in dcutscene_inventory_keyframe_modify_camera:
+        - ratelimit <player> 0.5s
+        - run dcutscene_cam_keyframe_edit def:edit|interpolation_change|<context.item>|<context.slot>
         #######################
         ##Next and Previous Buttons ###
         after player clicks dcutscene_next in dcutscene_inventory_keyframe:
@@ -108,7 +112,7 @@ dcutscene_events:
 
 ##Core Tasks#######################################
 
-## Procedures ########
+## Tab Completion Procedures ########
 #Tab completion for arguments that can be utilized
 dcutscene_command_list:
     type: procedure
@@ -141,14 +145,14 @@ dcutscene_save_file:
       - foreach <[data]> key:c_id as:cutscene:
         - ~filewrite path:data/dcutscenes/scenes/<[c_id]>.dcutscene.json data:<[cutscene].to_json[native_types=true;indent=4].utf8_encode>
     - else:
-      - define cutscene <[data.<[cutscene]>]||null>
-      - if !<[cutscene].equals[null]>:
-        - define c_id <[cutscene.name]>
+      - define cutscene_data <server.flag[dcutscenes.<[cutscene.name]>]||null>
+      - if !<[cutscene_data].equals[null]>:
+        - define c_id <[cutscene_data.name]>
         - ~filewrite path:data/dcutscenes/scenes/<[c_id]>.dcutscene.json data:<[cutscene].to_json[native_types=true;indent=4].utf8_encode>
       - else:
         - debug error "DCutscenes Invalid cutscene did you type the name correctly?"
 
-#Loading cutscene files in a directory to be usable in other servers
+#Loading cutscene files in a directory
 dcutscene_load_files:
     type: task
     debug: false
@@ -187,18 +191,35 @@ dcutscene_sort_data:
       - define name <[data.name]>
       - define keyframes <[data.keyframes]>
       #Camera Sort
+      - define ticks <list>
       - define keyframes.camera <[keyframes.camera]||null>
       - if <[keyframes.camera]> != null:
         - define keyframes.camera <[keyframes.camera].sort_by_value[get[tick]]>
+        - define highest <[keyframes.camera].keys.highest>
+        - define ticks:->:<[highest]>
+      #Total cutscene length
+      - if !<[ticks].is_empty>:
+        - define animation_length <duration[<[ticks].highest>t].in_seconds>s
+        - define data.length <[animation_length]>
+        - flag server dcutscenes.<[name]>.length:<[data.length]>
       - flag server dcutscenes.<[name]>.keyframes:<[keyframes]>
     - else:
       - if <server.has_flag[dcutscenes]>:
         - foreach <server.flag[dcutscenes]> key:c_id as:cutscene:
+          - define ticks:!
           - define keyframes <[cutscene.keyframes]>
           #Camera sort
+          - define ticks <list>
           - define keyframes.camera <[keyframes.camera]||null>
           - if <[keyframes.camera]> != null:
             - define keyframes.camera <[keyframes.camera].sort_by_value[get[tick]]>
+            - define highest <[keyframes.camera].keys.highest>
+            - define ticks:->:<[highest]>
+          #Total cutscene length
+          - if !<[ticks].is_empty>:
+            - define animation_length <duration[<[ticks].highest>t].in_seconds>s
+            - define data.length <[animation_length]>
+            - flag server dcutscenes.<[c_id]>.length:<[data.length]>
           - flag server dcutscenes.<[c_id]>.keyframes:<[keyframes]>
       - else:
         - debug error "DCutscenes There are no cutscenes to sort!"
@@ -399,6 +420,7 @@ dcutscene_sub_keyframe_modify:
     - flag <player> dcutscene_sub_keyframe_back_data:<[keyframe]>
     - define data <player.flag[cutscene_data]>
     - define keyframes <[data.keyframes]>
+    - define keyframes.camera <[keyframes.camera]||null>
     - inventory open d:dcutscene_inventory_sub_keyframe
     - define inv <player.open_inventory>
     - define time <[keyframe.timespot]>
@@ -409,7 +431,7 @@ dcutscene_sub_keyframe_modify:
         - define item <item[dcutscene_sub_keyframe]>
         - define tick <[tick_min].add[<[loop_i]>]>
         ##camera check ############
-        - if <[keyframes.camera].contains[<[tick]>]>:
+        - if <[keyframes.camera]> != null && <[keyframes.camera].contains[<[tick]>]>:
           - define opt_item <item[dcutscene_camera_keyframe]>
           - define cam_data <[keyframes.camera.<[tick]>]>
           - define cam_loc "<aqua>Location: <gray><location[<[cam_data.location]>].simple>"
@@ -457,7 +479,7 @@ dcutscene_camera_entity:
     entity_type: armor_stand
     mechanisms:
         marker: false
-        visible: false
+        visible: true
         is_small: false
         invulnerable: true
         gravity: false
@@ -466,7 +488,7 @@ dcutscene_camera_entity:
 dcutscene_cam_keyframe_edit:
     type: task
     debug: true
-    definitions: option|arg
+    definitions: option|arg|arg_2|arg_3
     script:
     - define option <[option]||null>
     - define arg <[arg]||null>
@@ -570,7 +592,29 @@ dcutscene_cam_keyframe_edit:
                 - inventory open d:dcutscene_inventory_keyframe_modify_camera
               #Change interpolation method
               - case interpolation_change:
-                - define item 
+                - define arg_2 <[arg_2]||null>
+                - define arg_3 <[arg_3]||null>
+                - if <[arg_2]> != null:
+                  - define item <item[<[arg_2]>]>
+                  - define tick <player.flag[dcutscene_tick_modify]>
+                  - define data <player.flag[cutscene_data]>
+                  - define keyframes <[data.keyframes]>
+                  - define cam_keyframe <[keyframes.camera.<[tick]>]>
+                  - define interp_method <[cam_keyframe.interpolation]>
+                  - choose <[interp_method]>:
+                    - case linear:
+                      - define new_interp_method smooth
+                    - case smooth:
+                      - define new_interp_method linear
+                  - define cam_keyframe.interpolation <[new_interp_method]>
+                  - flag server dcutscenes.<[data.name]>.keyframes.camera.<[tick]>:<[cam_keyframe]>
+                  - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
+                  - define interp_msg "<green><bold>Interpolation: <gray><[new_interp_method].to_uppercase>"
+                  - define click "<gray><italic>Click to modify interpolation method"
+                  - define lore <list[<empty>|<[interp_msg]>|<empty>|<[click]>]>
+                  - inventory adjust d:<player.open_inventory> slot:<[arg_3]> lore:<[lore]>
+                - else:
+                  - debug error "Could not determine item to change for interpolation in dcutscene_cam_keyframe_edit!"
               #Remove camera from keyframe
               - case remove_camera:
                 - define tick <player.flag[dcutscene_tick_modify]>
@@ -585,8 +629,163 @@ dcutscene_cam_keyframe_edit:
             - debug error "Could not determine argument for edit option in dcutscene_cam_keyframe_edit"
 ###################################################
 
-## Cutscene Animator Tasks ########################
-#Shows cutscene paths
+## Cutscene Animator Tasks and Procedures ########################
+
+#Start the cutscene
+dcutscene_animation_begin:
+    type: task
+    debug: false
+    definitions: cutscene
+    script:
+    - define cutscene <server.flag[dcutscenes.<[cutscene]>]||null>
+    - if <[cutscene]> != null:
+      - define keyframes <[cutscene.keyframes]||null>
+      - define length <[cutscene.length]||null>
+      - if <[keyframes]> != null && <[length]> != null:
+        #All cutscenes require a camera or it cannot play
+        - define camera <[keyframes.camera]||null>
+        - if <[camera]> != null:
+          - if <player.has_flag[dcutscene_camera]>:
+            - remove <player.flag[dcutscene_camera]>
+            - flag <player> dcutscene_camera:!
+          - if <player.has_flag[dcutscene_bars]>:
+            - run dcutscene_bars_remove
+          - run dcutscene_bars
+          - cast INVISIBILITY d:100000000000s hide_particles no_ambient no_icon
+          - define uuid <util.random_uuid>
+          - spawn dcutscene_camera_entity <player.location> save:<[uuid]>
+          - define camera_ent <entry[<[uuid]>].spawned_entity>
+          - define m_uuid <util.random_uuid>
+          - spawn dcutscene_camera_entity <player.location> save:<[m_uuid]>
+          - define camera_mount <entry[<[m_uuid]>].spawned_entity>
+          - adjust <[camera_mount]> tracking_range:256
+          - adjust <[camera_ent]> tracking_range:256
+          - mount <player>|<[camera_mount]>
+          - flag <player> dcutscene_camera:<[camera_ent]>
+          #reason for a mount is the camera does not load chunks
+          - flag <player> dcutscene_mount:<[camera_mount]>
+          - define cam_count 0
+          - adjust <player> spectate:<[camera_ent]>
+          - repeat <duration[<[length]>].in_ticks> as:tick:
+            - if <[camera_ent].is_spawned>:
+              - define cam_data <[camera.<[tick]>]||null>
+              - if <[cam_data]> != null && <[cam_count]> < 1:
+                - define cam_count:++
+                - ~run dcutscene_path_move def:<[cutscene.name]>|<[camera_ent]>|camera
+            - else:
+              - stop
+            - wait 1t
+        - else:
+          - debug error "Cutscene <[cutscene]> does not have a camera!"
+    - else:
+      - debug error "Cutscene could not be found."
+
+#Path movement for camera and models
+dcutscene_path_move:
+    type: task
+    debug: false
+    definitions: cutscene|entity|type
+    script:
+    - define cutscene <server.flag[dcutscenes.<[cutscene]>]||null>
+    - if <[cutscene]> != null:
+      - define mount <player.flag[dcutscene_mount]>
+      - define type <[type]||null>
+      - if <[type]> != null:
+        - choose <[type]>:
+          - case camera:
+            - define keyframes <[cutscene.keyframes.camera]>
+      - foreach <[keyframes]> key:c_id as:keyframe:
+        - define interpolation <[keyframe.interpolation]>
+        - define time_1 <[keyframe.tick]>
+        - define loc_1 <location[<[keyframe.location]>]||null>
+        - define rotate <[keyframe.rotate]>
+        - define eye_loc <[keyframe.eye_loc]>
+        - if <[loc_1]> == null:
+          - foreach next
+        #after
+        - foreach <[keyframes]> key:2_id as:2_keyframe:
+          - define compare <[2_keyframe.tick].is_more_than[<[time_1]>]>
+          - if <[compare].equals[true]>:
+            - define time_2 <[2_keyframe.tick]>
+            - define loc_2 <location[<[2_keyframe.location]>]||null>
+            - foreach stop
+        - define loc_2 <[loc_2]||null>
+        - if <[loc_2]> == null:
+          - foreach next
+        - define time <[time_2].sub[<[time_1]>]>
+        - choose <[interpolation]>:
+          - case linear:
+            - repeat <[time]>:
+              - if <[entity].is_spawned>:
+                - define time_index <[value]>
+                - if <[time_index]> < <[time]>:
+                  - define time_percent <[time_index].div[<[time]>]>
+                  #Lerp calc
+                  - define data <[loc_2].as_location.sub[<[loc_1]>].mul[<[time_percent]>].add[<[loc_1]>]>
+                - else:
+                  - define data <[loc_2].as_location>
+                - if <[rotate].equals[false]>:
+                  - look <[entity]> <[data]> duration:1t
+                  - teleport <[entity]> <[data].with_yaw[<[eye_loc].yaw>].with_pitch[<[eye_loc].pitch>]>
+                  - teleport <[mount]> <[data].with_yaw[<[eye_loc].yaw>].with_pitch[<[eye_loc].pitch>].below[2]>
+              - else:
+                - stop
+              - wait 1t
+          - case smooth:
+            #after extra
+            - foreach <[keyframes]> key:a_e_id as:a_e_keyframe:
+              - define compare <[a_e_keyframe.tick].is_more_than[<[time_2]>]>
+              - if <[compare].equals[true]>:
+                - define loc_2_after <[a_e_keyframe.location]>
+                - foreach stop
+            - define loc_2_after <[loc_2_after]||<[loc_2]>>
+            #before extra
+            - define list <list>
+            - foreach <[keyframes]> key:b_e_id as:b_e_keyframe:
+              - define compare <[b_e_keyframe.tick].is_less_than[<[time_1]>]>
+              - if <[compare].equals[true]>:
+                - define list:->:<[b_e_keyframe]>
+            - if <[list].is_empty>:
+              - define list:->:<[keyframe]>
+            - define loc_1_prev <[list].last.get[location]||null>
+            - repeat <[time]>:
+              - if <[entity].is_spawned>:
+                - define time_index <[value]>
+                - if <[time_index]> < <[time]>:
+                  - define time_percent <[time_index].div[<[time]>]>
+                  - define p0 <[loc_1_prev].as_location>
+                  - define p1 <[loc_1].as_location>
+                  - define p2 <[loc_2].as_location>
+                  - define p3 <[loc_2_after].as_location>
+                  #Catmullrom calc
+                  - define data <proc[dcutscene_catmullrom_proc].context[<[p0]>|<[p1]>|<[p2]>|<[p3]>|<[time_percent]>]>
+                - else:
+                  - define data <[loc_2_after].as_location>
+                - if <[rotate].equals[false]>:
+                  - look <[entity]> <[data]> duration:1t
+                  - teleport <[entity]> <[data].with_yaw[<[eye_loc].yaw>].with_pitch[<[eye_loc].pitch>]>
+                  - teleport <[mount]> <[data].with_yaw[<[eye_loc].yaw>].with_pitch[<[eye_loc].pitch>].below[2]>
+              - else:
+                - stop
+              - wait 1t
+          - default:
+            - foreach next
+      - run dcutscene_animation_stop
+
+#Stops the animation from processing further
+dcutscene_animation_stop:
+    type: task
+    debug: false
+    script:
+    - adjust <player> spectate:<player>
+    - cast INVISIBILITY remove
+    - run dcutscene_bars_remove
+    - remove <player.flag[dcutscene_camera]>
+    - remove <player.flag[dcutscene_mount]>
+    - flag <player> dcutscene_camera:!
+    - flag <player> dcutscene_mount:!
+
+#Shows cutscene paths in editor mode
 dcutscene_path_show:
     type: task
     debug: false
@@ -615,13 +814,14 @@ dcutscene_path_show:
             - define path <proc[dcutscene_path_creator].context[<[loc_1]>|<[loc_2]>|linear|<[time]>]>
             - if <[path]> != null:
               - foreach <[path]> as:point:
+                #for some optimization it should only play when the player is facing the location and is within range
                 - if <player.location.facing[<[point]>].degrees[60]> && <player.location.distance[<[point]>]> <= <[dist].mul[2.5]>:
                   - define p_2 <[path].get[<[loop_index].add[1]>]||<[point]>>
                   - define p_loc <location[<[point]>].points_between[<[p_2]>].distance[1]>
                   - if !<[p_loc].is_empty>:
                     - foreach <[p_loc]> as:p_b:
                       - if <player.location.facing[<[p_b]>].degrees[60]> && <player.location.distance[<[p_b]>]> <= <[dist].mul[2.5]>:
-                        - playeffect effect:glow_squid_ink at:<[p_b]> offset:0,0,0 visibility:<[dist]> targets:<player>
+                        - playeffect effect:barrier at:<[p_b]> offset:0,0,0 visibility:<[dist]> targets:<player>
           #Catmullrom Interpolation
           - case smooth:
             #after & time 2
@@ -652,9 +852,10 @@ dcutscene_path_show:
             - define time <[time_2].sub[<[time_1]>]>
             - define path <proc[dcutscene_path_creator].context[<[loc_1]>|<[loc_2]>|smooth|<[time]>|<[loc_1_prev]>|<[loc_2_after]>]||null>
             - if <[path]> != null:
+              #reason for not using points between here is it was very performance heavy but this still gets the job done on demonstrating the spline curve
               - foreach <[path]> as:point:
                 - if <player.location.facing[<[point]>].degrees[60]> && <player.location.distance[<[point]>]> <= <[dist].mul[2.5]>:
-                  - playeffect effect:glow_squid_ink at:<[point]> offset:0,0,0 visibility:<[dist]> targets:<player>
+                  - playeffect effect:barrier at:<[point]> offset:0,0,0 visibility:<[dist]> targets:<player>
           - default:
             - debug error "Could not determine interpolation type in dcutscene_path_show"
     - else:
@@ -675,9 +876,11 @@ dcutscene_path_creator:
             - define time_index <[value]>
             - if <[time_index]> < <[time]>:
               - define time_percent <[time_index].div[<[time]>]>
+              #Lerp calc
               - define data <[loc_2].as_location.sub[<[loc_1]>].mul[<[time_percent]>].add[<[loc_1]>]>
             - else:
               - define data <[loc_2].as_location>
+            #Input data to path list
             - define points:->:<[data]>
           - determine <[points]||<empty>>
         #Catmullrom Interpolation
@@ -690,6 +893,7 @@ dcutscene_path_creator:
               - define p1 <[loc_1].as_location>
               - define p2 <[loc_2].as_location>
               - define p3 <[loc_2_after].as_location>
+              #Catmullrom calc
               - define data <proc[dcutscene_catmullrom_proc].context[<[p0]>|<[p1]>|<[p2]>|<[p3]>|<[time_percent]>]>
             - else:
               - define data <[loc_2_after].as_location>
@@ -738,6 +942,30 @@ dcutscene_catmullrom_proc:
     - define b2 <[a2].mul[<[t3].sub[<[t]>].div[<[t3].sub[<[t1]>]>]>].add[<[a3].mul[<[t].sub[<[t1]>].div[<[t3].sub[<[t1]>]>]>]>]>
     # FVector C  = ( t2-t )/( t2-t1 )*B1 + ( t-t1 )/( t2-t1 )*B2;
     - determine <[b1].mul[<[t2].sub[<[t]>].div[<[t2].sub[<[t1]>]>]>].add[<[b2].mul[<[t].sub[<[t1]>].div[<[t2].sub[<[t1]>]>]>]>]>
+
+dcutscene_bars:
+    type: task
+    debug: false
+    script:
+    - define script <script[dcutscenes_config].data_key[config]>
+    - define bool <[script.use_cutscene_black_bars]||null>
+    - if <[bool].equals[true]> || null:
+      - define top <[script.cutscene_black_bar_top]>
+      - define bottom <[script.cutscene_black_bar_bottom]>
+      - define uuid <util.random_uuid>
+      - bossbar create players:<player> id:<[uuid]> title:<[top]> color:BLUE
+      - flag <player> dcutscene_bars:<[uuid]>
+      - while <player.has_flag[dcutscene_bars]>:
+        - actionbar <[bottom]> targets:<player>
+        - wait 1.2s
+
+dcutscene_bars_remove:
+    type: task
+    debug: false
+    script:
+    - bossbar remove id:<player.flag[dcutscene_bars]> players:<player>
+    - flag <player> dcutscene_bars:!
+    - actionbar <empty> targets:<player>
 ###################################################
 ##Cutscene Inventories (In case your wondering why so many inventories it's just easier to manage)###################
 #Main dcutscene gui
@@ -770,7 +998,7 @@ dcutscene_inventory_scene:
     - [] [] [dcutscene_keyframes_list] [] [] [] [dcutscene_settings] [] []
     - [] [] [] [] [] [] [] [] []
     - [] [] [] [] [] [] [] [] []
-    - [dcutscene_back_page] [] [] [] [] [] [dcutscene_save_file_item] [] [dcutscene_exit]
+    - [dcutscene_back_page] [] [] [] [dcutscene_play_cutscene_item] [] [dcutscene_save_file_item] [] [dcutscene_exit]
 
 #Scene keyframes
 dcutscene_inventory_keyframe:
@@ -813,7 +1041,7 @@ dcutscene_inventory_keyframe_modify:
     - [] [] [] [] [] [] [] [] []
     - [] [] [dcutscene_add_cam] [dcutscene_add_sound] [dcutscene_add_entity] [dcutscene_add_model] [dcutscene_add_player_model] [] []
     - [] [] [dcutscene_add_run_task] [dcutscene_add_fake_structure] [dcutscene_add_screeneffect] [dcutscene_add_particle] [dcutscene_send_title] [] []
-    - [] [] [] [] [] [] [] [] []
+    - [] [] [dcutscene_play_command] [dcutscene_send_time] [] [] [] [] []
     - [] [] [] [] [] [] [] [] []
     - [dcutscene_back_page] [] [] [] [] [] [] [] [dcutscene_exit]
 
@@ -826,11 +1054,11 @@ dcutscene_inventory_keyframe_modify_camera:
     gui: true
     slots:
     - [] [] [] [] [] [] [] [] []
-    - [] [] [] [dcutscene_camera_loc_modify] [] [dcutscene_camera_remove_modify] [] [] []
+    - [] [] [] [dcutscene_camera_loc_modify] [] [] [] [] []
     - [] [] [] [] [] [] [] [] []
-    - [] [] [] [dcutscene_camera_teleport] [] [] [] [] []
+    - [] [] [] [dcutscene_camera_teleport] [] [dcutscene_camera_interp_modify] [] [] []
     - [] [] [] [] [] [] [] [] []
-    - [dcutscene_back_page] [] [] [] [] [] [] [] [dcutscene_exit]
+    - [dcutscene_back_page] [] [] [] [dcutscene_camera_remove_modify] [] [] [] [dcutscene_exit]
 ####################################################
 
 ##################################################################################
