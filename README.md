@@ -1,4 +1,4 @@
-# Denizen-Cutscenes
+# Denizen Cutscenes
 
 The ultimate cutscene tool.
 
