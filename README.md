@@ -7,6 +7,7 @@ The ultimate cutscene tool.
 Denizen Cutscenes is a very powerful cutscene tool with many features. The goal is to allow as much creative freedom as possible while at the same time making it simple to create cutscenes.
 
 **What can it do?**
+
 Anything! You can run your own tasks in keyframes useful for something like a scene of an animated crate and giving the player rewards with run task give_rewards.
 
 There are features that are built in of course these include:
@@ -26,10 +27,12 @@ There are features that are built in of course these include:
 All of these features contain extra options to modify them to your liking.
 
 **What is the path system?**
+
 The path system is what allows your camera to move including models and entities you can see the path you created in editor mode.
 There are 2 methods of interpolation for your path which is linear and smooth.
 
 **What's the difference between linear and smooth?**
+
 Linear as the name describes is a straight line while smooth is a spline curve.
 
 **Linear Interpolation**
