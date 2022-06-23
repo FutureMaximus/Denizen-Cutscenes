@@ -1,6 +1,5 @@
 # Denizen Cutscenes
 
-The ultimate cutscene tool.
 
 **What is Denizen Cutscenes?**
 
