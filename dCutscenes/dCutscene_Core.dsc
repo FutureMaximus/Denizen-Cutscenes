@@ -1,7 +1,14 @@
-#Denizen Cutscenes tasks
+#Denizen Cutscenes Core
 #This is required for DCutscenes to function.
 
-##Core Tasks for DCutscenes ###################################################
+##Contents:
+#Events
+#Tab Completion Procedures
+#Data Operations
+#GUI Tasks
+#Keyframe Modify Tasks
+#Animator Tasks
+#GUI Script Containers
 
 ##Cutscene Events#######
 dcutscene_events:
@@ -22,6 +29,11 @@ dcutscene_events:
         ##Misc #################
         after player clicks dcutscene_exit in inventory:
         - inventory close
+        ##Right click for location input in keyframe modifier##
+        after player right clicks block flagged:cutscene_modify:
+        - choose <player.flag[cutscene_modify]>:
+          - case sound_location:
+            - run dcutscene_animator_keyframe_edit def:sound|set_location|<context.location>
         ##Tab completion ############
         after tab complete flagged:cutscene_modify:
         - choose <context.current_arg>:
@@ -36,18 +48,46 @@ dcutscene_events:
           - determine passively cancelled
           - stop
         - choose <player.flag[cutscene_modify]>:
+          #New cutscene name
           - case new_name:
             - run dcutscene_new_scene def:name|<[msg]>
+          #Modify name for present cutscene
           - case name:
             - define name
+          #Modify description for present cutscene
           - case desc:
             - define desc
+          #Create new camera modifier
           - case create_cam:
             - if <[msg]> == confirm:
               - run dcutscene_cam_keyframe_edit def:create
+          #Modify present camera in keyframe
           - case create_present_cam:
             - if <[msg]> == confirm:
               - run dcutscene_cam_keyframe_edit def:edit|create_new_location
+          #Input new volume for sound modifier
+          - case sound_volume:
+            - run dcutscene_animator_keyframe_edit def:sound|set_volume|<[msg]>
+          #Input new pitch for sound modifier
+          - case sound_pitch:
+            - run dcutscene_animator_keyframe_edit def:sound|set_pitch|<[msg]>
+          #Input new sound location based on player location
+          - case sound_location:
+            - if <[msg]> == confirm:
+              - run dcutscene_animator_keyframe_edit def:sound|set_location|<player.location>
+            - else if <[msg]> == false:
+              - run dcutscene_animator_keyframe_edit def:sound|set_location|false
+            - else:
+              - run dcutscene_animator_keyframe_edit def:sound|set_location|<[msg]>
+          #Create new screeneffect modifier
+          - case screeneffect:
+            - run dcutscene_animator_keyframe_edit def:screeneffect|create|<[msg]>
+          #Set new time
+          - case screeneffect_time:
+            - run dcutscene_animator_keyframe_edit def:screeneffect|set_time|<[msg]>
+          #Set new color
+          - case screeneffect_color:
+            - run dcutscene_animator_keyframe_edit def:screeneffect|set_color|<[msg]>
         - determine cancelled
         ###########################
         ##Keyframe GUI ####################
@@ -65,6 +105,7 @@ dcutscene_events:
           - flag <player> sub_keyframe_tick_page:0
           - inventory open d:dcutscene_inventory_sub_keyframe
           - ~run dcutscene_sub_keyframe_modify def:<[i].flag[keyframe_data]>
+        #Present animators to modify
         after player clicks item in dcutscene_inventory_sub_keyframe:
         - define i <context.item>
         #New keyframe modifier
@@ -75,10 +116,18 @@ dcutscene_events:
         - else if <[i].has_flag[keyframe_opt_modify]>:
           #Modify type
           - choose <[i].flag[keyframe_opt_modify.type]>:
+            #Camera type
             - case camera:
               - flag <player> dcutscene_tick_modify:<[i].flag[keyframe_opt_modify.tick]>
               - inventory open d:dcutscene_inventory_keyframe_modify_camera
-              - ~run dcutscene_cam_keyframe_edit def:edit|<[i].flag[keyframe_opt_modify]>
+            #Sound type
+            - case sound:
+              - flag <player> dcutscene_tick_modify:<[i].flag[keyframe_opt_modify]>
+              - inventory open d:dcutscene_inventory_keyframe_modify_sound
+            #Screeneffect
+            - case screeneffect:
+              - flag <player> dcutscene_tick_modify:<[i].flag[keyframe_opt_modify]>
+              - inventory open d:dcutscene_inventory_keyframe_modify_screeneffect
         #Scroll up
         on player clicks dcutscene_scroll_up in dcutscene_inventory_sub_keyframe:
         - if !<player.has_flag[sub_keyframe_tick_page]>:
@@ -120,11 +169,39 @@ dcutscene_events:
         after player clicks dcutscene_camera_move_modify in dcutscene_inventory_keyframe_modify_camera:
         - ratelimit <player> 0.5s
         - run dcutscene_cam_keyframe_edit def:edit|move_change|<context.item>|<context.slot>
-        #############
         ##Sound #####
+        #Add new sound
         after player clicks dcutscene_add_sound in dcutscene_inventory_keyframe_modify:
         - run dcutscene_animator_keyframe_edit def:sound|new
-        #############
+        #New volume
+        after player clicks dcutscene_sound_volume_modify in dcutscene_inventory_keyframe_modify_sound:
+        - run dcutscene_animator_keyframe_edit def:sound|new_volume
+        #New pitch
+        after player clicks dcutscene_sound_pitch_modify in dcutscene_inventory_keyframe_modify_sound:
+        - run dcutscene_animator_keyframe_edit def:sound|new_pitch
+        #Determine custom
+        after player clicks dcutscene_sound_custom_modify in dcutscene_inventory_keyframe_modify_sound:
+        - run dcutscene_animator_keyframe_edit def:sound|set_custom|<context.item>|<context.slot>
+        #New location
+        after player clicks dcutscene_sound_loc_modify in dcutscene_inventory_keyframe_modify_sound:
+        - run dcutscene_animator_keyframe_edit def:sound|new_location
+        #Remove sound
+        after player clicks dcutscene_sound_remove_modify in dcutscene_inventory_keyframe_modify_sound:
+        - run dcutscene_animator_keyframe_edit def:sound|remove_sound
+        ##Cinematic Screeneffect #####
+        #Add new cinematic screeneffect
+        after player clicks dcutscene_add_screeneffect in dcutscene_inventory_keyframe_modify:
+        - run dcutscene_animator_keyframe_edit def:screeneffect|new
+        #Set cinematic screeneffect time for present modifier
+        after player clicks dcutscene_screeneffect_time_modify in dcutscene_inventory_keyframe_modify_screeneffect:
+        - run dcutscene_animator_keyframe_edit def:screeneffect|new_time
+        #Set cinematic screeneffect color for present modifier
+        after player clicks dcutscene_screeneffect_color_modify in dcutscene_inventory_keyframe_modify_screeneffect:
+        - run dcutscene_animator_keyframe_edit def:screeneffect|new_color
+        #Remove cinematic screeneffect
+        after player clicks dcutscene_screeneffect_remove_modify in dcutscene_inventory_keyframe_modify_screeneffect:
+        - run dcutscene_animator_keyframe_edit def:screeneffect|remove
+        #################################
         ##Next and Previous Buttons ###
         after player clicks dcutscene_next in dcutscene_inventory_keyframe:
         - ~run dcutscene_keyframe_modify def:next
@@ -139,6 +216,12 @@ dcutscene_events:
         after player clicks dcutscene_back_page in dcutscene_inventory_scene:
         - ~run dcutscene_scene_show
         after player clicks dcutscene_back_page in dcutscene_inventory_keyframe_modify_camera:
+        - inventory open d:dcutscene_inventory_sub_keyframe
+        - ~run dcutscene_sub_keyframe_modify def:<player.flag[dcutscene_sub_keyframe_back_data]>
+        after player clicks dcutscene_back_page in dcutscene_inventory_keyframe_modify_sound:
+        - inventory open d:dcutscene_inventory_sub_keyframe
+        - ~run dcutscene_sub_keyframe_modify def:<player.flag[dcutscene_sub_keyframe_back_data]>
+        after player clicks dcutscene_back_page in dcutscene_inventory_keyframe_modify_screeneffect:
         - inventory open d:dcutscene_inventory_sub_keyframe
         - ~run dcutscene_sub_keyframe_modify def:<player.flag[dcutscene_sub_keyframe_back_data]>
         after player clicks dcutscene_back_page in dcutscene_inventory_keyframe_modify:
@@ -161,7 +244,7 @@ dcutscene_command_list:
 #Tab completion for list of cutscenes
 dcutscene_data_list:
     type: procedure
-    debug: true
+    debug: false
     definitions: player
     script:
     - if <[player].has_flag[cutscene_modify]>:
@@ -231,16 +314,25 @@ dcutscene_sort_data:
     script:
     - define cutscene <[cutscene]||null>
     - if <[cutscene]> != null:
-      - define data <server.flag[dcutscenes.<[cutscene]>]>
+      - define data <server.flag[dcutscenes.<[cutscene]>]||null>
+      - if <[data]> == null:
+        - debug error "Invalid cutscene <[cutscene]> in dcutscene_sort_data."
+        - stop
       - define name <[data.name]>
       - define keyframes <[data.keyframes]>
-      #Camera Sort
-      - define ticks <list>
-      - define keyframes.camera <[keyframes.camera]||null>
-      - if <[keyframes.camera]> != null:
-        - define keyframes.camera <[keyframes.camera].sort_by_value[get[tick]]>
-        - define highest <[keyframes.camera].keys.highest>
-        - define ticks:->:<[highest]>
+      #Camera
+      - define camera <[keyframes.camera].sort_by_value[get[tick]]||null>
+      - if <[camera]> != null:
+        - define keyframes.camera <[camera]>
+      #Screeneffect
+      - define screeneffect <[keyframes.screeneffect].sort_by_value[get[tick]]||null>
+      - if <[screeneffect]> != null:
+        - define keyframes.screeneffect <[screeneffect]>
+      #Sound
+      - define sound <[keyframes.sound].sort_by_value[get[tick]]||null>
+      - if <[sound]> != null:
+        - define keyframes.sound <[sound]>
+      - define ticks <proc[dcutscene_animation_length].context[<[cutscene]>]>
       #Total cutscene length
       - if !<[ticks].is_empty>:
         - define animation_length <duration[<[ticks].highest>t].in_seconds>s
@@ -252,13 +344,19 @@ dcutscene_sort_data:
         - foreach <server.flag[dcutscenes]> key:c_id as:cutscene:
           - define ticks:!
           - define keyframes <[cutscene.keyframes]>
-          #Camera sort
-          - define ticks <list>
-          - define keyframes.camera <[keyframes.camera]||null>
-          - if <[keyframes.camera]> != null:
-            - define keyframes.camera <[keyframes.camera].sort_by_value[get[tick]]>
-            - define highest <[keyframes.camera].keys.highest>
-            - define ticks:->:<[highest]>
+          #Camera
+          - define camera <[keyframes.camera].sort_by_value[get[tick]]||null>
+          - if <[camera]> != null:
+            - define keyframes.camera <[camera]>
+          #Screeneffect
+          - define screeneffect <[keyframes.screeneffect].sort_by_value[get[tick]]||null>
+          - if <[screeneffect]> != null:
+            - define keyframes.screeneffect <[screeneffect]>
+          #Sound
+          - define sound <[keyframes.sound].sort_by_value[get[tick]]||null>
+          - if <[sound]> != null:
+            - define keyframes.sound <[sound]>
+          - define ticks <proc[dcutscene_animation_length].context[<[c_id]>]>
           #Total cutscene length
           - if !<[ticks].is_empty>:
             - define animation_length <duration[<[ticks].highest>t].in_seconds>s
@@ -267,6 +365,41 @@ dcutscene_sort_data:
           - flag server dcutscenes.<[c_id]>.keyframes:<[keyframes]>
       - else:
         - debug error "DCutscenes There are no cutscenes to sort!"
+
+#Returns total animation length of cutscene
+dcutscene_animation_length:
+    type: procedure
+    debug: false
+    definitions: cutscene
+    script:
+    - define data <server.flag[dcutscenes.<[cutscene]>]>
+    - define keyframes <[data.keyframes]>
+    #Camera
+    - define ticks <list>
+    - define cam_keyframes <[keyframes.camera]||null>
+    - if <[cam_keyframes]> != null:
+      - define highest <[cam_keyframes].keys.highest>
+      - define ticks:->:<[highest]>
+    #Screeneffect
+    - define effect_keyframes <[keyframes.screeneffect]||null>
+    - if <[effect_keyframes]> != null:
+      - define highest <[effect_keyframes].keys.highest>
+      - define ticks:->:<[highest]>
+    #Sound
+    - define sound_keyframes <[keyframes.sound]||null>
+    - if <[sound_keyframes]> != null:
+      - define highest <[cam_keyframes].keys.highest>
+      - define ticks:->:<[highest]>
+    - determine <[ticks]>
+
+#Removes any corrupt data
+dcutscene_validate_data:
+    type: task
+    debug: false
+    definitions: cutscene
+    script:
+    - define data lol
+
 #############################
 
 ## GUI Tasks ################
@@ -309,8 +442,7 @@ dcutscene_new_scene:
         - define arg <[arg]||null>
         - if <[arg].equals[null]>:
           - stop
-        - define search <server.flag[dcutscenes]>
-        - define search <[search.<[arg]>]||null>
+        - define search <server.flag[dcutscenes.<[arg]>]||null>
         - if !<[search].equals[null]>:
           - define text "A cutscene with the name <underline><[arg]> <gray>already exists!"
           - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
@@ -338,7 +470,7 @@ dcutscene_keyframe_modify:
     script:
     - define data <player.flag[cutscene_data]>
     - define keyframes <[data.keyframes]>
-    #slots in inventory
+    #max adjustable slots in inventory
     - define max 45
     #0.45 = 9 ticks because 9 slots for a row
     - if !<player.has_flag[keyframe_modify_index]>:
@@ -413,6 +545,12 @@ dcutscene_keyframe_modify:
             - foreach <[camera]> key:tick as:camera:
               - define text "<aqua>Camera on tick <green><[tick]>t <aqua>at location <green><[camera.location].simple>"
               - define lore_list:->:<[text]>
+          #Screeneffect
+          - define screeneffect <[keyframe_data.screeneffect]||null>
+          - if <[screeneffect]> != null:
+            - foreach <[screeneffect]> key:tick as:screeneffect:
+              - define text "<aqua>Cinematic Screeneffect on tick <green><[tick]>t"
+              - define lore_list:->:<[text]>
           #Sound
           - define sounds <[keyframe_data.sound]||null>
           - if <[sounds]> != null:
@@ -462,6 +600,10 @@ dcutscene_keyframe_calculate:
       - define cam_search <[keyframes.camera.<[tick]>]||null>
       - if <[cam_search]> != null:
         - define tick_map.camera.<[tick]> <[cam_search]>
+      #Screeneffect Search
+      - define screeneffect_search <[keyframes.elements.screeneffect.<[tick]>]||null>
+      - if <[screeneffect_search]> != null:
+        - define tick_map.screeneffect.<[tick]> <[screeneffect_search]>
       #Sound Search
       - define sound_search <[keyframes.elements.sound.<[tick]>.sounds]||null>
       - if <[sound_search]> != null:
@@ -543,6 +685,38 @@ dcutscene_sub_keyframe_modify:
             - flag <[add_item]> keyframe_modify:<[tick]>
             - inventory set d:<[inv]> o:<[add_item]> slot:<[loop_i].add[<[tick_column]>]>
         ##Animators check ##########
+        ##Screeneffect
+        - define screeneffect <[elements.screeneffect.<[tick]>]||null>
+        - if <[screeneffect]> != null:
+          - define opt_item <item[dcutscene_screeneffect_keyframe]>
+          - define tick_index <[tick_index].add[1]>
+          - define tick_row:++
+          #Only 4 rows
+          - if <[tick_row]> > 4:
+            - define tick_row:1
+          - if <[tick_index]> > <[tick_page]>:
+            - define fade_in "<aqua>Fade in: <gray><[screeneffect.fade_in].in_seconds||0>s"
+            - define stay "<aqua>Stay: <gray><[screeneffect.stay].in_seconds||0>s"
+            - define fade_out "<aqua>Fade out: <gray><[screeneffect.fade_out].in_seconds||0>s"
+            - define color "<aqua>Color: <gray><[screeneffect.color]||black>"
+            - define effect_time "<aqua>Time: <gray><[tick]>t"
+            - define modify "<gray><italic>Click to modify screeneffect"
+            - define effect_lore <list[<empty>|<[fade_in]>|<[stay]>|<[fade_out]>|<[color]>|<[effect_time]>|<empty>|<[modify]>]>
+            - adjust <[opt_item]> lore:<[effect_lore]> save:item
+            - define opt_item <entry[item].result>
+            #Data to pass through for use of modifying the sound modifier
+            - define modify_data.type screeneffect
+            - define modify_data.tick <[tick]>
+            - define modify_data.data <[screeneffect]>
+            - flag <[opt_item]> keyframe_opt_modify:<[modify_data]>
+            #GUI placement calculation for tick row
+            - if <[tick_index]> <= <[tick_page_max]>:
+              - inventory set d:<[inv]> o:<[opt_item]> slot:<[loop_i].add[<[tick_column].mul[<[tick_row]>]>]>
+              - define add_slot <[loop_i].add[<[tick_column].mul[<[tick_row]>]>].add[9]>
+              - if <[add_slot]> < 46:
+                - define add_item <item[dcutscene_keyframe_tick_add]>
+                - flag <[add_item]> keyframe_modify:<[tick]>
+                - inventory set d:<[inv]> o:<[add_item]> slot:<[add_slot]>
         ##sound
         - define sound <[elements.sound.<[tick]>]||null>
         - if <[sound]> != null:
@@ -553,24 +727,25 @@ dcutscene_sub_keyframe_modify:
           - foreach <[sound_list]> as:sound_id:
             - define tick_index <[tick_index].add[1]>
             - define tick_row:++
-            #Only 4 rows
             - if <[tick_row]> > 4:
               - define tick_row:1
             - if <[tick_index]> > <[tick_page]>:
               - define data <[elements.sound.<[tick]>.<[sound_id]>]>
               - define sound_name "<aqua>Sound: <gray><[data.sound]>"
-              - define sound_loc "<aqua>Location: <gray><[data.location]>"
+              - define sound_loc "<aqua>Location: <gray><[data.location].simple||false>"
               - define sound_vol "<aqua>Volume: <gray><[data.volume]>"
               - define sound_pitch "<aqua>Pitch: <gray><[data.pitch]>"
               - define sound_custom "<aqua>Custom: <gray><[data.custom]>"
+              - define sound_time "<aqua>Time: <gray><[tick]>t"
               - define modify "<gray><italic>Click to modify sound"
-              - define sound_lore <list[<empty>|<[sound_name]>|<[sound_loc]>|<[sound_vol]>|<[sound_pitch]>|<[sound_custom]>|<empty>|<[modify]>]>
+              - define sound_lore <list[<empty>|<[sound_name]>|<[sound_loc]>|<[sound_vol]>|<[sound_pitch]>|<[sound_custom]>|<[sound_time]>|<empty>|<[modify]>]>
               - adjust <[opt_item]> lore:<[sound_lore]> save:item
               - define opt_item <entry[item].result>
               #Data to pass through for use of modifying the sound modifier
               - define modify_data.type sound
               - define modify_data.tick <[tick]>
               - define modify_data.data <[data]>
+              - define modify_data.uuid <[sound_id]>
               - flag <[opt_item]> keyframe_opt_modify:<[modify_data]>
               #GUI placement calculation for tick row
               - if <[tick_index]> <= <[tick_page_max]>:
@@ -666,7 +841,7 @@ dcutscene_cam_keyframe_edit:
           - define cam_keyframe.tick <[tick]>
           - look <[camera]> <[ray]> duration:2t
           - adjust <[camera]> armor_pose:[head=<player.location.pitch.to_radians>,0.0,0.0]
-          - define text "Camera location set to <green><player.location.simple> <gray>and look point <green><[ray].simple><gray> <gray>for keyframe tick <green><[tick]>t <gray>in scene <green><[name]><gray>."
+          - define text "Camera location set to <green><player.location.simple> <gray>and look point <green><[ray].simple><gray> <gray>for keyframe tick <green><[tick]>t <gray>for scene <green><[name]><gray>."
           - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
           - define data.keyframes.camera.<[tick]>:<[cam_keyframe]>
           - flag server dcutscenes.<[name]>:<[data]>
@@ -801,15 +976,15 @@ dcutscene_cam_keyframe_edit:
 ############################
 
 ##Regular Animators #################
-#List of animators
-#- Sound
-#- Particle
-#- Title
-#- Cinematic Screeneffect
-#- Fake block or schematic
-#- Send command to player or console
-#- Run a custom task
-#- Set the time for the player
+#List of animators (Type List means there can be multiple of the same animator in 1 tick Type Once means there can only be 1 per tick)
+#- Sound TYPE: List
+#- Particle TYPE: List
+#- Title TYPE: Once
+#- Cinematic Screeneffect TYPE: Once
+#- Fake block or schematic TYPE: List
+#- Send command to player or console TYPE: List
+#- Run a custom task TYPE: List
+#- Set the time for the player TYPE: Once
 
 #Modify regular animators in cutscenes (Regular animators are things that play only once and do not use the path system such as the camera)
 dcutscene_animator_keyframe_edit:
@@ -826,7 +1001,110 @@ dcutscene_animator_keyframe_edit:
       - define keyframes <[data.keyframes.elements]>
       - define scene_name <[data.name]>
       - choose <[option]>:
-        #Sound Modifier
+        ## Cinematic Screeneffect Modifier #####
+        - case screeneffect:
+          - choose <[arg]>:
+            #Prepare for new screeneffect
+            - case new:
+              - flag <player> cutscene_modify:screeneffect expire:2m
+              - define text "Chat the screeneffect fade in, stay, and fade out like this <green>1s,5s,2s<gray>."
+              - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+              - inventory close
+            #Create new screeneffect
+            - case create:
+              - define arg_2 <[arg_2]||null>
+              - if <[arg_2]> != null:
+                - define split <[arg_2].split[,]>
+                - define fade_in <duration[<[split].get[1]>]||null>
+                - define stay <duration[<[split].get[2]>]||null>
+                - define fade_out <duration[<[split].get[3]>]||null>
+                - if <[fade_in]> != null && <[stay]> != null && <[fade_out]> != null:
+                  - flag <player> cutscene_modify:!
+                  - define tick <player.flag[dcutscene_tick_modify]>
+                  - define data <player.flag[cutscene_data]>
+                  - define keyframes.screeneffect.<[tick]>
+                  - define keyframes.screeneffect.<[tick]>.fade_in <[fade_in]>
+                  - define keyframes.screeneffect.<[tick]>.stay <[stay]>
+                  - define keyframes.screeneffect.<[tick]>.fade_out <[fade_out]>
+                  - define keyframes.screeneffect.<[tick]>.color black
+                  - flag server dcutscenes.<[data.name]>.keyframes.elements:<[keyframes]>
+                  - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
+                  - ~run dcutscene_sort_data def:<[data.name]>
+                  - inventory open d:dcutscene_inventory_sub_keyframe
+                  - ~run dcutscene_sub_keyframe_modify def:<player.flag[dcutscene_sub_keyframe_back_data]>
+                  - define text "Cinematic Screeneffect created at tick <green><[tick]>t <gray>in scene <green><[data.name]><gray>."
+                  - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+                - else:
+                  - define text "Invalid input to specify fade in, stay, and fade out chat it like this <green>1s,5s,1s<gray>."
+                  - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+            #Prepare for presently new screeneffect time
+            - case new_time:
+              - flag <player> cutscene_modify:screeneffect_time expire:2m
+              - define text "Chat the screeneffect fade in, stay, and fade out like this <green>1s,5s,2s<gray>."
+              - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+              - inventory close
+            #Set the new time
+            - case set_time:
+              - define arg_2 <[arg_2]||null>
+              - if <[arg_2]> != null:
+                - define split <[arg_2].split[,]>
+                - define fade_in <duration[<[split].get[1]>]||null>
+                - define stay <duration[<[split].get[2]>]||null>
+                - define fade_out <duration[<[split].get[3]>]||null>
+                - if <[fade_in]> != null && <[stay]> != null && <[fade_out]> != null:
+                  - flag <player> cutscene_modify:!
+                  - define tick <player.flag[dcutscene_tick_modify.tick]>
+                  - define data <player.flag[cutscene_data]>
+                  - define keyframe <[data.keyframes.elements.screeneffect.<[tick]>]>
+                  - define keyframe.fade_in <[fade_in]>
+                  - define keyframe.stay <[stay]>
+                  - define keyframe.fade_out <[fade_out]>
+                  - flag server dcutscenes.<[data.name]>.keyframes.elements.screeneffect.<[tick]>:<[keyframe]>
+                  - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
+                  - ~run dcutscene_sort_data def:<[data.name]>
+                  - define text "New cinematic screeneffect time created at tick <green><[tick]>t <gray>in scene <green><[data.name]><gray>."
+                  - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+                  - inventory open d:dcutscene_inventory_keyframe_modify_screeneffect
+                - else:
+                  - define text "Invalid input to specify fade in, stay, and fade out chat it like this <green>1s,5s,1s<gray>."
+                  - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+            #Prepare for present screeneffect new color
+            - case new_color:
+              - flag <player> cutscene_modify:screeneffect_color expire:1.5m
+              - define text "Chat the color for the screeneffect you may also specify rgb as well Example: <green>blue <gray>or <green>150,39,255<gray>."
+              - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+              - inventory close
+            #Set new screeneffect color
+            - case set_color:
+              - define arg_2 <[arg_2]||null>
+              - if <[arg_2]> != null:
+                - define color <&color[<[arg_2]>]||null>
+                - if <[color]> != null:
+                  - define tick <player.flag[dcutscene_tick_modify.tick]>
+                  - define data <player.flag[cutscene_data]>
+                  - define keyframe <[data.keyframes.elements.screeneffect.<[tick]>]>
+                  - define keyframe.color <[arg_2]>
+                  - flag server dcutscenes.<[data.name]>.keyframes.elements.screeneffect.<[tick]>:<[keyframe]>
+                  - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
+                  - ~run dcutscene_sort_data def:<[data.name]>
+                  - define text "New cinematic screeneffect color created at tick <green><[tick]>t <gray>in scene <green><[data.name]><gray>."
+                  - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+                  - inventory open d:dcutscene_inventory_keyframe_modify_screeneffect
+                - else:
+                  - define text "Invalid color."
+                  - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+            #Remove the screeneffect modifier
+            - case remove:
+              - define tick <player.flag[dcutscene_tick_modify.tick]>
+              - define data <player.flag[cutscene_data]>
+              - define keyframe <[data.keyframes.elements.screeneffect].deep_exclude[<[tick]>]>
+              - flag server dcutscenes.<[data.name]>.keyframes.elements.screeneffect:<[keyframe]>
+              - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
+              - define text "Cinematic Screeneffect has been removed from tick <green><[tick]>t <gray>in scene <green><[data.name]><gray>."
+              - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+              - inventory open d:dcutscene_inventory_sub_keyframe
+              - ~run dcutscene_sub_keyframe_modify def:<player.flag[dcutscene_sub_keyframe_back_data]>
+        ## Sound Modifier #####################
         - case sound:
           - choose <[arg]>:
             #Prepare for sound creation
@@ -857,6 +1135,162 @@ dcutscene_animator_keyframe_edit:
                 - flag server dcutscenes.<[scene_name]>.keyframes.elements:<[keyframes]>
                 - flag <player> cutscene_data:<server.flag[dcutscenes.<[scene_name]>]>
                 - ~run dcutscene_sort_data def:<[scene_name]>
+                - inventory open d:dcutscene_inventory_sub_keyframe
+                - ~run dcutscene_sub_keyframe_modify def:<player.flag[dcutscene_sub_keyframe_back_data]>
+              - else:
+                - debug error "Could not determine new sound in dcutscene_animator_keyframe_edit"
+            #Prepare for new volume
+            - case new_volume:
+              - flag <player> cutscene_modify:sound_volume expire:1.5m
+              - define text "Chat the volume of the sound."
+              - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+              - inventory close
+            #Set new volume
+            - case set_volume:
+              - define arg_2 <[arg_2]||null>
+              - if <[arg_2]> != null && <[arg_2].is_decimal>:
+                - flag <player> cutscene_modify:!
+                - define tick <player.flag[dcutscene_tick_modify.tick]>
+                - define uuid <player.flag[dcutscene_tick_modify.uuid]>
+                - define data <player.flag[cutscene_data]>
+                - define keyframe <[data.keyframes.elements.sound.<[tick]>.<[uuid]>]||null>
+                - if <[keyframe]> != null:
+                  - define keyframe.volume <[arg_2].abs>
+                  - flag server dcutscenes.<[data.name]>.keyframes.elements.sound.<[tick]>.<[uuid]>:<[keyframe]>
+                  - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
+                  - define text "Sound <green><[keyframe.sound]> <gray>now has a volume of <green><[keyframe.volume].abs><gray> in tick <green><[tick]>t <gray> for scene <green><[data.name]><gray>."
+                  - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+                  - inventory open d:dcutscene_inventory_keyframe_modify_sound
+                - else:
+                  - debug error "Something went wrong in dcutscene_animator_keyframe_edit for set_volume in sound modifier"
+              - else if <[arg_2]> != null && !<[arg_2].is_decimal>:
+                - define text "<green><[arg_2]> <gray>is not a number!"
+                - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+              - else:
+                - define text "Specify a number for the volume."
+                - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+            #Prepare for new pitch
+            - case new_pitch:
+              - flag <player> cutscene_modify:sound_pitch expire:1.5m
+              - define text "Chat the pitch of the sound."
+              - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+              - inventory close
+            #Set new pitch
+            - case set_pitch:
+              - define arg_2 <[arg_2]||null>
+              - if <[arg_2]> != null && <[arg_2].is_decimal>:
+                - flag <player> cutscene_modify:!
+                - define tick <player.flag[dcutscene_tick_modify.tick]>
+                - define uuid <player.flag[dcutscene_tick_modify.uuid]>
+                - define data <player.flag[cutscene_data]>
+                - define keyframe <[data.keyframes.elements.sound.<[tick]>.<[uuid]>]||null>
+                - if <[keyframe]> != null:
+                  - define keyframe.pitch <[arg_2].abs>
+                  - flag server dcutscenes.<[data.name]>.keyframes.elements.sound.<[tick]>.<[uuid]>:<[keyframe]>
+                  - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
+                  - define text "Sound <green><[keyframe.sound]> <gray>now has a pitch of <green><[keyframe.pitch].abs><gray> in tick <green><[tick]>t <gray>for scene <green><[data.name]><gray>."
+                  - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+                  - inventory open d:dcutscene_inventory_keyframe_modify_sound
+                - else:
+                  - debug error "Something went wrong in dcutscene_animator_keyframe_edit for set_pitch in sound modifier"
+              - else if <[arg_2]> != null && !<[arg_2].is_decimal>:
+                - define text "<green><[arg_2]> <gray>is not a number!"
+                - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+              - else:
+                - define text "Specify a number for the pitch."
+                - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+            #Determine if sound is custom or not
+            - case set_custom:
+              - define arg_2 <[arg_2]||null>
+              - if <[arg_2]> != null:
+                - define tick <player.flag[dcutscene_tick_modify.tick]>
+                - define uuid <player.flag[dcutscene_tick_modify.uuid]>
+                - define data <player.flag[cutscene_data]>
+                - define keyframe <[data.keyframes.elements.sound.<[tick]>.<[uuid]>]||null>
+                - if <[keyframe]> != null:
+                  - choose <[keyframe.custom]||false>:
+                    - case true:
+                      - define keyframe.custom false
+                    - case false:
+                      - define keyframe.custom true
+                  - flag server dcutscenes.<[data.name]>.keyframes.elements.sound.<[tick]>.<[uuid]>:<[keyframe]>
+                  - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
+                  - define item <item[<[arg_2]>]||null>
+                  - if <[arg_2]> != null:
+                    - define inv <player.open_inventory>
+                    - define lore "<dark_purple><bold>Custom <gray><[keyframe.custom]>"
+                    - define click "<gray><italic>Click to change custom sound"
+                    - adjust <[item]> lore:<list[<empty>|<[lore]>|<empty>|<[click]>]> save:item
+                    - define item <entry[item].result>
+                    - inventory set d:<[inv]> o:<[item]> slot:<[arg_3]>
+                - else:
+                  - debug error "Something went wrong in dcutscene_animator_keyframe_edit for set_custom in sound modifier"
+            #Prepare for new sound location
+            - case new_location:
+              - flag <player> cutscene_modify:sound_location expire:3m
+              - define text "Available Inputs:"
+              - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+              - narrate "<gray>Chat <green>confirm <gray>to input your location"
+              - narrate "<gray>Chat a valid location tag"
+              - narrate "<gray>Right click a block"
+              - narrate "<gray>Chat <red>false <gray>to disable sound location"
+              - inventory close
+            #Set new sound location
+            - case set_location:
+              - define arg_2 <[arg_2]||null>
+              - if <[arg_2]> != null:
+                - if <[arg_2]> != false:
+                  - define loc <location[<[arg_2].parsed>]||null>
+                  - if <[loc]> == null:
+                    - define text "<green><[arg_2]> <gray>is not a valid location."
+                    - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+                    - stop
+                - else:
+                  - define loc false
+                - define tick <player.flag[dcutscene_tick_modify.tick]>
+                - define uuid <player.flag[dcutscene_tick_modify.uuid]>
+                - define data <player.flag[cutscene_data]>
+                - define keyframe <[data.keyframes.elements.sound.<[tick]>.<[uuid]>]||null>
+                - if <[keyframe]> != null:
+                  - flag <player> cutscene_modify:!
+                  - define keyframe.location <[loc]>
+                  - flag server dcutscenes.<[data.name]>.keyframes.elements.sound.<[tick]>.<[uuid]>:<[keyframe]>
+                  - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
+                  - define text "Sound <green><[keyframe.sound]> <gray>location is now <green><[keyframe.location]><gray> in tick <green><[tick]>t <gray>for scene <green><[data.name]><gray>."
+                  - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+                  - inventory open d:dcutscene_inventory_keyframe_modify_sound
+                - else:
+                  - debug error "Something went wrong in dcutscene_animator_keyframe_edit for set_location in sound modifier"
+              - else:
+                - debug error "Something went wrong in dcutscene_animator_keyframe_edit for set_location in sound modifier"
+            #Remove sound from tick
+            - case remove_sound:
+              - define tick <player.flag[dcutscene_tick_modify.tick]>
+              - define uuid <player.flag[dcutscene_tick_modify.uuid]>
+              - define data <player.flag[cutscene_data]>
+              - define sound <[data.keyframes.elements.sound.<[tick]>.<[uuid]>.sound]>
+              - define keyframe <[data.keyframes.elements.sound]>
+              #New modified data with sound removed
+              - define new_keyframe <[keyframe.<[tick]>].deep_exclude[<[uuid]>]>
+              - define new_keyframe.sounds:<-:<[uuid]>
+              #If the animator list is empty for the tick remove the tick
+              - if <[new_keyframe.sounds].is_empty>:
+                #Keyframe with tick removed
+                - define keyframe <[data.keyframes.elements.sound].deep_exclude[<[tick]>]>
+              - else:
+                #Keyframe with tick intact due to present sounds in tick
+                - define keyframe.<[tick]> <[new_keyframe]>
+              - if <[new_keyframe]> != null:
+                - flag server dcutscenes.<[data.name]>.keyframes.elements.sound:<[keyframe]>
+                - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
+                - define text "Sound <green><[sound]> <gray>has been removed from tick <green><[tick]>t <gray>for scene <green><[data.name]><gray>."
+                - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+                - inventory open d:dcutscene_inventory_sub_keyframe
+                - ~run dcutscene_sub_keyframe_modify def:<player.flag[dcutscene_sub_keyframe_back_data]>
+              - else:
+                - debug error "Something went wrong in dcutscene_animator_keyframe_edit for remove_sound in sound modifier"
+        #########################################
+
 #############################
 ###################################################
 
@@ -883,8 +1317,8 @@ dcutscene_animation_begin:
           - define first_loc <location[<[camera.<[first]>.location]>]||null>
           - if <[first_loc]> != null:
             - teleport <player> <[first_loc]>
-          #Reason for delay is so chunks get properly loaded
-          - wait 5t
+            #Reason for delay is so chunks get properly loaded
+            - wait 5t
           - if <player.has_flag[dcutscene_camera]>:
             - remove <player.flag[dcutscene_camera]>
             - flag <player> dcutscene_camera:!
@@ -919,19 +1353,23 @@ dcutscene_animation_begin:
                   - foreach <[sounds]> as:uuid:
                     - define data <[elements.sound.<[tick]>.<[uuid]>]||null>
                     - if <[data]> != null:
-                      - define vol <[data.volume]>
-                      - define loc <[data.location]>
-                      - define pitch <[data.pitch]>
-                      - define sound <[data.sound]>
-                      - define custom <[data.custom]>
+                      - define loc <[data.location]||false>
+                      - define custom <[data.custom]||false>
                       - if <[loc].equals[false]>:
                         - define sound_to <player>
                       - else:
                         - define sound_to <location[<[loc]>]>
                       - if <[custom].equals[false]>:
-                        - playsound <[sound_to]> sound:<[sound]> volume:<[vol]> pitch:<[pitch]>
+                        - playsound <[sound_to]> sound:<[data.sound]> volume:<[data.volume]||1.0> pitch:<[data.pitch]||1.0>
                       - else if <[custom].equals[true]>:
-                        - playsound <[sound_to]> sound:<[sound]> volume:<[vol]> pitch:<[pitch]> custom
+                        - playsound <[sound_to]> sound:<[data.sound]> volume:<[data.volume]||1.0> pitch:<[data.pitch]||1.0> custom
+                - define screeneffect <[elements.screeneffect.<[tick]>]||null>
+                - if <[screeneffect]> != null:
+                  - define title <script[dcutscenes_config].data_key[config].get[cutscene_transition_unicode]||null>
+                  - if <[title]> != null:
+                    - title title:<&color[<[screeneffect.color]>]><[title]> fade_in:<[screeneffect.fade_in].in_seconds>s stay:<[screeneffect.stay].in_seconds>s fade_out:<[screeneffect.fade_out].in_seconds>s targets:<player>
+                  - else:
+                    - debug error "Could not find cinematic screeneffect unicode in dcutscene_animation_begin"
             - else:
               - stop
             - wait 1t
@@ -982,6 +1420,7 @@ dcutscene_path_move:
                 - foreach next
               - define time <[time_2].sub[<[time_1]>]>
               - choose <[interpolation]>:
+                #Linear Interpolation
                 - case linear:
                   - repeat <[time]>:
                     - if <[entity].is_spawned>:
@@ -1006,6 +1445,7 @@ dcutscene_path_move:
                     - else:
                       - stop
                     - wait 1t
+                #Smooth Interpolation
                 - case smooth:
                   #after extra
                   - foreach <[keyframes]> key:a_e_id as:a_e_keyframe:
@@ -1068,6 +1508,8 @@ dcutscene_animation_stop:
     - flag <player> dcutscene_mount:!
 
 #Shows cutscene paths in editor mode
+#TODO:
+#- Use this for model or entity paths
 dcutscene_path_show:
     type: task
     debug: false
@@ -1163,6 +1605,7 @@ dcutscene_path_creator:
               - define data <[loc_2].as_location.sub[<[loc_1]>].mul[<[time_percent]>].add[<[loc_1]>]>
             - else:
               - define data <[loc_2].as_location>
+            #This ensures points that are not visible will not show particles for optimization
             - if <[player].location.facing[<[data]>].degrees[60]> && <[player].location.distance[<[data]>]> <= <[dist].mul[2.5]>:
               #Input data to path list
               - define points:->:<[data]>
@@ -1357,11 +1800,26 @@ dcutscene_inventory_keyframe_modify_sound:
     gui: true
     slots:
     - [] [] [] [] [] [] [] [] []
-    - [] [] [] [] [] [] [] [] []
-    - [] [] [] [] [] [] [] [] []
+    - [] [] [] [dcutscene_sound_modify] [dcutscene_sound_volume_modify] [dcutscene_sound_pitch_modify] [] [] []
+    - [] [] [] [dcutscene_sound_loc_modify] [dcutscene_sound_custom_modify] [dcutscene_sound_stop_modify] [] [] []
     - [] [] [] [] [] [] [] [] []
     - [] [] [] [] [] [] [] [] []
     - [dcutscene_back_page] [] [] [] [dcutscene_sound_remove_modify] [] [] [] [dcutscene_exit]
+
+#Screeneffect GUI
+dcutscene_inventory_keyframe_modify_screeneffect:
+    type: inventory
+    inventory: CHEST
+    title: <&color[<script[dcutscenes_config].data_key[config].get[cutscene_title_color]>]><script[dcutscenes_config].data_key[config].get[cutscene_title]>
+    size: 54
+    gui: true
+    slots:
+    - [] [] [] [] [] [] [] [] []
+    - [] [] [] [dcutscene_screeneffect_time_modify] [] [dcutscene_screeneffect_color_modify] [] [] []
+    - [] [] [] [] [] [] [] [] []
+    - [] [] [] [] [] [] [] [] []
+    - [] [] [] [] [] [] [] [] []
+    - [dcutscene_back_page] [] [] [] [dcutscene_screeneffect_remove_modify] [] [] [] [dcutscene_exit]
 ####################################################
 
 ##################################################################################
