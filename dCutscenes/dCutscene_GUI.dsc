@@ -10,6 +10,17 @@ dcutscene_events:
         on player quits:
         - if <player.has_flag[cutscene_modify]>:
           - flag <player> cutscene_modify:!
+        - if <player.has_flag[dcutscene_save_data]>:
+          - define data <player.flag[dcutscene_save_data]>
+          - define root <[data.root]||null>
+          - if <[root]> != null:
+            - define type <[data.type]>
+            - choose <[type]>:
+              - case player_model:
+                - run pmodels_remove_model def:<[root]>
+              - default:
+                - remove <[root]>
+          - flag <player> dcutscene_save_data:!
         ##Main cutscene gui ####
         after player clicks dcutscene_keyframes_list in dcutscene_inventory_scene:
         - ~run dcutscene_keyframe_modify
@@ -24,7 +35,7 @@ dcutscene_events:
         after player clicks dcutscene_exit in inventory:
         - inventory close
         ##Right click for location input in keyframe modifier##
-        after player right clicks block flagged:cutscene_modify:
+        after player right clicks block flagged:cutscene_modify using:hand:
         - choose <player.flag[cutscene_modify]>:
           - case sound_location:
             - run dcutscene_animator_keyframe_edit def:sound|set_location|<context.location>
@@ -32,9 +43,11 @@ dcutscene_events:
             - run dcutscene_cam_keyframe_edit def:edit|create_look_location|<context.location>
         ##Tab completion ############
         after tab complete flagged:cutscene_modify:
-        - choose <context.current_arg>:
-          - case sound:
+        - define list <context.completions>
+        - if <[list].contains[sound]>:
             - flag <player> cutscene_modify_tab:sound
+        - else if <[list].contains[animate]>:
+            - flag <player> cutscene_modify_tab:animate
         #input for dcutscene gui elements
         ##Chat Input ################
         on player chats flagged:cutscene_modify:
@@ -138,7 +151,6 @@ dcutscene_events:
         - define i <context.item>
         #New keyframe modifier
         - if <[i].has_flag[keyframe_modify]>:
-          - narrate <[i].flag[keyframe_modify]>
           - flag <player> dcutscene_tick_modify:<[i].flag[keyframe_modify]>
           - inventory open d:dcutscene_inventory_keyframe_modify
         #Modify present keyframe modifier
@@ -221,7 +233,15 @@ dcutscene_events:
         after player clicks dcutscene_camera_path_show in dcutscene_inventory_keyframe_modify_camera:
         - inventory close
         - run dcutscene_path_show_interval def:camera
-        ##Denizen Player Models ######
+        ## Models #######
+        #New Model in model list gui
+        after player clicks dcutscene_add_new_model in dcutscene_inventory_keyframe_model_list:
+        - choose <player.flag[dcutscene_save_data.type]>:
+          - case player_model:
+            - flag <player> cutscene_modify:new_player_model_id expire:2m
+            - define text "Chat the name of the player model this will be used as an identifier."
+            - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+            - inventory close
         after player clicks dcutscene_add_player_model in dcutscene_inventory_keyframe_modify:
         - run dcutscene_model_keyframe_edit def:player_model|new
         ##Run Task ######
@@ -870,6 +890,21 @@ dcutscene_inventory_keyframe_modify_camera:
     - [] [] [] [dcutscene_camera_teleport] [dcutscene_camera_interp_modify] [] [] [] []
     - [] [] [] [] [] [] [] [] []
     - [dcutscene_back_page] [] [dcutscene_camera_path_show] [] [dcutscene_camera_remove_modify] [] [] [] [dcutscene_exit]
+
+#Location Tool Modify GUI
+dcutscene_inventory_location_tool:
+    type: inventory
+    inventory: CHEST
+    title: <&color[<script[dcutscenes_config].data_key[config].get[cutscene_title_color]>]><script[dcutscenes_config].data_key[config].get[cutscene_title]>
+    size: 54
+    gui: true
+    slots:
+    - [] [] [] [] [] [] [] [] []
+    - [] [] [] [] [] [] [] [] []
+    - [] [] [] [dcutscene_location_tool_item] [] [dcutscene_location_tool_ray_trace_item] [] [] []
+    - [] [] [] [] [] [] [] [] []
+    - [] [] [] [] [] [] [] [] []
+    - [] [] [] [] [] [] [] [] [dcutscene_exit]
 
 #Model List (If there are previously created models this GUI will appear)
 dcutscene_inventory_keyframe_model_list:
