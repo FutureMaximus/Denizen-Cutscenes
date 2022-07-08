@@ -57,13 +57,74 @@ weird_task:
   script:
   - narrate "<blue>Your name is...<player.name> welcome!"
 
+##Cutscene Command
+
+dcutscene_command:
+    type: command
+    name: dcutscene
+    usage: /dcutscene
+    aliases:
+    - dscene
+    description: Cutscene command for DCutscene
+    tab completions:
+      1: <proc[dcutscene_command_list]>
+      2: <proc[dcutscene_data_list].context[<player>]>
+    permission: op.op
+    script:
+    - define a_1 <context.args.get[1].if_null[n]>
+    - define a_2 <context.args.get[2].if_null[n]>
+    - if <[a_1].equals[n]> || <[a_1]> == open:
+      - inventory open d:dcutscene_inventory_main
+      - ~run dcutscene_scene_show
+    - else:
+      - choose <[a_1]>:
+        #Animate the model the player is modifying.
+        - case animate:
+          - if <player.has_flag[cutscene_modify]> && <[a_2]> != n:
+            - define data <player.flag[dcutscene_location_editor]||null>
+            - if <[data]> != null:
+              - define root <[data.root_ent]||null>
+              - if <[root]> == null:
+                - define text "Could not find model to animate"
+                - stop
+              - define type <[data.root_type]||null>
+              - if <[type]> != null:
+                - choose <[type]>:
+                  - case player_model:
+                    - run pmodels_animate def:<[root]>|<[a_2]>
+        #Open the location tool GUI
+        - case location:
+          - if <player.has_flag[cutscene_modify]>:
+            - inventory clear
+            - inventory open d:dcutscene_inventory_location_tool
+        #Load dcutscene files
+        - case load:
+          - if <[a_2].equals[n]>:
+            - ~run dcutscene_load_files
+          - else:
+            - ~run dcutscene_load_files def.cutscene:<[a_2]>
+        #Save dcutscene files to a directory
+        - case save:
+          - if !<[a_2].equals[n]>:
+            - ~run dcutscene_save_file def.cutscene:<[a_2]>
+          - else:
+            - ~run dcutscene_save_file
+        #Play a cutscene
+        - case play:
+          - if !<[a_2].equals[n]>:
+            - run dcutscene_animation_begin def:<[a_2]>
+        #Input a new sound
+        - case sound:
+          - if !<[a_2].equals[n]> && <player.has_flag[cutscene_modify]> && <player.flag[cutscene_modify]> == sound:
+            - run dcutscene_animator_keyframe_edit def:sound|create|<[a_2]>
+
 ## Tab Completion Procedures ########
 #Tab completion for arguments that can be utilized
 dcutscene_command_list:
     type: procedure
     debug: false
     script:
-    - define list <list[load|save|open|play]>
+    - define list <list[load|save|open|play|location|animate]>
     - determine <[list]>
 
 #Tab completion for list of cutscenes
