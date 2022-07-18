@@ -30,6 +30,7 @@ dcutscene_events:
         - ~run dcutscene_save_file def:<[cutscene]>
         - define text "Cutscene <green><[cutscene.name]> <gray>has been saved to <green>Denizen/data/dcutscenes/scenes<gray>."
         - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+        ##Settings #############
         ########################
         ##Misc #################
         after player clicks dcutscene_exit in inventory:
@@ -128,7 +129,11 @@ dcutscene_events:
           #Set new player model location
           - case new_player_model_location:
             - if <[msg]> == confirm:
-              - run dcutscene_model_keyframe_edit def:player_model|create|location_set|<player.location>
+              - run dcutscene_model_keyframe_edit def:player_model|create|location_set|<player.flag[dcutscene_location_editor.location]>
+          #Put new player model keyframe point based on previous player model
+          - case new_player_model_keyframe_point:
+            - if <[msg]> == confirm:
+              - run dcutscene_model_keyframe_edit def:player_model|create_present|new_keyframe_set|<player.flag[dcutscene_location_editor.location]>
         - determine cancelled
         ###########################
         ##Keyframe GUI ####################
@@ -177,6 +182,14 @@ dcutscene_events:
             - case screeneffect:
               - flag <player> dcutscene_tick_modify:<[i].flag[keyframe_opt_modify]>
               - inventory open d:dcutscene_inventory_keyframe_modify_screeneffect
+        #Previous models that were created and can be modified for further use
+        after player clicks item in dcutscene_inventory_keyframe_model_list:
+        - define i <context.item>
+        - if <[i].has_flag[model_keyframe_modify]>:
+          - define data <[i].flag[model_keyframe_modify]>
+          - choose <[data.type]>:
+            - case player_model:
+              - run dcutscene_model_keyframe_edit def:player_model|create_present|new_keyframe_prepare|<[data]>
         #Scroll up
         on player clicks dcutscene_scroll_up in dcutscene_inventory_sub_keyframe:
         - if !<player.has_flag[sub_keyframe_tick_page]>:
@@ -233,7 +246,7 @@ dcutscene_events:
         after player clicks dcutscene_camera_path_show in dcutscene_inventory_keyframe_modify_camera:
         - inventory close
         - run dcutscene_path_show_interval def:camera
-        ## Models #######
+        ## All Models #######
         #New Model in model list gui
         after player clicks dcutscene_add_new_model in dcutscene_inventory_keyframe_model_list:
         - choose <player.flag[dcutscene_save_data.type]>:
@@ -242,8 +255,27 @@ dcutscene_events:
             - define text "Chat the name of the player model this will be used as an identifier."
             - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
             - inventory close
+        after player clicks dcutscene_location_tool_confirm_location in dcutscene_inventory_location_tool:
+        - choose <player.flag[cutscene_modify]>:
+          - case new_player_model_location:
+            - run dcutscene_model_keyframe_edit def:player_model|create|location_set|<player.flag[dcutscene_location_editor.location]>
+          - case new_player_model_keyframe_point:
+            - run dcutscene_model_keyframe_edit def:player_model|create_present|new_keyframe_set|<player.flag[dcutscene_location_editor.location]>
+        ## Player Model ####
         after player clicks dcutscene_add_player_model in dcutscene_inventory_keyframe_modify:
         - run dcutscene_model_keyframe_edit def:player_model|new
+        after player clicks dcutscene_player_model_change_animation in dcutscene_inventory_keyframe_modify_player_model:
+        - run dcutscene_model_keyframe_edit def:player_model|animate|new_animation_prepare
+        after player clicks dcutscene_player_model_change_move in dcutscene_inventory_keyframe_modify_player_model:
+        - run dcutscene_model_keyframe_edit def:player_model|set_move|<context.slot>
+        after player clicks dcutscene_remove_player_model_tick in dcutscene_inventory_keyframe_modify_player_model:
+        - run dcutscene_model_keyframe_edit def:player_model|remove_tick
+        after player clicks dcutscene_remove_player_model in dcutscene_inventory_keyframe_modify_player_model:
+        - inventory close
+        - clickable dcutscene_model_keyframe_edit def:player_model|remove_all save:remove_model
+        - define prefix <element[DCutscenes].color_gradient[from=blue;to=aqua].bold>
+        - define text "Are you sure you want to remove this player model? <green><bold><element[Yes].on_hover[<[prefix]> <gray>This will permanently remove this player model from this scene.].type[SHOW_TEXT].on_click[<entry[remove_model].command>]>"
+        - narrate "<[prefix]> <gray><[text]>"
         ##Run Task ######
         after player clicks dcutscene_add_run_task in dcutscene_inventory_keyframe_modify:
         - run dcutscene_animator_keyframe_edit def:run_task|new
@@ -349,6 +381,44 @@ dcutscene_scene_show:
       - inventory set d:<[inv]> o:dcutscene_new_scene_item slot:<[index].add[1]>
     - else:
       - inventory set d:<[inv]> o:dcutscene_new_scene_item slot:1
+
+#Determine if the keyframe has variables
+dcutscene_keyframe_calculate:
+    type: procedure
+    debug: false
+    definitions: scene_name|timespot
+    script:
+    - define data <server.flag[dcutscenes]>
+    - define keyframes <[data.<[scene_name]>.keyframes]>
+    - define tick_max <duration[<[timespot]>s].in_ticks>
+    - define tick_min <[tick_max].sub[9]>
+    - define tick_map <map>
+    - repeat 9 as:loop_i:
+      - define tick <[tick_min].add[<[loop_i]>]>
+      #Camera Search
+      - define cam_search <[keyframes.camera.<[tick]>]||null>
+      - if <[cam_search]> != null:
+        - define tick_map.camera.<[tick]> <[cam_search]>
+      #Player Model search
+      - define player_model_search <[keyframes.models.<[tick]>]||null>
+      - if <[player_model_search]> != null:
+        - define tick_map.player_model.<[tick]> <[player_model_search]>
+      #Run Task Search
+      - define task_search <[keyframes.elements.run_task.<[tick]>.run_task_list]||null>
+      - if <[task_search]> != null:
+        - define tick_map.run_task.<[tick]> <[task_search]>
+      #Screeneffect Search
+      - define screeneffect_search <[keyframes.elements.screeneffect.<[tick]>]||null>
+      - if <[screeneffect_search]> != null:
+        - define tick_map.screeneffect.<[tick]> <[screeneffect_search]>
+      #Sound Search
+      - define sound_search <[keyframes.elements.sound.<[tick]>.sounds]||null>
+      - if <[sound_search]> != null:
+        - define tick_map.sound.<[tick]> <[sound_search]>
+    - if !<[tick_map].is_empty>:
+      - determine <[tick_map]>
+    - else:
+      - determine null
 
 #TODO:
 #- If there is only 1 animator show that elements item
@@ -490,44 +560,6 @@ dcutscene_keyframe_modify:
         - inventory set d:<[inv]> o:<[item]> slot:<[loop_i]>
         ########################################
 
-#Determine if the keyframe has variables
-dcutscene_keyframe_calculate:
-    type: procedure
-    debug: false
-    definitions: scene_name|timespot
-    script:
-    - define data <server.flag[dcutscenes]>
-    - define keyframes <[data.<[scene_name]>.keyframes]>
-    - define tick_max <duration[<[timespot]>s].in_ticks>
-    - define tick_min <[tick_max].sub[9]>
-    - define tick_map <map>
-    - repeat 9 as:loop_i:
-      - define tick <[tick_min].add[<[loop_i]>]>
-      #Camera Search
-      - define cam_search <[keyframes.camera.<[tick]>]||null>
-      - if <[cam_search]> != null:
-        - define tick_map.camera.<[tick]> <[cam_search]>
-      #Player Model search
-      - define player_model_search <[keyframes.models.<[tick]>]||null>
-      - if <[player_model_search]> != null:
-        - define tick_map.player_model.<[tick]> <[player_model_search]>
-      #Run Task Search
-      - define task_search <[keyframes.elements.run_task.<[tick]>.run_task_list]||null>
-      - if <[task_search]> != null:
-        - define tick_map.run_task.<[tick]> <[task_search]>
-      #Screeneffect Search
-      - define screeneffect_search <[keyframes.elements.screeneffect.<[tick]>]||null>
-      - if <[screeneffect_search]> != null:
-        - define tick_map.screeneffect.<[tick]> <[screeneffect_search]>
-      #Sound Search
-      - define sound_search <[keyframes.elements.sound.<[tick]>.sounds]||null>
-      - if <[sound_search]> != null:
-        - define tick_map.sound.<[tick]> <[sound_search]>
-    - if !<[tick_map].is_empty>:
-      - determine <[tick_map]>
-    - else:
-      - determine null
-
 #TODO:
 # - Ensure elements that contain lists are a single thing and only when clicking it can you view that list such as multiple sounds on the same tick
 #Sub keyframe list
@@ -631,7 +663,23 @@ dcutscene_sub_keyframe_modify:
                   - define pmodel_id "<aqua>ID: <gray><[data.id]>"
                   - define time_lore "<aqua>Time: <gray><[tick]>t"
                   - define modify "<gray><italic>Click to modify player model"
-                  - define m_lore <list[<empty>|<[pmodel_id]>|<[time_lore]>|<empty>|<[modify]>]>
+                  #If the model has a root model show the starting point
+                  - if <[data.root]||none> != none:
+                    - define root_tick <[data.root.tick]>
+                    - define root_uuid <[data.root.uuid]>
+                    - define start_tick <[models.<[root_tick]>.<[root_uuid]>.path].keys.first||null>
+                    - define anim_lore "<aqua>Animation: <gray><[models.<[root_tick]>.<[root_uuid]>.path.<[tick]>.animation]>"
+                    - if <[start_tick]> == null:
+                      - define start_lore <empty>
+                      - define m_lore <list[<empty>|<[pmodel_id]>|<[time_lore]>|<[anim_lore]>|<empty>|<[modify]>]>
+                    - else:
+                      - define start_lore "<aqua>Starting Frame: <gray><[start_tick]>t"
+                      - define m_lore <list[<empty>|<[pmodel_id]>|<[time_lore]>|<[anim_lore]>|<[start_lore]>|<empty>|<[modify]>]>
+                  #If the model is a root data model
+                  - else:
+                    - define start_lore <empty>
+                    - define anim_lore "<aqua>Animation: <gray><[models.<[tick]>.<[model_uuid]>.path.<[tick]>.animation]>"
+                    - define m_lore <list[<empty>|<[pmodel_id]>|<[time_lore]>|<[anim_lore]>|<empty>|<[modify]>]>
                   - adjust <[opt_item]> lore:<[m_lore]> save:item
                   - define opt_item <entry[item].result>
                   #Data to pass through for use of modifying the modifier
@@ -652,6 +700,7 @@ dcutscene_sub_keyframe_modify:
               - define add_item <item[dcutscene_keyframe_tick_add]>
               - flag <[add_item]> keyframe_modify:<[tick]>
               - inventory set d:<[inv]> o:<[add_item]> slot:<[loop_i].add[<[tick_column]>]>
+
         #======== Regular Animators check =========
 
         #========= Run Task =========
@@ -796,6 +845,7 @@ dcutscene_sub_keyframe_modify:
         - adjust <[item]> lore:<list[<[t_lore]>|<[s_lore]>]> save:item
         - define item <entry[item].result>
         - inventory set d:<[inv]> o:<[item]> slot:<[loop_i]>
+
 #############################
 
 ##Cutscene Inventories (In case your wondering why so many inventories it's just easier to manage)###################
@@ -813,6 +863,20 @@ dcutscene_inventory_main:
     - [] [] [] [] [] [] [] [] []
     - [] [] [] [] [] [] [] [] []
     - [] [] [] [] [] [] [] [] [dcutscene_exit]
+
+dcutscene_inventory_settings:
+    type: inventory
+    inventory: CHEST
+    title: <&color[<script[dcutscenes_config].data_key[config].get[cutscene_title_color]>]><script[dcutscenes_config].data_key[config].get[cutscene_title]>
+    size: 54
+    gui: true
+    slots:
+    - [] [] [] [] [] [] [] [] []
+    - [] [] [] [] [] [] [] [] []
+    - [] [] [] [] [] [] [] [] []
+    - [] [] [] [] [] [] [] [] []
+    - [] [] [] [] [] [] [] [] []
+    - [] [] [] [] [dcutscene_delete_cutscene] [] [] [] [dcutscene_exit]
 
 #TODO:
 #- Add ability to use cutscene on multiple worlds this allows for the same world but different name
@@ -901,10 +965,10 @@ dcutscene_inventory_location_tool:
     slots:
     - [] [] [] [] [] [] [] [] []
     - [] [] [] [] [] [] [] [] []
-    - [] [] [] [dcutscene_location_tool_item] [] [dcutscene_location_tool_ray_trace_item] [] [] []
+    - [] [] [] [dcutscene_location_tool_ray_trace_item] [] [dcutscene_location_tool_item] [] [] []
     - [] [] [] [] [] [] [] [] []
     - [] [] [] [] [] [] [] [] []
-    - [] [] [] [] [] [] [] [] [dcutscene_exit]
+    - [] [] [] [] [dcutscene_location_tool_confirm_location] [] [] [] [dcutscene_exit]
 
 #Model List (If there are previously created models this GUI will appear)
 dcutscene_inventory_keyframe_model_list:
@@ -931,10 +995,10 @@ dcutscene_inventory_keyframe_modify_player_model:
     slots:
     - [] [] [] [] [] [] [] [] []
     - [] [] [] [dcutscene_player_model_change_id] [dcutscene_player_model_change_location] [dcutscene_player_model_ray_trace_floor] [] [] []
+    - [] [] [] [dcutscene_player_model_change_move] [dcutscene_player_model_change_animation] [dcutscene_player_model_change_skin] [] [] []
+    - [] [] [] [dcutscene_player_model_interp_method] [dcutscene_player_model_show_path] [] [] [] []
     - [] [] [] [] [] [] [] [] []
-    - [] [] [] [] [] [] [] [] []
-    - [] [] [] [] [] [] [] [] []
-    - [dcutscene_back_page] [] [] [] [dcutscene_remove_player_model] [] [] [] [dcutscene_exit]
+    - [dcutscene_back_page] [] [] [dcutscene_remove_player_model_tick] [] [dcutscene_remove_player_model] [] [] [dcutscene_exit]
 
 #Run Task GUI
 dcutscene_inventory_keyframe_modify_run_task:
