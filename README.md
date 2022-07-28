@@ -9,7 +9,7 @@ Denizen Cutscenes is a very powerful cutscene tool with many features. The goal 
 
 Anything! You can run your own tasks in keyframes useful for something like a scene of an animated crate and giving the player rewards with run task give_rewards.
 
-There are features that are built in of course these include:
+Some features:
 - Modifying the camera
 - Show animated models to the player (Requires Denizen Models by mcmonkey)
 - Show animated multi joint player models to the player (Requires Denizen Player Models by Max^)
