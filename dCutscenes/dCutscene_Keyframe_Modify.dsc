@@ -389,6 +389,44 @@ dcutscene_location_raytrace_inv:
     - adjust <player> item_slot:1
 ######################################
 
+#======== Stop Cutscene Modifier ========
+dcutscene_stop_scene_keyframe:
+    type: task
+    debug: false
+    definitions: option|arg|arg_2
+    script:
+    - define data <player.flag[cutscene_data]>
+    - define tick <player.flag[dcutscene_tick_modify]>
+    - choose <[option]>:
+      #New stop scene keyframe
+      - case new:
+        - define stop_check <[data.keyframes.stop]||null>
+        #There can only be 1 stop point
+        - if <[stop_check]> != null:
+          #TODO:
+          #- Clickable that removes the stop point
+          - define text "There is already a cutscene stop point at tick <green><[stop_check.tick]>t<gray>."
+          - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+        - else:
+          - define data.keyframes.stop.tick <[tick]>
+          - flag server dcutscenes.<[data.name]>:<[data]>
+          - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
+          - inventory open d:dcutscene_inventory_sub_keyframe
+          - ~run dcutscene_sub_keyframe_modify def:<player.flag[dcutscene_sub_keyframe_back_data]>
+          - define text "Cutscene stop point set to tick <green><[tick]>t <gray>for scene <green><[data.name]><gray>."
+          - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+          - ~run dcutscene_sort_data def:<[data.name]>
+
+      #Remove stop scene keyframe
+      - case remove:
+        - define data.keyframes <[data.keyframes].exclude[stop]>
+        - flag server dcutscenes.<[data.name]>:<[data]>
+        - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
+        - define text "Cutscene stop point on tick <green><[tick.tick]>t <gray>has been removed from scene <green><[data.name]><gray>."
+        - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+        - inventory open d:dcutscene_inventory_sub_keyframe
+        - ~run dcutscene_sub_keyframe_modify def:<player.flag[dcutscene_sub_keyframe_back_data]>
+
 #========  Camera Modifier ===========
 #TODO:`
 #- Rework this
@@ -399,7 +437,7 @@ dcutscene_cam_keyframe_edit:
     script:
     - define option <[option]||null>
     - define arg <[arg]||null>
-    - if <[option].equals[null]>:
+    - if <[option]> == null:
       - debug error "Something went wrong in dcutscene_cam_keyframe_edit could not determine option."
     - else:
       - define data <player.flag[cutscene_data]>
@@ -2030,6 +2068,248 @@ dcutscene_animator_keyframe_edit:
               - ~run dcutscene_sub_keyframe_modify def:<player.flag[dcutscene_sub_keyframe_back_data]>
               - define text "Fake block <green><[fake_block]> <gray>has been removed from tick <green><[tick]>t <gray>in scene <green><[data.name]><gray>."
               - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+            #=================================
+
+            #======== Fake Schematic =========
+            #Preparation for schematic
+            - case new_schem_name:
+              - define text "Chat the name of the schematic. To stop chat <red>cancel<gray>."
+              - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+              - flag <player> cutscene_modify:new_fake_schem_name expire:2m
+              - inventory close
+
+            #Input schematic name
+            - case new_schem_loc:
+              - if <schematic[<[arg_2]>].exists>:
+                - flag <player> cutscene_modify:new_fake_schem_loc expire:5m
+                - flag <player> dcutscene_save_data.schem_name:<[arg_2]>
+                - define text "Right click on the block you'd like to paste this schematic or chat a valid location tag the location's center will automatically be parsed. Chat <red>cancel <gray>to stop."
+                - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+              - else:
+                - define text "Could not find schematic <green><[arg_2]><gray>."
+                - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+
+            #Set the new fake schematic
+            - case new_schem_create:
+              - if <location[<[arg_2]>]||null> != null:
+                - flag <player> cutscene_modify:!
+                - definemap fake_schem_data schem:<player.flag[dcutscene_save_data.schem_name]> loc:<[arg_2]> duration:10s noair:true waitable:false angle:forward mask:false
+                - define uuid <util.random_uuid>
+                - define keyframes.fake_object.fake_schem.<[tick]>.fake_schems:->:<[uuid]>
+                - define keyframes.fake_object.fake_schem.<[tick]>.<[uuid]> <[fake_schem_data]>
+                - flag server dcutscenes.<[data.name]>.keyframes.elements:<[keyframes]>
+                - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
+                - ~run dcutscene_sort_data def:<[scene_name]>
+                - define text "Fake schematic <green><player.flag[dcutscene_save_data.schem_name]> <gray>set at location <green><[arg_2].simple> <gray>in tick <green><[tick]>t <gray>in scene <green><[data.name]><gray>."
+                - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+                - inventory open d:dcutscene_inventory_sub_keyframe
+                - ~run dcutscene_sub_keyframe_modify def:<player.flag[dcutscene_sub_keyframe_back_data]>
+              - else:
+                - define text "<green><[arg_2]> <gray>is not a valid location."
+                - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+
+            #Name change prepare
+            - case change_schem_name_prep:
+              - define text "Chat the name of the new schematic. Chat <red>cancel <gray>to stop."
+              - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+              - flag <player> cutscene_modify:change_fake_schem_name expire:2m
+              - inventory close
+
+            #Change schem name
+            - case change_schem_name:
+              - if <schematic[<[arg_2]>].exists>:
+                - flag <player> cutscene_modify:!
+                - define tick <player.flag[dcutscene_tick_modify.tick]>
+                - define uuid <player.flag[dcutscene_tick_modify.uuid]>
+                - define fake_schem <[keyframes.fake_object.fake_schem.<[tick]>.<[uuid]>]>
+                - define pre_name <[fake_schem.schem]>
+                - define fake_schem.schem <[arg_2]>
+                - flag server dcutscenes.<[data.name]>.keyframes.elements.fake_object.fake_schem.<[tick]>.<[uuid]>:<[fake_schem]>
+                - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
+                - inventory open d:dcutscene_inventory_fake_object_schem_modify
+                - define text "Fake schematic <green><[pre_name]> <gray>name is now <green><[fake_schem.schem]> <gray>in tick <green><[tick]>t <gray>for scene <green><[data.name]><gray>."
+                - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+              - else:
+                - define text "Could not find schematic <green><[arg_2]><gray>."
+                - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+
+            #Change Schem Location Prepare
+            - case change_schem_loc_prep:
+              - define text "Right click on the block you'd like to paste this schematic or chat a valid location tag the location's center will automatically be parsed. Chat <red>cancel <gray>to stop."
+              - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+              - flag <player> cutscene_modify:change_fake_schem_loc expire:5m
+              - inventory close
+
+            #Change Schem Location
+            - case change_schem_loc:
+              - if <location[<[arg_2]>]||null> != null:
+                - flag <player> cutscene_modify:!
+                - define tick <player.flag[dcutscene_tick_modify.tick]>
+                - define uuid <player.flag[dcutscene_tick_modify.uuid]>
+                - define fake_schem <[keyframes.fake_object.fake_schem.<[tick]>.<[uuid]>]>
+                - define fake_schem.loc <location[<[arg_2]>]>
+                - flag server dcutscenes.<[data.name]>.keyframes.elements.fake_object.fake_schem.<[tick]>.<[uuid]>:<[fake_schem]>
+                - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
+                - inventory open d:dcutscene_inventory_fake_object_schem_modify
+                - define text "Fake schematic <green><[fake_schem.schem]> <gray>location is now <green><[arg_2].simple> <gray>in tick <green><[tick]>t <gray>for scene <green><[data.name]><gray>."
+                - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+              - else:
+                - define text "<green><[arg_2]> <gray>is not a valid location."
+                - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+
+            #Change Schem Duration Prep
+            - case change_schem_duration_prep:
+              - define text "Chat the duration this schematic will appear for. Chat <red>cancel <gray>to stop."
+              - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+              - flag <player> cutscene_modify:change_fake_schem_duration expire:2.5m
+              - inventory close
+
+            #Change Schem Duration
+            - case change_schem_duration:
+              - define duration_check <duration[<[arg_2]>]||null>
+              - if <[duration_check]> != null:
+                - flag <player> cutscene_modify:!
+                - define tick <player.flag[dcutscene_tick_modify.tick]>
+                - define uuid <player.flag[dcutscene_tick_modify.uuid]>
+                - define fake_schem <[keyframes.fake_object.fake_schem.<[tick]>.<[uuid]>]>
+                - define fake_schem.duration <duration[<[arg_2]>]>
+                - flag server dcutscenes.<[data.name]>.keyframes.elements.fake_object.fake_schem.<[tick]>.<[uuid]>:<[fake_schem]>
+                - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
+                - inventory open d:dcutscene_inventory_fake_object_schem_modify
+                - define text "Fake schematic <green><[fake_schem.schem]> <gray>duration is now <green><duration[<[arg_2]>].formatted> <gray>in tick <green><[tick]>t <gray>for scene <green><[data.name]><gray>."
+                - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+              - else:
+                - define text "<green><[arg_2]> <gray>is not a valid duration."
+                - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+
+            #Change Schem Noair
+            - case change_schem_noair:
+              - define tick <player.flag[dcutscene_tick_modify.tick]>
+              - define uuid <player.flag[dcutscene_tick_modify.uuid]>
+              - define fake_schem <[keyframes.fake_object.fake_schem.<[tick]>.<[uuid]>]>
+              - choose <[fake_schem.noair]>:
+                - case true:
+                  - define fake_schem.noair false
+                - case false:
+                  - define fake_schem.noair true
+              - flag server dcutscenes.<[data.name]>.keyframes.elements.fake_object.fake_schem.<[tick]>.<[uuid]>:<[fake_schem]>
+              - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
+              - define l1 "<aqua>No air: <gray><[fake_schem.noair]>"
+              - define click "<gray><italic>Click to change schematic noair"
+              - define lore <list[<empty>|<[l1]>|<empty>|<[click]>]>
+              - inventory adjust d:<player.open_inventory> slot:<[arg_2]> lore:<[lore]>
+
+            #Change schem waitable
+            - case change_schem_waitable:
+              - define tick <player.flag[dcutscene_tick_modify.tick]>
+              - define uuid <player.flag[dcutscene_tick_modify.uuid]>
+              - define fake_schem <[keyframes.fake_object.fake_schem.<[tick]>.<[uuid]>]>
+              - choose <[fake_schem.waitable]>:
+                - case true:
+                  - define fake_schem.waitable false
+                - case false:
+                  - define fake_schem.waitable true
+              - flag server dcutscenes.<[data.name]>.keyframes.elements.fake_object.fake_schem.<[tick]>.<[uuid]>:<[fake_schem]>
+              - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
+              - define l1 "<gold>Waitable: <gray><[fake_schem.waitable]>"
+              - define click "<gray><italic>Click to change schematic waitable"
+              - define lore <list[<empty>|<[l1]>|<empty>|<[click]>]>
+              - inventory adjust d:<player.open_inventory> slot:<[arg_2]> lore:<[lore]>
+
+            #Change schem direction
+            - case change_schem_direction:
+              - define tick <player.flag[dcutscene_tick_modify.tick]>
+              - define uuid <player.flag[dcutscene_tick_modify.uuid]>
+              - define fake_schem <[keyframes.fake_object.fake_schem.<[tick]>.<[uuid]>]>
+              - choose <[fake_schem.angle]||forward>:
+                - case forward:
+                  - define fake_schem.angle backward
+                - case backward:
+                  - define fake_schem.angle right
+                - case right:
+                  - define fake_schem.angle left
+                - case left:
+                  - define fake_schem.angle forward
+              - flag server dcutscenes.<[data.name]>.keyframes.elements.fake_object.fake_schem.<[tick]>.<[uuid]>:<[fake_schem]>
+              - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
+              - define l1 "<dark_blue>Direction: <gray><[fake_schem.angle]>"
+              - define click "<gray><italic>Click to change schematic paste direction"
+              - define lore <list[<empty>|<[l1]>|<empty>|<[click]>]>
+              - inventory adjust d:<player.open_inventory> slot:<[arg_2]> lore:<[lore]>
+
+            #Teleport to fake schem location
+            - case teleport_to_fake_schem:
+              - define tick <player.flag[dcutscene_tick_modify.tick]>
+              - define uuid <player.flag[dcutscene_tick_modify.uuid]>
+              - define fake_schem <[keyframes.fake_object.fake_schem.<[tick]>.<[uuid]>]>
+              - teleport <player> <[fake_schem.loc]>
+              - define text "You have teleported to fake schematic location <green><[fake_schem.loc].simple> <gray>in tick <green><[tick]>t <gray>in scene <green><[data.name]><gray>."
+              - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+              - inventory open d:dcutscene_inventory_fake_object_schem_modify
+
+            #Remove fake schem
+            - case remove_fake_schem:
+              - define tick <player.flag[dcutscene_tick_modify.tick]>
+              - define uuid <player.flag[dcutscene_tick_modify.uuid]>
+              #Data
+              - define fake_object <[keyframes.fake_object]>
+              #Schem name
+              - define fake_schem <[fake_object.fake_schem.<[tick]>.<[uuid]>.schem]>
+              #Remove uuid from list
+              - define fake_object.fake_schem.<[tick]>.fake_schems:<-:<[uuid]>
+              #Remove the uuid
+              - define fake_object.fake_schem.<[tick]> <[fake_object.fake_schem.<[tick]>].deep_exclude[<[uuid]>]>
+              #If list is empty remove tick
+              - if <[fake_object.fake_schem.<[tick]>.fake_schems].is_empty>:
+                - define fake_object.fake_schem <[fake_object.fake_schem].deep_exclude[<[tick]>]>
+              - flag server dcutscenes.<[data.name]>.keyframes.elements.fake_object:<[fake_object]>
+              - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
+              - inventory open d:dcutscene_inventory_sub_keyframe
+              - ~run dcutscene_sub_keyframe_modify def:<player.flag[dcutscene_sub_keyframe_back_data]>
+              - define text "Fake schematic <green><[fake_schem]> <gray>has been removed from tick <green><[tick]>t <gray>in scene <green><[data.name]><gray>."
+              - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
             #============================
+            #===========================================
+
+        #============= Particle Modifier ===============
+        - case particle:
+          - choose <[arg]>:
+            #Preparation for new particle
+            - case new_particle_prep:
+              - define text "To add a new particle use the command /dcutscene particle <green>my_particle<gray>."
+              - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+              - flag <player> cutscene_modify:new_particle expire:5m
+              - inventory close
+
+            #Set the new particle and prepare for new location
+            - case new_particle_loc:
+              - if <server.particle_types.contains[<[arg_2]>]>:
+                - flag <player> dcutscene_save_data.particle:<[arg_2]>
+                - flag <player> cutscene_modify:new_particle_loc expire:5m
+                - define text "Right click on the block you'd like this particle to be at or chat a valid LocationTag. Chat <red>cancel <gray>to stop."
+                - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+              - else:
+                - define text "<green><[arg_2]> <gray>is not a valid particle."
+                - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+
+            #Create new particle
+            - case new_particle:
+              - if <location[<[arg_2]>]||null> != null:
+                - flag <player> cutscene_modify:!
+                - definemap particle_proc script:none defs:none
+                - definemap particle_data particle:<player.flag[dcutscene_save_data.particle]> loc:<location[<[arg_2]>]> range:100 quantity:1 offset:0,0,0 repeat:1 repeat_interval:0 velocity:false data:false special_data:false procedure:<[particle_proc]>
+                - define uuid <util.random_uuid>
+                - define keyframes.particle.<[tick]>.particle_list:->:<[uuid]>
+                - define keyframes.particle.<[tick]>.<[uuid]> <[particle_data]>
+                - flag server dcutscenes.<[data.name]>.keyframes.elements:<[keyframes]>
+                - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
+                - ~run dcutscene_sort_data def:<[scene_name]>
+                - define text "Particle <green><player.flag[dcutscene_save_data.particle]> <gray>set at location <green><[arg_2].simple> <gray>in tick <green><[tick]>t <gray>in scene <green><[data.name]><gray>."
+                - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+                - inventory open d:dcutscene_inventory_sub_keyframe
+                - ~run dcutscene_sub_keyframe_modify def:<player.flag[dcutscene_sub_keyframe_back_data]>
+              - else:
+                - define text "<green><[arg_2]> <gray>is not a valid location."
+                - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
 
 #############################
