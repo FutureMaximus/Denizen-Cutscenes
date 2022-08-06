@@ -2296,8 +2296,8 @@ dcutscene_animator_keyframe_edit:
             - case new_particle:
               - if <location[<[arg_2]>]||null> != null:
                 - flag <player> cutscene_modify:!
-                - definemap particle_proc script:none defs:none
-                - definemap particle_data particle:<player.flag[dcutscene_save_data.particle]> loc:<location[<[arg_2]>]> range:100 quantity:1 offset:0,0,0 repeat:1 repeat_interval:0 velocity:false data:false special_data:false procedure:<[particle_proc]>
+                - definemap particle_proc script:false defs:false
+                - definemap particle_data particle:<player.flag[dcutscene_save_data.particle]> loc:<location[<[arg_2]>]> range:100 quantity:1 offset:0,0,0 repeat:1 repeat_interval:<duration[1s]> velocity:0,0,0 special_data:false procedure:<[particle_proc]>
                 - define uuid <util.random_uuid>
                 - define keyframes.particle.<[tick]>.particle_list:->:<[uuid]>
                 - define keyframes.particle.<[tick]>.<[uuid]> <[particle_data]>
@@ -2312,4 +2312,728 @@ dcutscene_animator_keyframe_edit:
                 - define text "<green><[arg_2]> <gray>is not a valid location."
                 - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
 
+            #Change Particle Prep
+            - case change_particle_prep:
+              - define text "To add a new particle use the command /dcutscene particle <green>my_particle<gray>."
+              - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+              - flag <player> cutscene_modify:change_particle expire:5m
+              - inventory close
+
+            #Change Particle
+            - case change_particle:
+              - if <server.particle_types.contains[<[arg_2]>]>:
+                - flag <player> cutscene_modify:!
+                - define tick <player.flag[dcutscene_tick_modify.tick]>
+                - define uuid <player.flag[dcutscene_tick_modify.uuid]>
+                - define particle <[keyframes.particle.<[tick]>.<[uuid]>]>
+                - define particle.particle <[arg_2]>
+                - flag server dcutscenes.<[data.name]>.keyframes.elements.particle.<[tick]>.<[uuid]>:<[particle]>
+                - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
+                - inventory open d:dcutscene_inventory_particle_modify
+                - define text "Particle animator in tick <green><[tick]>t <gray>particle is now <green><[arg_2]> <gray>for scene <green><[data.name]><gray>."
+                - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+              - else:
+                - define text "<green><[arg_2]> <gray>is not a valid particle."
+                - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+
+            #Change Location Prep
+            - case change_particle_loc_prep:
+              - define text "Right click on the block you'd like this particle to be at or chat a valid LocationTag. Chat <red>cancel <gray>to stop."
+              - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+              - flag <player> cutscene_modify:change_particle_loc expire:5m
+              - inventory close
+
+            #Change Location
+            - case change_particle_loc:
+              - if <location[<[arg_2]>]||null> != null:
+                - flag <player> cutscene_modify:!
+                - define tick <player.flag[dcutscene_tick_modify.tick]>
+                - define uuid <player.flag[dcutscene_tick_modify.uuid]>
+                - define particle <[keyframes.particle.<[tick]>.<[uuid]>]>
+                - define particle.loc <location[<[arg_2]>]>
+                - flag server dcutscenes.<[data.name]>.keyframes.elements.particle.<[tick]>.<[uuid]>:<[particle]>
+                - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
+                - inventory open d:dcutscene_inventory_particle_modify
+                - define text "Particle animator in tick <green><[tick]>t <gray>location is now <green><[arg_2].simple> <gray>for scene <green><[data.name]><gray>."
+                - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+              - else:
+                - define text "<green><[arg_2]> <gray>is not a valid location."
+                - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+
+            #Change Quantity Prep
+            - case change_particle_quantity_prep:
+              - define text "Chat the quantity of particles that will be played."
+              - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+              - flag <player> cutscene_modify:change_particle_quantity expire:2m
+              - inventory close
+
+            #Change Quanity
+            - case change_particle_quantity:
+              - if <[arg_2].is_integer>:
+                - flag <player> cutscene_modify:!
+                - define tick <player.flag[dcutscene_tick_modify.tick]>
+                - define uuid <player.flag[dcutscene_tick_modify.uuid]>
+                - define particle <[keyframes.particle.<[tick]>.<[uuid]>]>
+                - define particle.quantity <[arg_2]>
+                - flag server dcutscenes.<[data.name]>.keyframes.elements.particle.<[tick]>.<[uuid]>:<[particle]>
+                - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
+                - inventory open d:dcutscene_inventory_particle_modify
+                - define text "Particle animator in tick <green><[tick]>t <gray>quantity is now <green><[arg_2]> <gray>for scene <green><[data.name]><gray>."
+                - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+              - else:
+                - define text "<green><[arg_2]> <gray>is not an integer or number."
+                - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+
+            #Change Range Prep
+            - case change_particle_range_prep:
+              - define text "Chat the visible range the particle can be seen at."
+              - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+              - flag <player> cutscene_modify:change_particle_range expire:2m
+              - inventory close
+
+            #Change visible range
+            - case change_particle_range:
+              - if <[arg_2].is_integer>:
+                - flag <player> cutscene_modify:!
+                - define tick <player.flag[dcutscene_tick_modify.tick]>
+                - define uuid <player.flag[dcutscene_tick_modify.uuid]>
+                - define particle <[keyframes.particle.<[tick]>.<[uuid]>]>
+                - define particle.range <[arg_2]>
+                - flag server dcutscenes.<[data.name]>.keyframes.elements.particle.<[tick]>.<[uuid]>:<[particle]>
+                - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
+                - inventory open d:dcutscene_inventory_particle_modify
+                - define text "Particle animator in tick <green><[tick]>t <gray>visibility range is now <green><[arg_2]> <gray>for scene <green><[data.name]><gray>."
+                - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+              - else:
+                - define text "<green><[arg_2]> <gray>is not an integer or number."
+                - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+
+            #Change repeat count prep
+            - case change_particle_repeat_count_prep:
+              - define text "Chat the repeat count for the particle."
+              - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+              - flag <player> cutscene_modify:change_particle_repeat_count expire:2m
+              - inventory close
+
+            #Change repeat count
+            - case change_particle_repeat_count:
+              - if <[arg_2].is_integer>:
+                - if <[arg_2]> < 1:
+                  - define arg_2 1
+                - flag <player> cutscene_modify:!
+                - define tick <player.flag[dcutscene_tick_modify.tick]>
+                - define uuid <player.flag[dcutscene_tick_modify.uuid]>
+                - define particle <[keyframes.particle.<[tick]>.<[uuid]>]>
+                - define particle.repeat <[arg_2]>
+                - flag server dcutscenes.<[data.name]>.keyframes.elements.particle.<[tick]>.<[uuid]>:<[particle]>
+                - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
+                - inventory open d:dcutscene_inventory_particle_modify
+                - define text "Particle animator in tick <green><[tick]>t <gray>repeat count is now <green><[arg_2]> <gray>for scene <green><[data.name]><gray>."
+                - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+              - else:
+                - define text "<green><[arg_2]> <gray>is not an integer or number."
+                - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+
+            #Change repeat interval prep
+            - case change_particle_repeat_interval_prep:
+              - define text "Chat the repeat interval for the particle."
+              - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+              - flag <player> cutscene_modify:change_particle_repeat_interval expire:2m
+              - inventory close
+
+            #Change repeat interval
+            - case change_particle_repeat_interval:
+              - if <duration[<[arg_2]>]||null> != null:
+                - flag <player> cutscene_modify:!
+                - define tick <player.flag[dcutscene_tick_modify.tick]>
+                - define uuid <player.flag[dcutscene_tick_modify.uuid]>
+                - define particle <[keyframes.particle.<[tick]>.<[uuid]>]>
+                - define particle.repeat_interval <duration[<[arg_2]>]>
+                - flag server dcutscenes.<[data.name]>.keyframes.elements.particle.<[tick]>.<[uuid]>:<[particle]>
+                - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
+                - inventory open d:dcutscene_inventory_particle_modify
+                - define text "Particle animator in tick <green><[tick]>t <gray>repeat interval is now <green><[arg_2]> <gray>for scene <green><[data.name]><gray>."
+                - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+              - else:
+                - define text "<green><[arg_2]> <gray>is not an integer or number."
+                - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+
+            #Change offset prep
+            - case change_particle_offset_prep:
+              - define text "Chat the particle offset in the form 0,0,0."
+              - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+              - flag <player> cutscene_modify:change_particle_offset expire:2m
+              - inventory close
+
+            #Change offset
+            - case change_particle_offset:
+              - if <location[<[arg_2]>]||null> != null:
+                - flag <player> cutscene_modify:!
+                - define tick <player.flag[dcutscene_tick_modify.tick]>
+                - define uuid <player.flag[dcutscene_tick_modify.uuid]>
+                - define particle <[keyframes.particle.<[tick]>.<[uuid]>]>
+                - define particle.offset <location[<[arg_2]>].xyz>
+                - flag server dcutscenes.<[data.name]>.keyframes.elements.particle.<[tick]>.<[uuid]>:<[particle]>
+                - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
+                - inventory open d:dcutscene_inventory_particle_modify
+                - define text "Particle animator in tick <green><[tick]>t <gray>particle offset is now <green><location[<[arg_2]>].xyz> <gray>for scene <green><[data.name]><gray>."
+                - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+              - else:
+                - define text "<green><[arg_2]> <gray>is an invalid offset."
+                - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+
+            #Change procedure script prep
+            - case change_particle_procedure_script_prep:
+              - define text "Chat the name of the procedure script for this particle."
+              - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+              - flag <player> cutscene_modify:change_particle_proc_script expire:2m
+              - inventory close
+
+            #Change procedure script
+            - case change_particle_procedure_script:
+              - if <proc[<[arg_2]>]||null> != null:
+                - flag <player> cutscene_modify:!
+                - define tick <player.flag[dcutscene_tick_modify.tick]>
+                - define uuid <player.flag[dcutscene_tick_modify.uuid]>
+                - define particle <[keyframes.particle.<[tick]>.<[uuid]>]>
+                - define particle.procedure.script <[arg_2]>
+                - flag server dcutscenes.<[data.name]>.keyframes.elements.particle.<[tick]>.<[uuid]>:<[particle]>
+                - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
+                - inventory open d:dcutscene_inventory_particle_modify
+                - define text "Particle animator in tick <green><[tick]>t <gray>procedure script is now <green><[arg_2]> <gray>for scene <green><[data.name]><gray>."
+                - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+              - else:
+                - define text "<green><[arg_2]> <gray>is not a valid procedure script."
+                - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+
+            #Change procedure definitions prep
+            - case change_particle_procedure_defs_prep:
+              - define text "Chat the definition for the procedure script."
+              - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+              - flag <player> cutscene_modify:change_particle_proc_defs expire:2m
+              - inventory close
+
+            #Change procedure definitions
+            - case change_particle_procedure_defs:
+              - flag <player> cutscene_modify:!
+              - define tick <player.flag[dcutscene_tick_modify.tick]>
+              - define uuid <player.flag[dcutscene_tick_modify.uuid]>
+              - define particle <[keyframes.particle.<[tick]>.<[uuid]>]>
+              - define particle.procedure.defs <[arg_2]>
+              - flag server dcutscenes.<[data.name]>.keyframes.elements.particle.<[tick]>.<[uuid]>:<[particle]>
+              - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
+              - inventory open d:dcutscene_inventory_particle_modify
+              - define text "Particle animator in tick <green><[tick]>t <gray>procedure definition is now <green><[arg_2]> <gray>for scene <green><[data.name]><gray>."
+              - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+
+            #Change special data prep
+            - case change_particle_special_data_prep:
+              - define text "Chat the special data for the particle."
+              - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+              - flag <player> cutscene_modify:change_particle_special_data expire:3m
+              - inventory close
+
+            #Change special data
+            - case change_particle_special_data:
+              - flag <player> cutscene_modify:!
+              - define tick <player.flag[dcutscene_tick_modify.tick]>
+              - define uuid <player.flag[dcutscene_tick_modify.uuid]>
+              - define particle <[keyframes.particle.<[tick]>.<[uuid]>]>
+              - define particle.special_data <[arg_2]>
+              - flag server dcutscenes.<[data.name]>.keyframes.elements.particle.<[tick]>.<[uuid]>:<[particle]>
+              - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
+              - inventory open d:dcutscene_inventory_particle_modify
+              - define text "Particle animator in tick <green><[tick]>t <gray>special data is now <green><[arg_2]> <gray>for scene <green><[data.name]><gray>."
+              - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+
+            #Change velocity prep
+            - case change_particle_velocity_prep:
+              - define text "Chat a valid velocity vector it can be a LocationTag or the input as 0,0,0. Chat <green>false <gray>to disable."
+              - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+              - flag <player> cutscene_modify:change_particle_velocity expire:3m
+              - inventory close
+
+            #Change velocity
+            - case change_particle_velocity:
+              - if <location[<[arg_2]>]||null> != null:
+                - flag <player> cutscene_modify:!
+                - define tick <player.flag[dcutscene_tick_modify.tick]>
+                - define uuid <player.flag[dcutscene_tick_modify.uuid]>
+                - define particle <[keyframes.particle.<[tick]>.<[uuid]>]>
+                - define particle.velocity <location[<[arg_2]>].xyz>
+                - flag server dcutscenes.<[data.name]>.keyframes.elements.particle.<[tick]>.<[uuid]>:<[particle]>
+                - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
+                - inventory open d:dcutscene_inventory_particle_modify
+                - define text "Particle animator in tick <green><[tick]>t <gray>velocity is now <green><location[<[arg_2]>].xyz> <gray>for scene <green><[data.name]><gray>."
+                - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+              - else:
+                - define text "<green><[arg_2]> <gray>is not a valid velocity vector."
+                - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+
+            #Teleport to particle location
+            - case teleport_to_particle:
+              - define tick <player.flag[dcutscene_tick_modify.tick]>
+              - define uuid <player.flag[dcutscene_tick_modify.uuid]>
+              - define particle <[keyframes.particle.<[tick]>.<[uuid]>]>
+              - define loc <location[<[particle.loc]>]>
+              - teleport <player> <[loc]>
+              - define text "You have teleported to particle <green><[particle.particle]> <gray>location at <green><[loc].simple> <gray>in tick <green><[tick]>t <gray>for scene <green><[data.name]><gray>."
+              - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+              - inventory open d:dcutscene_inventory_particle_modify
+
+            #Remove Particle
+            - case remove_particle:
+              - define tick <player.flag[dcutscene_tick_modify.tick]>
+              - define uuid <player.flag[dcutscene_tick_modify.uuid]>
+              #Data
+              - define particle <[keyframes.particle]>
+              #Particle name
+              - define particle_name <[particle.<[tick]>.<[uuid]>.particle]>
+              #Remove uuid from list
+              - define particle.<[tick]>.particle_list:<-:<[uuid]>
+              #Remove the uuid
+              - define particle.<[tick]> <[particle.<[tick]>].deep_exclude[<[uuid]>]>
+              #If list is empty remove tick
+              - if <[particle.<[tick]>.particle_list].is_empty>:
+                - define particle <[particle].deep_exclude[<[tick]>]>
+              - flag server dcutscenes.<[data.name]>.keyframes.elements.particle:<[particle]>
+              - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
+              - inventory open d:dcutscene_inventory_sub_keyframe
+              - ~run dcutscene_sub_keyframe_modify def:<player.flag[dcutscene_sub_keyframe_back_data]>
+              - define text "Particle <green><[particle_name]> <gray>has been removed from tick <green><[tick]>t <gray>in scene <green><[data.name]><gray>."
+              - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+
+        #======== Title Modifier ========
+        - case title:
+          - choose <[arg]>:
+            #New title
+            - case new_title:
+              #Title check
+              - if <[keyframes.title.<[tick]>]||null> != null:
+                - define text "There is already a title on tick <green><[tick]>t<gray>."
+                - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+                - stop
+              - definemap duration fade_in:1s stay:3s fade_out:1s
+              - definemap title_data title:Hello! subtitle:<empty> duration:<[duration]>
+              - define keyframes.title.<[tick]> <[title_data]>
+              - flag server dcutscenes.<[data.name]>.keyframes.elements:<[keyframes]>
+              - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
+              - ~run dcutscene_sort_data def:<[scene_name]>
+              - define text "Title set on tick <green><[tick]>t <gray>for scene <green><[data.name]><gray>."
+              - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+              - inventory open d:dcutscene_inventory_keyframe_modify_title
+
+            #Set title prep
+            - case set_title_prep:
+              - define text "Chat the title. To stop chat <red>cancel<gray>."
+              - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+              - flag <player> cutscene_modify:change_title expire:4m
+              - inventory close
+
+            #Set title
+            - case set_title:
+              - flag <player> cutscene_modify:!
+              - define title <[keyframes.title.<[tick]>]>
+              - define title.title <[arg_2]>
+              - flag server dcutscenes.<[data.name]>.keyframes.elements.title.<[tick]>:<[title]>
+              - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
+              - inventory open d:dcutscene_inventory_keyframe_modify_title
+              - define text "Title on tick <green><[tick]>t <gray>title message is now <[arg_2].parse_color> <gray>for scene <green><[data.name]><gray>."
+              - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+
+            #Set subtitle prep
+            - case set_subtitle_prep:
+              - define text "Chat the subtitle. To stop chat <red>cancel<gray>."
+              - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+              - flag <player> cutscene_modify:change_subtitle expire:5m
+              - inventory close
+
+            #Set subtitle
+            - case set_subtitle:
+              - flag <player> cutscene_modify:!
+              - define title <[keyframes.title.<[tick]>]>
+              - define title.subtitle <[arg_2]>
+              - flag server dcutscenes.<[data.name]>.keyframes.elements.title.<[tick]>:<[title]>
+              - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
+              - inventory open d:dcutscene_inventory_keyframe_modify_title
+              - define text "Title on tick <green><[tick]>t <gray>subtitle message is now <[arg_2].parse_color> <gray>for scene <green><[data.name]><gray>."
+              - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+
+            #Set Duration prep
+            - case set_duration_prep:
+              - define text "Chat the title fade in, stay, and fade out like this <green>1s,3s,1s<gray>."
+              - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+              - flag <player> cutscene_modify:change_title_duration expire:3m
+              - inventory close
+
+            #Set Duration
+            - case set_duration:
+              - flag <player> cutscene_modify:!
+              - define split <[arg_2].split[,]>
+              - define fade_in <duration[<[split].get[1]>]||null>
+              - define stay <duration[<[split].get[2]>]||null>
+              - define fade_out <duration[<[split].get[3]>]||null>
+              - if <[fade_in]> != null && <[stay]> != null && <[fade_out]> != null:
+                - define title <[keyframes.title.<[tick]>]>
+                - define title.duration.fade_in <[fade_in]>
+                - define title.duration.stay <[stay]>
+                - define title.duration.fade_out <[fade_out]>
+              - flag server dcutscenes.<[data.name]>.keyframes.elements.title.<[tick]>:<[title]>
+              - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
+              - inventory open d:dcutscene_inventory_keyframe_modify_title
+              - define text "Title on tick <green><[tick]>t <gray>fade in, stay, and fade out is now <green><[fade_in].formatted>,<[stay].formatted>,<[fade_out].formatted> <gray>for scene <green><[data.name]><gray>."
+              - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+
+            #Remove title
+            - case remove_title:
+              - define title_msg <[keyframes.title.<[tick]>.title].parse_color>
+              - define title <[keyframes.title].deep_exclude[<[tick]>]>
+              - flag server dcutscenes.<[data.name]>.keyframes.elements.title:<[title]>
+              - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
+              - inventory open d:dcutscene_inventory_sub_keyframe
+              - ~run dcutscene_sub_keyframe_modify def:<player.flag[dcutscene_sub_keyframe_back_data]>
+              - define text "Title <[title_msg]> <gray>has been removed from tick <green><[tick]>t <gray>in scene <green><[data.name]><gray>."
+              - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+
+        #========== Command Modifier ==========
+        - case command:
+          - choose <[arg]>:
+            #Preparation for new command
+            - case new_command_prep:
+              - define text "Chat the command that will be executed. To stop chat <red>cancel<gray>."
+              - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+              - flag <player> cutscene_modify:new_command expire:5m
+              - inventory close
+
+            #New command
+            - case new_command:
+              - flag <player> cutscene_modify:!
+              - define uuid <util.random_uuid>
+              - define keyframes.command.<[tick]>.command_list:->:<[uuid]>
+              - definemap command_data command:<[arg_2]> execute_as:player silent:false
+              - define keyframes.command.<[tick]>.<[uuid]>.command <[command_data]>
+              - flag server dcutscenes.<[data.name]>.keyframes.elements:<[keyframes]>
+              - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
+              - ~run dcutscene_sort_data def:<[scene_name]>
+              - define text "Command <green><[arg_2]> <gray>set at tick <green><[tick]>t <gray>in scene <green><[data.name]><gray>."
+              - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+              - inventory open d:dcutscene_inventory_sub_keyframe
+              - ~run dcutscene_sub_keyframe_modify def:<player.flag[dcutscene_sub_keyframe_back_data]>
+
+            #Change command prep
+            - case change_command_prep:
+              - define text "Chat the command that will be executed. To stop chat <red>cancel<gray>."
+              - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+              - flag <player> cutscene_modify:change_command expire:5m
+              - inventory close
+
+            #Change command
+            - case change_command:
+              - flag <player> cutscene_modify:!
+              - define tick <player.flag[dcutscene_tick_modify.tick]>
+              - define uuid <player.flag[dcutscene_tick_modify.uuid]>
+              - define command <[keyframes.command.<[tick]>.<[uuid]>]>
+              - define command.command <[arg_2]>
+              - flag server dcutscenes.<[data.name]>.keyframes.elements.command.<[tick]>.<[uuid]>:<[command]>
+              - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
+              - inventory open d:dcutscene_inventory_keyframe_modify_command
+              - define text "Command on tick <green><[tick]>t <gray>command to be executed is now <green><[arg_2]> <gray>for scene <green><[data.name]>."
+              - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+
+            #Change command execute_as
+            - case change_execute_as:
+              - define tick <player.flag[dcutscene_tick_modify.tick]>
+              - define uuid <player.flag[dcutscene_tick_modify.uuid]>
+              - define command <[keyframes.command.<[tick]>.<[uuid]>]>
+              - choose <[command.execute_as]>:
+                - case player:
+                  - define command.execute_as server
+                - case server:
+                  - define command.execute_as player
+              - flag server dcutscenes.<[data.name]>.keyframes.elements.command.<[tick]>.<[uuid]>:<[command]>
+              - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
+              - inventory open d:dcutscene_inventory_keyframe_modify_command
+              - define text "Command on tick <green><[tick]>t <gray>will be executed as <green><[arg_2]> <gray>for scene <green><[data.name]>."
+              - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+
+            #Change command silent
+            - case change_silent:
+              - define tick <player.flag[dcutscene_tick_modify.tick]>
+              - define uuid <player.flag[dcutscene_tick_modify.uuid]>
+              - define command <[keyframes.command.<[tick]>.<[uuid]>]>
+              - choose <[command.silent]>:
+                - case true:
+                  - define command.silent false
+                - case false:
+                  - define command.silent true
+              - flag server dcutscenes.<[data.name]>.keyframes.elements.command.<[tick]>.<[uuid]>:<[command]>
+              - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
+              - inventory open d:dcutscene_inventory_keyframe_modify_command
+              - define text "Command on tick <green><[tick]>t <gray>silent output is now <green><[arg_2]> <gray>for scene <green><[data.name]>."
+              - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+
+            #Remove command
+            - case remove_command:
+              - define tick <player.flag[dcutscene_tick_modify.tick]>
+              - define uuid <player.flag[dcutscene_tick_modify.uuid]>
+              - define command <[keyframes.command]>
+              #Remove uuid from list
+              - define command.<[tick]>.command_list:<-:<[uuid]>
+              #Remove the uuid
+              - define command.<[tick]> <[command.<[tick]>].deep_exclude[<[uuid]>]>
+              #If list is empty remove tick
+              - if <[command.<[tick]>.command_list].is_empty>:
+                - define command <[command].deep_exclude[<[tick]>]>
+              - flag server dcutscenes.<[data.name]>.keyframes.elements.command:<[command]>
+              - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
+              - inventory open d:dcutscene_inventory_sub_keyframe
+              - ~run dcutscene_sub_keyframe_modify def:<player.flag[dcutscene_sub_keyframe_back_data]>
+              - define text "Command has been removed from tick <green><[tick]>t <gray>in scene <green><[data.name]><gray>."
+              - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+
+        #========= Message Modifier ==========
+        - case message:
+          - choose <[arg]>:
+            #Prep for new message
+            - case new_message_prep:
+              - define text "Chat the message. To stop chat <red>cancel<gray>."
+              - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+              - flag <player> cutscene_modify:new_message expire:5m
+              - inventory close
+
+            #New message
+            - case new_message:
+              - flag <player> cutscene_modify:!
+              - define uuid <util.random_uuid>
+              - define keyframes.message.<[tick]>.message_list:->:<[uuid]>
+              - define keyframes.message.<[tick]>.<[uuid]>.message <[arg_2]>
+              - flag server dcutscenes.<[data.name]>.keyframes.elements:<[keyframes]>
+              - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
+              - ~run dcutscene_sort_data def:<[scene_name]>
+              - define text "Command <green><[arg_2]> <gray>set at tick <green><[tick]>t <gray>in scene <green><[data.name]><gray>."
+              - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+              - inventory open d:dcutscene_inventory_sub_keyframe
+              - ~run dcutscene_sub_keyframe_modify def:<player.flag[dcutscene_sub_keyframe_back_data]>
+
+            #Change message prep
+            - case change_message_prep:
+              - define text "Chat the message. To stop chat <red>cancel<gray>."
+              - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+              - flag <player> cutscene_modify:change_message expire:5m
+              - inventory close
+
+            #Change message
+            - case change_message:
+              - flag <player> cutscene_modify:!
+              - define tick <player.flag[dcutscene_tick_modify.tick]>
+              - define uuid <player.flag[dcutscene_tick_modify.uuid]>
+              - define uuid <util.random_uuid>
+              - define message <[keyframes.message.<[tick]>.<[uuid]>]>
+              - define message.message <[arg_2]>
+              - flag server dcutscenes.<[data.name]>.keyframes.elements.message.<[tick]>.<[uuid]>:<[command]>
+              - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
+              - inventory open d:dcutscene_inventory_keyframe_modify_message
+              - define text "Message on tick <green><[tick]>t <gray>is now <white><[arg_2].parse_color> <gray>for scene <green><[data.name]>."
+              - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+
+            #Remove message
+            - case remove_message:
+              - define tick <player.flag[dcutscene_tick_modify.tick]>
+              - define uuid <player.flag[dcutscene_tick_modify.uuid]>
+              - define message <[keyframes.message]>
+              #Remove uuid from list
+              - define message.<[tick]>.message_list:<-:<[uuid]>
+              #Remove the uuid
+              - define message.<[tick]> <[message.<[tick]>].deep_exclude[<[uuid]>]>
+              #If list is empty remove tick
+              - if <[message.<[tick]>.message_list].is_empty>:
+                - define message <[message].deep_exclude[<[tick]>]>
+              - flag server dcutscenes.<[data.name]>.keyframes.elements.message:<[message]>
+              - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
+              - inventory open d:dcutscene_inventory_sub_keyframe
+              - ~run dcutscene_sub_keyframe_modify def:<player.flag[dcutscene_sub_keyframe_back_data]>
+              - define text "Message has been removed from tick <green><[tick]>t <gray>in scene <green><[data.name]><gray>."
+              - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+
+        #========== Time ===========
+        - case time:
+          - choose <[arg]>:
+            #New time prep
+            - case new_time_prep:
+              - if <[keyframes.time.<[tick]>]||null> == null:
+                - define text "Chat a duration for the time. To stop chat <red>cancel<gray>."
+                - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+                - flag <player> cutscene_modify:new_time expire:3m
+                - inventory close
+              - else:
+                - define text "There is already a time set at <green><[tick]>t<gray>."
+                - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+
+            #New time
+            - case new_time:
+              - if <duration[<[arg_2]>]||null> != null:
+                - definemap time_data time:<[arg_2]> duration:1m freeze:true reset:false
+                - define keyframes.time.<[tick]> <[time_data]>
+                - flag server dcutscenes.<[data.name]>.keyframes.elements:<[keyframes]>
+                - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
+                - ~run dcutscene_sort_data def:<[scene_name]>
+                - define text "Time <green><duration[<[arg_2]>].in_ticks>t <gray>set at tick <green><[tick]>t <gray>in scene <green><[data.name]><gray>."
+                - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+                - inventory open d:dcutscene_inventory_sub_keyframe
+                - ~run dcutscene_sub_keyframe_modify def:<player.flag[dcutscene_sub_keyframe_back_data]>
+              - else:
+                - define text "<green><[arg_2]> <gray>is not a valid duration."
+                - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+
+            #Change time prep
+            - case change_time_prep:
+              - define text "Chat a duration for the time. To stop chat <red>cancel<gray>."
+              - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+              - flag <player> cutscene_modify:change_time expire:3m
+              - inventory close
+
+            #Change time
+            - case change_time:
+              - if <duration[<[arg_2]>]||null> != null:
+                - define time <[keyframes.time.<[tick]>]>
+                - define time.time <[arg_2]>
+                - flag server dcutscenes.<[data.name]>.keyframes.elements.time.<[tick]>:<[time]>
+                - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
+                - inventory open d:dcutscene_inventory_keyframe_modify_time
+                - define text "Time on tick <green><[tick]>t <gray>is now <green><duration[<[arg_2]>].in_ticks>t <gray>for scene <green><[data.name]>."
+                - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+              - else:
+                - define text "<green><[arg_2]> <gray>is not a valid duration."
+                - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+
+            #Change time duration
+            - case change_time_duration_prep:
+              - define text "Chat the duration the time will appear to the player. To stop chat <red>cancel<gray>."
+              - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+              - flag <player> cutscene_modify:change_time_duration expire:3m
+              - inventory close
+
+            #Change time
+            - case change_time_duration:
+              - if <duration[<[arg_2]>]||null> != null:
+                - define time <[keyframes.time.<[tick]>]>
+                - define time.duration <[arg_2]>
+                - flag server dcutscenes.<[data.name]>.keyframes.elements.time.<[tick]>:<[time]>
+                - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
+                - inventory open d:dcutscene_inventory_keyframe_modify_time
+                - define text "Time on tick <green><[tick]>t <gray>duration is now <green><duration[<[arg_2]>].formatted>t <gray>for scene <green><[data.name]>."
+                - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+              - else:
+                - define text "<green><[arg_2]> <gray>is not a valid duration."
+                - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+
+            #Change time freeze
+            - case change_time_freeze:
+              - define time <[keyframes.time.<[tick]>]>
+              - choose <[time.freeze]>:
+                - case true:
+                  - define time.freeze false
+                - case false:
+                  - define time.freeze true
+              - flag server dcutscenes.<[data.name]>.keyframes.elements.time.<[tick]>:<[time]>
+              - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
+              - inventory open d:dcutscene_inventory_keyframe_modify_time
+              - define text "Time on tick <green><[tick]>t <gray>freeze is now <green><[time.freeze]> <gray>for scene <green><[data.name]>."
+              - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+
+            #Change time reset
+            - case change_time_reset:
+              - define time <[keyframes.time.<[tick]>]>
+              - choose <[time.reset]>:
+                - case true:
+                  - define time.reset false
+                - case false:
+                  - define time.reset true
+              - flag server dcutscenes.<[data.name]>.keyframes.elements.time.<[tick]>:<[time]>
+              - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
+              - inventory open d:dcutscene_inventory_keyframe_modify_time
+              - choose <[time.reset]>:
+                - case true:
+                  - define text "Time on tick <green><[tick]>t <gray>will now reset to the original time for scene <green><[data.name]>."
+                - case false:
+                  - define text "Time on tick <green><[tick]>t <gray>will no longer reset for scene <green><[data.name]>."
+              - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+
+            #Remove time
+            - case remove_time:
+              - define time <[keyframes.title].deep_exclude[<[tick]>]>
+              - flag server dcutscenes.<[data.name]>.keyframes.elements.time:<[time]>
+              - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
+              - inventory open d:dcutscene_inventory_sub_keyframe
+              - ~run dcutscene_sub_keyframe_modify def:<player.flag[dcutscene_sub_keyframe_back_data]>
+              - define text "Time on tick <green><[tick]>t <gray>has been removed from scene <green><[data.name]><gray>."
+              - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+
+        #========== Weather ===========
+        - case weather:
+          - choose <[arg]>:
+            #New weather
+            - case new_weather:
+              #Weather check
+              - if <[keyframes.weather.<[tick]>]||null> != null:
+                - define text "There is already weather on tick <green><[tick]>t<gray>."
+                - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+                - stop
+              - definemap weather_data weather:sunny duration:1m
+              - define keyframes.weather.<[tick]> <[weather_data]>
+              - flag server dcutscenes.<[data.name]>.keyframes.elements:<[keyframes]>
+              - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
+              - ~run dcutscene_sort_data def:<[scene_name]>
+              - define text "Weather set on tick <green><[tick]>t <gray>for scene <green><[data.name]><gray>."
+              - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+              - inventory open d:dcutscene_inventory_keyframe_modify_weather
+
+            #Change weather
+            - case change_weather:
+              - define weather <[keyframes.weather.<[tick]>]>
+              - choose <[weather.weather]>:
+                - case sunny:
+                  - define weather.weather storm
+                - case storm:
+                  - define weather.weather thunder
+                - case thunder:
+                  - define weather.weather reset
+                - case reset:
+                  - define weather.weather sunny
+              - flag server dcutscenes.<[data.name]>.keyframes.elements.weather.<[tick]>:<[weather]>
+              - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
+              - inventory open d:dcutscene_inventory_keyframe_modify_weather
+              - define text "Weather on tick <green><[tick]>t <gray>now has the weather <green><[weather.weather]> <gray>for scene <green><[data.name]>."
+              - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+
+            #Change weather duration prep
+            - case change_weather_duration_prep:
+              - define text "Chat the duration of how long the weather will appear for the player. To stop chat <red>cancel<gray>."
+              - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+              - flag <player> cutscene_modify:change_weather_duration expire:3m
+              - inventory close
+
+            #Change weather duration
+            - case change_weather_duration:
+              - if <duration[<[arg_2]>]||null> != null:
+                - define weather <[keyframes.weather.<[tick]>]>
+                - define weather.duration <[arg_2]>
+                - flag server dcutscenes.<[data.name]>.keyframes.elements.weather.<[tick]>:<[weather]>
+                - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
+                - inventory open d:dcutscene_inventory_keyframe_modify_weather
+                - define text "Weather on tick <green><[tick]>t <gray>will now appear for <green><duration[<[arg_2]>].formatted> <gray>in scene <green><[data.name]>."
+                - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+              - else:
+                - define text "<green><[arg_2]> <gray>is not a valid duration."
+                - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+
+            #Remove weather
+            - case remove_weather:
+              - define weather <[keyframes.weather].deep_exclude[<[tick]>]>
+              - flag server dcutscenes.<[data.name]>.keyframes.elements.weather:<[weather]>
+              - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
+              - inventory open d:dcutscene_inventory_sub_keyframe
+              - ~run dcutscene_sub_keyframe_modify def:<player.flag[dcutscene_sub_keyframe_back_data]>
+              - define text "Weather on tick <green><[tick]>t <gray>has been removed from scene <green><[data.name]><gray>."
+              - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
 #############################
