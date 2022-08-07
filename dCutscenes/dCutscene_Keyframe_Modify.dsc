@@ -2613,8 +2613,7 @@ dcutscene_animator_keyframe_edit:
                 - define text "There is already a title on tick <green><[tick]>t<gray>."
                 - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
                 - stop
-              - definemap duration fade_in:1s stay:3s fade_out:1s
-              - definemap title_data title:Hello! subtitle:<empty> duration:<[duration]>
+              - definemap title_data title:Hello! subtitle:<empty> fade_in:1s stay:3s fade_out:1s
               - define keyframes.title.<[tick]> <[title_data]>
               - flag server dcutscenes.<[data.name]>.keyframes.elements:<[keyframes]>
               - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
@@ -2675,9 +2674,9 @@ dcutscene_animator_keyframe_edit:
               - define fade_out <duration[<[split].get[3]>]||null>
               - if <[fade_in]> != null && <[stay]> != null && <[fade_out]> != null:
                 - define title <[keyframes.title.<[tick]>]>
-                - define title.duration.fade_in <[fade_in]>
-                - define title.duration.stay <[stay]>
-                - define title.duration.fade_out <[fade_out]>
+                - define title.fade_in <[fade_in]>
+                - define title.stay <[stay]>
+                - define title.fade_out <[fade_out]>
               - flag server dcutscenes.<[data.name]>.keyframes.elements.title.<[tick]>:<[title]>
               - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
               - inventory open d:dcutscene_inventory_keyframe_modify_title
@@ -2711,7 +2710,7 @@ dcutscene_animator_keyframe_edit:
               - define uuid <util.random_uuid>
               - define keyframes.command.<[tick]>.command_list:->:<[uuid]>
               - definemap command_data command:<[arg_2]> execute_as:player silent:false
-              - define keyframes.command.<[tick]>.<[uuid]>.command <[command_data]>
+              - define keyframes.command.<[tick]>.<[uuid]> <[command_data]>
               - flag server dcutscenes.<[data.name]>.keyframes.elements:<[keyframes]>
               - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
               - ~run dcutscene_sort_data def:<[scene_name]>
@@ -2745,16 +2744,17 @@ dcutscene_animator_keyframe_edit:
               - define tick <player.flag[dcutscene_tick_modify.tick]>
               - define uuid <player.flag[dcutscene_tick_modify.uuid]>
               - define command <[keyframes.command.<[tick]>.<[uuid]>]>
-              - choose <[command.execute_as]>:
+              - choose <[command.execute_as]||player>:
                 - case player:
                   - define command.execute_as server
                 - case server:
                   - define command.execute_as player
               - flag server dcutscenes.<[data.name]>.keyframes.elements.command.<[tick]>.<[uuid]>:<[command]>
               - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
-              - inventory open d:dcutscene_inventory_keyframe_modify_command
-              - define text "Command on tick <green><[tick]>t <gray>will be executed as <green><[arg_2]> <gray>for scene <green><[data.name]>."
-              - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+              - define l1 "<red>Execute as: <gray><[command.execute_as]>"
+              - define l2 "<gray><italic>Click to set execute as"
+              - define lore <list[<empty>|<[l1]>|<empty>|<[l2]>]>
+              - inventory adjust d:<player.open_inventory> slot:<[arg_2]> lore:<[lore]>
 
             #Change command silent
             - case change_silent:
@@ -2769,8 +2769,10 @@ dcutscene_animator_keyframe_edit:
               - flag server dcutscenes.<[data.name]>.keyframes.elements.command.<[tick]>.<[uuid]>:<[command]>
               - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
               - inventory open d:dcutscene_inventory_keyframe_modify_command
-              - define text "Command on tick <green><[tick]>t <gray>silent output is now <green><[arg_2]> <gray>for scene <green><[data.name]>."
-              - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+              - define l1 "<dark_gray>Silent: <gray><[command.silent]>"
+              - define l2 "<gray><italic>Click to set silent command"
+              - define lore <list[<empty>|<[l1]>|<empty>|<[l2]>]>
+              - inventory adjust d:<player.open_inventory> slot:<[arg_2]> lore:<[lore]>
 
             #Remove command
             - case remove_command:
@@ -2810,7 +2812,7 @@ dcutscene_animator_keyframe_edit:
               - flag server dcutscenes.<[data.name]>.keyframes.elements:<[keyframes]>
               - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
               - ~run dcutscene_sort_data def:<[scene_name]>
-              - define text "Command <green><[arg_2]> <gray>set at tick <green><[tick]>t <gray>in scene <green><[data.name]><gray>."
+              - define text "Message <white><[arg_2].parse_color> <gray>set at tick <green><[tick]>t <gray>in scene <green><[data.name]><gray>."
               - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
               - inventory open d:dcutscene_inventory_sub_keyframe
               - ~run dcutscene_sub_keyframe_modify def:<player.flag[dcutscene_sub_keyframe_back_data]>
@@ -2872,7 +2874,7 @@ dcutscene_animator_keyframe_edit:
             #New time
             - case new_time:
               - if <duration[<[arg_2]>]||null> != null:
-                - definemap time_data time:<[arg_2]> duration:1m freeze:true reset:false
+                - definemap time_data time:<[arg_2]> duration:<duration[60s]> freeze:false reset:false
                 - define keyframes.time.<[tick]> <[time_data]>
                 - flag server dcutscenes.<[data.name]>.keyframes.elements:<[keyframes]>
                 - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
@@ -2921,7 +2923,7 @@ dcutscene_animator_keyframe_edit:
                 - flag server dcutscenes.<[data.name]>.keyframes.elements.time.<[tick]>:<[time]>
                 - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
                 - inventory open d:dcutscene_inventory_keyframe_modify_time
-                - define text "Time on tick <green><[tick]>t <gray>duration is now <green><duration[<[arg_2]>].formatted>t <gray>for scene <green><[data.name]>."
+                - define text "Time on tick <green><[tick]>t <gray>duration is now <green><duration[<[arg_2]>].formatted> <gray>for scene <green><[data.name]>."
                 - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
               - else:
                 - define text "<green><[arg_2]> <gray>is not a valid duration."
@@ -2937,9 +2939,10 @@ dcutscene_animator_keyframe_edit:
                   - define time.freeze true
               - flag server dcutscenes.<[data.name]>.keyframes.elements.time.<[tick]>:<[time]>
               - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
-              - inventory open d:dcutscene_inventory_keyframe_modify_time
-              - define text "Time on tick <green><[tick]>t <gray>freeze is now <green><[time.freeze]> <gray>for scene <green><[data.name]>."
-              - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+              - define l1 "<aqua>Freeze: <gray><[time.freeze]>"
+              - define l2 "<gray><italic>Click to set freeze time"
+              - define lore <list[<empty>|<[l1]>|<empty>|<[l2]>]>
+              - inventory adjust d:<player.open_inventory> slot:<[arg_2]> lore:<[lore]>
 
             #Change time reset
             - case change_time_reset:
@@ -2951,13 +2954,10 @@ dcutscene_animator_keyframe_edit:
                   - define time.reset true
               - flag server dcutscenes.<[data.name]>.keyframes.elements.time.<[tick]>:<[time]>
               - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
-              - inventory open d:dcutscene_inventory_keyframe_modify_time
-              - choose <[time.reset]>:
-                - case true:
-                  - define text "Time on tick <green><[tick]>t <gray>will now reset to the original time for scene <green><[data.name]>."
-                - case false:
-                  - define text "Time on tick <green><[tick]>t <gray>will no longer reset for scene <green><[data.name]>."
-              - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+              - define l1 "<gold>Reset Time: <gray><[time.reset]>"
+              - define l2 "<gray><italic>Click to set freeze time"
+              - define lore <list[<empty>|<[l1]>|<empty>|<[l2]>]>
+              - inventory adjust d:<player.open_inventory> slot:<[arg_2]> lore:<[lore]>
 
             #Remove time
             - case remove_time:
@@ -3002,9 +3002,10 @@ dcutscene_animator_keyframe_edit:
                   - define weather.weather sunny
               - flag server dcutscenes.<[data.name]>.keyframes.elements.weather.<[tick]>:<[weather]>
               - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
-              - inventory open d:dcutscene_inventory_keyframe_modify_weather
-              - define text "Weather on tick <green><[tick]>t <gray>now has the weather <green><[weather.weather]> <gray>for scene <green><[data.name]>."
-              - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+              - define l1 "<white>Weather: <gray><[weather.weather]>"
+              - define modify "<gray><italic>Click to modify weather"
+              - define lore <list[<empty>|<[l1]>|<empty>|<[modify]>]>
+              - inventory adjust d:<player.open_inventory> slot:<[arg_2]> lore:<[lore]>
 
             #Change weather duration prep
             - case change_weather_duration_prep:
