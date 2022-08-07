@@ -81,6 +81,11 @@ dcutscene_keyframe_contains:
     mechanisms:
       custom_model_data: 0
 
+#Keyframe that contains the scene stop point
+dcutscene_keyframe_stop_point:
+    type: item
+    material: red_stained_glass_pane
+
 #Sub keyframe
 dcutscene_sub_keyframe:
     type: item
@@ -246,6 +251,7 @@ dcutscene_add_cam:
       custom_model_data: 10001
     display name: <dark_gray><bold>Modify Camera
     lore:
+    - <empty>
     - <gray>Change where the camera moves or looks
 
 dcutscene_camera_path_show:
@@ -363,6 +369,8 @@ dcutscene_camera_record_player:
     - <empty>
     - <gray>Records your movement for
     - <gray>the duration specified.
+    - <gray>This should generally be used
+    - <gray>for close up precise shots.
     - <empty>
     - <gray><italic>Click to record movement
 ########
@@ -373,6 +381,7 @@ dcutscene_add_sound:
     material: jukebox
     display name: <blue><bold>Add Sound
     lore:
+    - <empty>
     - <gray>Play a sound to the player.
 
 dcutscene_sound_keyframe:
@@ -450,6 +459,7 @@ dcutscene_add_entity:
     material: zombie_head
     display name: <green><bold>Show entity
     lore:
+    - <empty>
     - <gray>Show an entity to the player and modify it.
 
 dcutscene_add_model:
@@ -457,6 +467,7 @@ dcutscene_add_model:
     material: dragon_head
     display name: <red><bold>Show Model
     lore:
+    - <empty>
     - <gray>Show a model to the player and play animations with it.
     - <blue>Requires DModels
 
@@ -468,6 +479,7 @@ dcutscene_add_player_model:
     mechanisms:
       skull_skin: <player.skull_skin>
     lore:
+    - <empty>
     - <gray>Show a player model of the player and play animations with it.
     - <blue>Requires Denizen Player Models
 
@@ -642,6 +654,7 @@ dcutscene_add_run_task:
     material: enchanted_book
     display name: <dark_purple><bold>Run a task
     lore:
+    - <empty>
     - <gray>Run a task script.
     - <blue>Example: run give_rewards
 
@@ -704,10 +717,240 @@ dcutscene_run_task_remove_modify:
 
 ##############
 
-dcutscene_add_fake_structure:
+##Fake Block
+dcutscene_add_fake_block:
     type: item
     material: stone
-    display name: <aqua><bold>Show a fake block or fake schematic
+    display name: <aqua><bold>Fake Block
+    lore:
+    - <empty>
+    - <gray>Display a fake block
+    - <gray>that is only visible
+    - <gray>to the player.
+    - <empty>
+    - <gray><italic>Click to add fake block
+
+dcutscene_fake_block_keyframe:
+    type: item
+    material: stone
+    display name: <aqua><bold>Fake Block
+
+dcutscene_fake_object_block_select:
+    type: item
+    material: stone
+    display name: <blue><bold>Show a fake block
+    lore:
+    - <empty>
+    - <gray>Show a fake block at a location
+    - <gray>that only appears for the player
+    - <gray>in the cutscene.
+    - <empty>
+    - <gray><italic>Click to add new fake block
+
+dcutscene_fake_object_block_modify:
+    type: item
+    material: stone
+    display name: <blue><bold>Fake Block
+    lore:
+    - <empty>
+    - <gray><italic>Click to modify fake block
+
+dcutscene_fake_object_block_material_change:
+    type: item
+    material: stone
+    display name: <green><bold>Change Material
+    lore:
+    - <empty>
+    - <gray><italic>Click to change the fake block material
+
+dcutscene_fake_object_block_loc_change:
+    type: item
+    display name: <dark_purple><bold>Change Location
+    material: compass
+    lore:
+    - <empty>
+    - <gray><italic>Click to change the fake block location
+
+dcutscene_fake_object_block_proc_change:
+    type: item
+    display name: <dark_blue><bold>Set Procedure Script
+    material: comparator
+    lore:
+    - <empty>
+    - <gray>Set the procedure script
+    - <gray>for the block location.
+    - <blue>Definition: <aqua>loc
+    - <gray>See the wiki for example usages.
+    - <empty>
+    - <gray><italic>Click to set procedure
+
+dcutscene_fake_object_block_proc_def_change:
+    type: item
+    display name: <dark_aqua><bold>Set Procedure Definitions
+    material: writable_book
+    lore:
+    - <empty>
+    - <gray>Set definitions to parse for
+    - <gray>the procedure script.
+    - <gray>See the wiki for example usages.
+    - <empty>
+    - <gray><italic>Click to set procedure definitions
+
+dcutscene_fake_object_block_duration_change:
+    type: item
+    material: clock
+    display name: <dark_blue><bold>Set Duration
+    lore:
+    - <empty>
+    - <gray>This is how long the fake block
+    - <gray>will appear for the player.
+    - <empty>
+    - <gray><italic>Click to set fake block duration
+
+dcutscene_fake_object_block_remove:
+    type: item
+    material: paper
+    display name: <red><bold>Remove Fake Block
+    lore:
+    - <empty>
+    - <gray><italic>Click to remove fake block
+
+dcutscene_fake_object_block_teleport:
+    type: item
+    material: nether_star
+    display name: <blue><bold>Teleport to location
+    lore:
+    - <empty>
+    - <gray><italic>Click to teleport to location
+
+##Fake Schem
+dcutscene_add_fake_schem:
+    type: item
+    material: scaffolding
+    display name: <dark_aqua><bold>Fake Schematic
+    lore:
+    - <empty>
+    - <gray>Display a pasted schematic that only
+    - <gray>the player can see for a specified
+    - <gray>duration.
+    - <empty>
+    - <gray><italic>Click to add fake schematic
+
+dcutscene_fake_schem_keyframe:
+    type: item
+    material: scaffolding
+    display name: <dark_aqua><bold>Fake Schematic
+
+dcutscene_fake_object_schem_select:
+    type: item
+    material: hopper
+    display name: <red><bold>Show a fake schematic
+    lore:
+    - <empty>
+    - <gray>Show a fake pasted schematic at a location
+    - <gray>that only appears for the player
+    - <gray>in the cutscene.
+    - <empty>
+    - <gray><italic>Click to add new fake schematic
+
+dcutscene_fake_object_schem_modify:
+    type: item
+    material: hopper
+    display name: <red><bold>Fake Schematic
+    lore:
+    - <empty>
+    - <gray><italic>Click to modify fake schematic
+
+dcutscene_fake_object_schem_name_change:
+    type: item
+    material: name_tag
+    display name: <blue><bold>Change Schematic Name
+    lore:
+    - <empty>
+    - <gray>This will change the schematic.
+    - <empty>
+    - <gray><italic>Click to change schematic name
+
+dcutscene_fake_object_schem_loc_change:
+    type: item
+    material: compass
+    display name: <red><bold>Change Location
+    lore:
+    - <empty>
+    - <gray><italic>Click to change schematic paste location
+
+dcutscene_fake_object_schem_duration_change:
+    type: item
+    material: clock
+    display name: <green><bold>Schematic Duration
+    lore:
+    - <empty>
+    - <gray>How long the schematic will
+    - <gray>appear for the player.
+    - <empty>
+    - <gray><italic>Click to change schematic duration
+
+dcutscene_fake_object_schem_noair_change:
+    type: item
+    material: barrier
+    display name: <aqua><bold>No Air
+    lore:
+    - <empty>
+    - <gray>Determine whether the
+    - <gray>schematic will be pasted with no air.
+    - <empty>
+    - <gray><italic>Click to change schematic noair
+
+dcutscene_fake_object_schem_waitable_change:
+    type: item
+    material: repeater
+    display name: <gold><bold>Waitable
+    lore:
+    - <empty>
+    - <gray>Determine if the schematic
+    - <gray>will be pasted with a delay.
+    - <gray>This should be used for large
+    - <gray>schematics.
+    - <empty>
+    - <gray><italic>Click to change schematic waitable
+
+dcutscene_fake_object_schem_angle_change:
+    type: item
+    material: piston
+    display name: <dark_blue><bold>Schematic Direction
+    lore:
+    - <empty>
+    - <gray>The direction the schematic
+    - <gray>will be pasted.
+    - <empty>
+    - <gray><italic>Click to change schematic paste direction
+
+dcutscene_fake_object_schem_mask_change:
+    type: item
+    material: tinted_glass
+    display name: <gray><bold>Mask Material
+    lore:
+    - <empty>
+    - <gray>Specify what blocks will be
+    - <gray>limited when pasting the schematic.
+    - <empty>
+    - <gray><italic>Click to change schematic mask
+
+dcutscene_fake_object_schem_teleport:
+    type: item
+    material: nether_star
+    display name: <dark_aqua><bold>Teleport to location
+    lore:
+    - <empty>
+    - <gray><italic>Click to teleport to schematic location
+
+dcutscene_fake_object_schem_remove:
+    type: item
+    material: paper
+    display name: <red><bold>Remove Fake Schematic
+    lore:
+    - <empty>
+    - <gray><italic>Click to remove fake schematic
 
 ##Screeneffect ###
 dcutscene_add_screeneffect:
@@ -715,6 +958,7 @@ dcutscene_add_screeneffect:
     material: lectern
     display name: <light_purple><bold>Cinematic Screeneffect
     lore:
+    - <empty>
     - <gray>Useful for scene transitions.
     - <blue>Requires screeneffect unicode in resource pack
 
@@ -751,48 +995,392 @@ dcutscene_screeneffect_remove_modify:
     - <gray><italic>Click to remove screeneffect
 #################
 
+##Particle ########
 dcutscene_add_particle:
     type: item
-    material: nether_star
+    material: heart_of_the_sea
     display name: <green><bold>Show a particle
     lore:
+    - <empty>
     - <gray>Show a particle to the player at a location.
 
+dcutscene_particle_keyframe:
+    type: item
+    material: heart_of_the_sea
+    display name: <green><bold>Particle
+
+dcutscene_particle_remove:
+    type: item
+    material: paper
+    display name: <red><bold>Remove Particle
+    lore:
+    - <empty>
+    - <gray><italic>Click to remove particle
+
+dcutscene_particle_modify:
+    type: item
+    material: heart_of_the_sea
+    display name: <green><bold>Change Particle
+    lore:
+    - <empty>
+    - <gray><italic>Click to change particle
+
+dcutscene_particle_loc_modify:
+    type: item
+    material: compass
+    display name: <red><bold>Change Location
+    lore:
+    - <empty>
+    - <gray><italic>Click to change particle location
+
+dcutscene_particle_quantity_modify:
+    type: item
+    material: ender_chest
+    display name: <blue><bold>Change Quantity
+    lore:
+    - <empty>
+    - <gray><italic>Click to change particle quantity
+
+dcutscene_particle_range_modify:
+    type: item
+    material: lead
+    display name: <dark_blue><bold>Visibility Range
+    lore:
+    - <empty>
+    - <gray>How far the particle can be seen at.
+    - <empty>
+    - <gray><italic>Click to change particle visibility range
+
+dcutscene_particle_repeat_modify:
+    type: item
+    material: repeater
+    display name: <light_purple><bold>Repeat Count
+    lore:
+    - <empty>
+    - <gray>How many times the particle
+    - <gray>will play at the location.
+    - <empty>
+    - <gray><italic>Click to change particle repeat count
+
+dcutscene_particle_repeat_interval_modify:
+    type: item
+    material: clock
+    display name: <dark_purple><bold>Repeat Interval
+    lore:
+    - <empty>
+    - <gray><italic>Click to change particle repeat interval
+
+dcutscene_particle_offset_modify:
+    type: item
+    material: ladder
+    display name: <aqua><bold>Particle Offset
+    lore:
+    - <empty>
+    - <gray><italic>Click to change particle offset
+
+dcutscene_particle_procedure_modify:
+    type: item
+    material: comparator
+    display name: <dark_aqua><bold>Set Procedure Script
+    lore:
+    - <empty>
+    - <gray>Set the procedure script
+    - <gray>for the particle location.
+    - <blue>Definition: <aqua>loc
+    - <gray>See the wiki for example usages.
+    - <empty>
+    - <gray><italic>Click to set procedure
+
+dcutscene_particle_procedure_defs_modify:
+    type: item
+    material: writable_book
+    display name: <dark_green><bold>Set Procedure Definitions
+    lore:
+    - <empty>
+    - <gray>Set definitions to parse for
+    - <gray>the procedure script.
+    - <gray>See the wiki for example usages.
+    - <empty>
+    - <gray><italic>Click to set procedure definitions
+
+dcutscene_particle_special_data_modify:
+    type: item
+    material: enchanted_book
+    display name: <dark_red><bold>Special Data
+    lore:
+    - <empty>
+    - <gray>Some particles can have
+    - <gray>special data see wiki for
+    - <gray>more information.
+    - <empty>
+    - <gray><italic>Click to set particle special data
+
+dcutscene_particle_velocity_modify:
+    type: item
+    material: sculk_sensor
+    display name: <gray><bold>Set Particle Velocity
+    lore:
+    - <empty>
+    - <gray>Set a velocity vector for the particle
+    - <gray>you can input the vector as 1,5,1 if you'd like.
+    - <empty>
+    - <gray><italic>Click to set particle velocity
+
+dcutscene_particle_teleport_to:
+    type: item
+    material: nether_star
+    display name: <aqua><bold>Teleport to location
+    lore:
+    - <empty>
+    - <gray><italic>Click to teleport to particle location
+
+##################
+
+##Title ###
 dcutscene_send_title:
     type: item
     material: bookshelf
     display name: <dark_aqua><bold>Send a title
     lore:
+    - <empty>
     - <gray>Send a title to the player.
 
+dcutscene_title_keyframe:
+    type: item
+    material: bookshelf
+    display name: <dark_aqua><bold>Title
+
+dcutscene_title_title_modify:
+    type: item
+    material: enchanted_book
+    display name: <blue><bold>Set title
+    lore:
+    - <empty>
+    - <gray><italic>Click to set title
+
+dcutscene_title_subtitle_modify:
+    type: item
+    material: book
+    display name: <aqua><bold>Set subtitle
+    lore:
+    - <empty>
+    - <gray><italic>Click to set subtitle
+
+dcutscene_title_duration_modify:
+    type: item
+    material: clock
+    display name: <green><bold>Set Duration
+    lore:
+    - <empty>
+    - <gray>Set the fade in, stay, and fade out duration.
+    - <empty>
+    - <gray><italic>Click to set title duration
+
+dcutscene_title_remove_modify:
+    type: item
+    material: paper
+    display name: <red><bold>Remove Title
+    lore:
+    - <empty>
+    - <gray><italic>Click to remove title
+
+###########
+
+## Command ########
 dcutscene_play_command:
     type: item
     material: book
-    display name: <dark_aqua><bold>Play Command
+    display name: <dark_gray><bold>Play Command
     lore:
+    - <empty>
     - <gray>Play a command to the player or console.
 
+dcutscene_command_keyframe:
+    type: item
+    material: book
+    display name: <dark_gray><bold>Command
+
+dcutscene_command_modify:
+    type: item
+    material: writable_book
+    display name: <gold><bold>Set Command
+    lore:
+    - <empty>
+    - <gray><italic>Click to set command
+
+dcutscene_command_execute_as_modify:
+    type: item
+    material: dropper
+    display name: <red><bold>Execute as player/server
+    lore:
+    - <empty>
+    - <gray>Specify whether the command will
+    - <gray>be ran as the player or in the console.
+    - <empty>
+    - <gray><italic>Click to set execute as
+
+dcutscene_command_silent_modify:
+    type: item
+    material: polished_blackstone_pressure_plate
+    display name: <gray><bold>Silent
+    lore:
+    - <empty>
+    - <gray>If true the output of the
+    - <gray>command will not show for either
+    - <gray>the console or player chat.
+    - <empty>
+    - <gray><italic>Click to set silent command
+
+dcutscene_command_remove_modify:
+    type: item
+    material: paper
+    display name: <red><bold>Remove Command
+    lore:
+    - <empty>
+    - <gray><italic>Click to remove command
+
+###################
+
+### Message ######
 dcutscene_add_msg:
     type: item
     material: oak_sign
     display name: <gold><bold>Send Message
     lore:
+    - <empty>
     - <gray>Send a message to the player
 
+dcutscene_message_keyframe:
+    type: item
+    material: oak_sign
+    display name: <gold><bold>Message
+
+dcutscene_message_modify:
+    type: item
+    material: warped_sign
+    display name: <blue><bold>Set Message
+    lore:
+    - <empty>
+    - <gray><italic>Click to set message
+
+dcutscene_message_remove_modify:
+    type: item
+    material: paper
+    display name: <red><bold>Remove Message
+    lore:
+    - <empty>
+    - <gray><italic>Click to remove message
+#################
+
+## Time ########
 dcutscene_send_time:
     type: item
     material: clock
     display name: <dark_green><bold>Set Time
     lore:
+    - <empty>
     - <gray>Set the time for the player in the cutscene.
 
+dcutscene_time_keyframe:
+    type: item
+    material: clock
+    display name: <dark_green><bold>Time
+
+dcutscene_time_modify:
+    type: item
+    material: clock
+    display name: <dark_green><bold>Set Time
+    lore:
+    - <empty>
+    - <gray>Specify the time in ticks or any valid duration.
+    - <empty>
+    - <gray><italic>Click to set time
+
+dcutscene_time_duration_modify:
+    type: item
+    material: repeater
+    display name: <blue><bold>Duration
+    lore:
+    - <empty>
+    - <gray>How long the time will appear
+    - <gray>for the player before reverting
+    - <gray>back to the original time.
+    - <empty>
+    - <gray><italic>Click to set time duration
+
+dcutscene_time_freeze_modify:
+    type: item
+    material: ice
+    display name: <aqua><bold>Freeze Time
+    lore:
+    - <empty>
+    - <gray>This locks the player's time.
+    - <empty>
+    - <gray><italic>Click to set freeze time
+
+dcutscene_time_reset_modify:
+    type: item
+    material: target
+    display name: <gold><bold>Reset Time
+    lore:
+    - <empty>
+    - <gray>If true the time will revert
+    - <gray>to the world's time.
+    - <empty>
+    - <gray><italic>Click to set reset time
+
+dcutscene_time_remove_modify:
+    type: item
+    material: paper
+    display name: <red><bold>Remove Time
+    lore:
+    - <empty>
+    - <gray><italic>Click to remove time animator
+################
+
+## Weather ########
 dcutscene_set_weather:
     type: item
     material: lightning_rod
     display name: <white><bold>Set Weather
     lore:
+    - <empty>
     - <gray>Set the weather for the player in the cutscene.
 
+dcutscene_weather_keyframe:
+    type: item
+    material: lightning_rod
+    display name: <white><bold>Weather
+
+dcutscene_weather_modify:
+    type: item
+    material: lightning_rod
+    display name: <white><bold>Set Weather
+    lore:
+    - <empty>
+    - <gray><italic>Click to set the weather
+
+dcutscene_weather_duration_modify:
+    type: item
+    material: clock
+    display name: <blue><bold>Weather Duration
+    lore:
+    - <empty>
+    - <gray>How long before the weather reverts
+    - <gray>to the original for the player.
+    - <empty>
+    - <gray><italic>Click to set weather duration
+
+dcutscene_weather_remove_modify:
+    type: item
+    material: paper
+    display name: <red><bold>Remove Weather
+    lore:
+    - <empty>
+    - <gray><italic>Click to remove the weather
+###################
+
+## Stop Point ##########
 dcutscene_stop_scene:
     type: item
     material: target
@@ -801,3 +1389,18 @@ dcutscene_stop_scene:
     - <empty>
     - <gray>Stops the cutscene from
     - <gray>processing any further.
+
+dcutscene_stop_scene_keyframe_item:
+    type: item
+    material: target
+    display name: <red><bold>Stop Scene
+
+dcutscene_stop_point_remove_modify:
+    type: item
+    material: paper
+    display name: <red><bold>Remove Stop Point
+    lore:
+    - <empty>
+    - <gray><italic>Click to remove stop point
+
+######################
