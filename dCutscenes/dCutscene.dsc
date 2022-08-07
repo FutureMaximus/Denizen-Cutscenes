@@ -29,7 +29,7 @@
 #Github: https://github.com/FutureMaximus/Denizen-Player-Models
 
 #There are resource pack assets you can use to improve the overall look of the tool such as
-#the 3d modeled camera that can be viewed in editor mode and custom GUI it also contains the
+#the 3D modeled camera that can be viewed in editor mode and custom GUI it also contains the
 #cinematic screeneffect and cutscene black bars so if you'd like to use all features it's highly
 #recommended to use these assets.
 
@@ -40,6 +40,9 @@
 dcutscenes_config:
     type: data
     config:
+      #Compress the save file saving storage if you want to debug the save file put false
+      cutscene_compress_save_file: false
+
       #title of cutscene gui
       cutscene_title: 
 
@@ -81,16 +84,14 @@ dcutscenes_config:
       #Max distance the ray trace can go for the location editor this is for moving locations with your cursor
       cutscene_loc_tool_ray_dist: 5
 
-##Want to contribute?
-#You can find me in the Denizen discord just ping me there if you want to make a pull request on github
-#and we can discuss the changes you made.
-#Max^#0001
+      #Max delay the cutscene will wait for chunks to be loaded allowing the camera to be spawned.
+      cutscene_chunk_load_delay: 10t
 
 ###################################
 
 #==== API Usage ====
 #= To begin a cutscene. You may also specify the time it will begin:
-# - run dcutscene_animation_begin def.scene:my_scene def.timespot:5s
+# - run dcutscene_animation_begin def.scene:my_scene def.player:<player> def.timespot:5s def.world:<player.world>
 
 #= To stop the cutscene for the player
 # - run dcutscene_animation_stop def.player:<player[FutureMaximus]>
@@ -99,3 +100,10 @@ dcutscenes_config:
 #- <player.flag[dcutscene_timespot]>
 
 ##################################
+
+#=== Planned Features ===
+
+#- Be able to move animators to a new tick
+#- Be able to copy and paste animators to a new tick
+
+#========================
