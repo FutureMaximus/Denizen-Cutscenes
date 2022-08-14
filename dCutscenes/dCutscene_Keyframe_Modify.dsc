@@ -7,7 +7,7 @@
 #- <player.flag[cutscene_data]> "Returns the cutscene the player is modifying"
 #- <player.flag[cutscene_data.keyframes]> "Returns the animators within the cutscene"
 #- <player.flag[cutscene_data.name]> "Returns the name of the cutscene"
-#- <player.flag[dcutscene_tick_modify]> "Returns the tick the player is modifying without a uuid this is used when creating a new animator"
+#- <player.flag[dcutscene_tick_modify]> "Returns the tick the player is modifying without a uuid this is generally used when creating a new animator"
 #- <player.flag[dcutscene_tick_modify.tick]> "Returns the tick if animator uuid is specified as well"
 #- <player.flag[dcutscene_tick_modify.uuid]> "Returns the uuid of the animator the player is modifying this is generally used for list capable animators"
 #- <player.flag[dcutscene_save_data]> "Used for multi operation keyframe modifiers in keeping data"
@@ -776,7 +776,19 @@ dcutscene_model_keyframe_edit:
         #======== Denizen Player Models Modifier =========
         - case player_model:
           - define task_check <script[pmodels_spawn_model]||null>
-          - if <[task_check]> != null:
+          #If player model script does not exist
+          - if <[task_check]> == null:
+            - debug error "Could not find Denizen Player Models in dcutscene_model_keyframe_edit"
+            - define text "Could not find Denizen Player Models."
+            - define text_2 "<gray>Forums: <green><&click[https://forum.denizenscript.com/resources/denizen-player-models.107/].type[OPEN_URL]>click here<&end_click><gray>."
+            - define text_3 "<gray>Github: <green><&click[https://github.com/FutureMaximus/Denizen-Player-Models].type[OPEN_URL]>click here<&end_click><gray>."
+            - define text_4 "<gray>Wiki: <green><&click[https://github.com/FutureMaximus/Denizen-Player-Models/wiki].type[OPEN_URL]>click here<&end_click><gray>."
+            - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+            - narrate <[text_2]>
+            - narrate <[text_3]>
+            - narrate <[text_4]>
+            - inventory close
+          - else:
             - choose <[arg]>:
               #New player model
               - case new:
@@ -807,7 +819,7 @@ dcutscene_model_keyframe_edit:
                           - definemap item_data type:<[model_data.type]> tick:<[model.tick]> uuid:<[model_uuid]> id:<[model_data.id]>
                           - define skin <[model_data.path.<[model.tick]>.skin].parsed||none>
                           - if <[skin]> == none || <[skin]> == player:
-                            - define skin <player.skull_skin>
+                            - define skin <player>
                           - adjust <[skull_item]> skull_skin:<[skin].skull_skin> save:item
                           - define item <entry[item].result>
                           - define display <blue><bold><[model_data.id]>
@@ -875,10 +887,14 @@ dcutscene_model_keyframe_edit:
                   - define model_uuid <util.random_uuid>
                   - definemap model_data id:<player.flag[dcutscene_save_data.id]> type:player_model root:none sub_frames:none
                   - definemap ray_trace_data direction:floor liquid:false passable:false
-                  - definemap path_data interpolation:linear rotate:true move:false location:<[arg_3]> animation:false ray_trace:<[ray_trace_data]> skin:none tick:<[tick]>
+                  - definemap path_data interpolation:linear rotate_interp:true rotate_mul:1.0 move:false location:<[arg_3]> animation:false ray_trace:<[ray_trace_data]> skin:none tick:<[tick]>
                   - define model_data.path.<[tick]> <[path_data]>
                   - define data.keyframes.models.<[tick]>.<[model_uuid]> <[model_data]>
                   - define data.keyframes.models.<[tick]>.model_list:->:<[model_uuid]>
+                  #=-Debugger
+                  - if <script[dcutscenes_config].data_key[config].get[cutscene_tool_debugger_mode]||false.is_truthy>:
+                    - ~run dcutscene_debugger def:player_model_create|<[data.keyframes.models]>
+                    - stop
                   - flag server dcutscenes.<[data.name]>:<[data]>
                   - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
                   - define text "Denizen Player Model has been created for tick <green><[tick]>t <gray>with an ID of <green><player.flag[dcutscene_save_data.id]> <gray>in scene <green><[data.name]><gray>."
@@ -934,26 +950,35 @@ dcutscene_model_keyframe_edit:
                   - case new_keyframe_set:
                     - flag <player> cutscene_modify:!
                     - define loc <location[<[arg_3]>]>
+                    #Root Model Data
                     - define root_save <player.flag[dcutscene_save_data.data]||null>
                     - define root_tick <[root_save.tick]>
                     - define root_uuid <[root_save.uuid]>
                     - define root_id <[root_save.id]>
+                    #Default data for new model
                     - definemap ray_trace_data direction:floor liquid:false passable:false
-                    - definemap path_data rotate:true interpolation:linear location:<[loc]> move:false animation:false ray_trace:<[ray_trace_data]> skin:none tick:<[tick]>
+                    - definemap path_data rotate_interp:true rotate_mul:1.0 interpolation:linear location:<[loc]> move:false animation:false ray_trace:<[ray_trace_data]> skin:none tick:<[tick]>
                     #Update the root data
                     - define path <[data.keyframes.models.<[root_tick]>.<[root_uuid]>.path]>
                     - define path.<[tick]> <[path_data]>
-                    #Sort path by time
-                    - define path <[path].sort_by_value[get[time]]>
+                    #Update root model
                     - flag server dcutscenes.<[data.name]>.keyframes.models.<[root_tick]>.<[root_uuid]>.path:<[path]>
                     - flag server dcutscenes.<[data.name]>.keyframes.models.<[root_tick]>.<[root_uuid]>.sub_frames.<[tick]>:<[root_uuid]>
+                    #Set new model
                     - define model_uuid <[root_uuid]>
                     - definemap model_data id:<[root_id]> type:player_model path:false
                     - define model_data.root.tick <[root_tick]>
                     - define model_data.root.uuid <[root_uuid]>
+                    #=-Debugger
+                    - if <script[dcutscenes_config].data_key[config].get[cutscene_tool_debugger_mode]||false.is_truthy>:
+                      - ~run dcutscene_debugger def:player_model_new_keyframe_set|<[model_data]>
+                      - stop
                     - flag server dcutscenes.<[data.name]>.keyframes.models.<[tick]>.<[model_uuid]>:<[model_data]>
                     - flag server dcutscenes.<[data.name]>.keyframes.models.<[tick]>.model_list:->:<[model_uuid]>
                     - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
+                    #Sort ticks by time
+                    - run dcutscene_sort_data def:<[data.name]>
+                    #If model is spawned remove it
                     - if <player.flag[dcutscene_save_data.root].is_spawned>:
                       - run pmodels_remove_model def.root:<player.flag[dcutscene_save_data.root]>
                     - run dcutscene_location_tool_return_inv
@@ -1000,6 +1025,10 @@ dcutscene_model_keyframe_edit:
                           - if <[sub_frames]> != none:
                             - foreach <[sub_frames]> key:frame_tick as:frame_uuid:
                               - define model_data.<[frame_tick]>.<[frame_uuid]>.id <[arg_3]>
+                        #=-Debugger
+                        - if <script[dcutscenes_config].data_key[config].get[cutscene_tool_debugger_mode]||false.is_truthy>:
+                          - ~run dcutscene_debugger def:player_model_set_ID|<[model_data]>
+                          - stop
                         - flag server dcutscenes.<[data.name]>.keyframes.models:<[model_data]>
                         - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
                         - define text "Player model ID changed to <green><[arg_3]> <gray>in tick <green><[tick]>t <gray>in scene <green><[data.name]><gray>."
@@ -1061,6 +1090,10 @@ dcutscene_model_keyframe_edit:
                         - define model_data.<[root_data.tick]>.<[root_data.uuid]>.path.<[tick]>.location <[arg_3]>
                       - else:
                         - define model_data.<[tick]>.<[uuid]>.path.<[tick]>.location <[arg_3]>
+                      #=-Debugger
+                      - if <script[dcutscenes_config].data_key[config].get[cutscene_tool_debugger_mode]||false.is_truthy>:
+                        - ~run dcutscene_debugger def:player_model_set_location|<[model_data]>
+                        - stop
                       - flag server dcutscenes.<[data.name]>.keyframes.models:<[model_data]>
                       - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
                       - define text "Player Model <green><[model_data.<[tick]>.<[uuid]>.id]> <gray>location is now <green><[arg_3].simple> <gray>in tick <green><[tick]>t <gray>for scene <green><[data.name]><gray>."
@@ -1103,6 +1136,10 @@ dcutscene_model_keyframe_edit:
                         #If the model is a root model
                         - else:
                           - define model_data.<[tick]>.<[uuid]>.path.<[tick]>.animation <[arg_3]>
+                        #=-Debugger
+                        - if <script[dcutscenes_config].data_key[config].get[cutscene_tool_debugger_mode]||false.is_truthy>:
+                          - ~run dcutscene_debugger def:player_model_set_animation|<[model_data]>
+                          - stop
                         - flag server dcutscenes.<[data.name]>.keyframes.models:<[model_data]>
                         - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
                         - define text "Player Model <green><[model_data.<[tick]>.<[uuid]>.id]> <gray>animation is now <green><[arg_3]> <gray>in tick <green><[tick]>t <gray>for scene <green><[data.name]><gray>."
@@ -1138,6 +1175,10 @@ dcutscene_model_keyframe_edit:
                       - case false:
                         - define model_data.<[tick]>.<[uuid]>.path.<[tick]>.move true
                         - define move true
+                  #=-Debugger
+                  - if <script[dcutscenes_config].data_key[config].get[cutscene_tool_debugger_mode]||false.is_truthy>:
+                    - ~run dcutscene_debugger def:player_model_set_move|<[model_data]>
+                    - stop
                   - flag server dcutscenes.<[data.name]>.keyframes.models:<[model_data]>
                   - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
                   - define l1 "<gold>Move: <gray><[move]>"
@@ -1199,6 +1240,10 @@ dcutscene_model_keyframe_edit:
                       - define l1 "<green>Passable: <gray><[passable]>"
                       - define l2 "<gray><italic>Click to change ray trace passable"
                       - define model_data.<[tick_modify]>.<[uuid_modify]>.path.<[tick_modify]>.ray_trace.passable:<[passable]>
+                  #=-Debugger
+                  - if <script[dcutscenes_config].data_key[config].get[cutscene_tool_debugger_mode]||false.is_truthy>:
+                    - ~run dcutscene_debugger def:player_model_ray_trace|<[model_data]>
+                    - stop
                   - flag server dcutscenes.<[data.name]>.keyframes.models:<[model_data]>
                   - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
                   - define lore <list[<empty>|<[l1]>|<empty>|<[l2]>]>
@@ -1231,6 +1276,10 @@ dcutscene_model_keyframe_edit:
                     - case smooth:
                       - define model_data.<[tick]>.<[uuid]>.path.<[tick]>.interpolation linear
                       - define interp linear
+                #=-Debugger
+                - if <script[dcutscenes_config].data_key[config].get[cutscene_tool_debugger_mode]||false.is_truthy>:
+                  - ~run dcutscene_debugger def:player_model_path_interp|<[model_data]>
+                  - stop
                 - flag server dcutscenes.<[data.name]>.keyframes.models:<[model_data]>
                 - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
                 - define l1 "<blue>Interpolation: <gray><[interp]>"
@@ -1263,11 +1312,90 @@ dcutscene_model_keyframe_edit:
                         - define tick_modify <[tick]>
                         - define uuid_modify <[uuid]>
                       - define model_data.<[tick_modify]>.<[uuid_modify]>.path.<[tick]>.skin:<[arg_3]>
+                      #=-Debugger
+                      - if <script[dcutscenes_config].data_key[config].get[cutscene_tool_debugger_mode]||false.is_truthy>:
+                        - ~run dcutscene_debugger def:player_model_change_skin|<[model_data]>
+                        - stop
                       - flag server dcutscenes.<[data.name]>.keyframes.models:<[model_data]>
                       - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
                       - inventory open d:dcutscene_inventory_keyframe_modify_player_model
                       - define text "Player model <green><[model_data.<[tick]>.<[uuid]>.id]> <gray>skin is now <green><[arg_3].parsed||<[arg_3]>> <gray>in tick <green><[tick]>t <gray>in scene <green><[data.name]><gray>."
                       - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+
+              #Change rotation interpolate
+              - case change_rotate_interp:
+                - define tick_data <player.flag[dcutscene_tick_modify]>
+                - define tick <[tick_data.tick]>
+                - define uuid <[tick_data.uuid]>
+                - define model_data <[data.keyframes.models]>
+                - define root_data <[model_data.<[tick]>.<[uuid]>.root]||none>
+                #If the model contains a root data model
+                - if <[root_data]> != none:
+                  - define interp <[model_data.<[root_data.tick]>.<[root_data.uuid]>.path.<[tick]>.rotate_interp]||false>
+                  - choose <[interp]>:
+                    - case true:
+                      - define model_data.<[root_data.tick]>.<[root_data.uuid]>.path.<[tick]>.rotate_interp false
+                      - define interp false
+                    - case false:
+                      - define model_data.<[root_data.tick]>.<[root_data.uuid]>.path.<[tick]>.rotate_interp true
+                      - define interp true
+                #If the model is a root data model
+                - else:
+                  - define interp <[model_data.<[tick]>.<[uuid]>.path.<[tick]>.rotate_interp]||false>
+                  - choose <[interp]>:
+                    - case true:
+                      - define model_data.<[tick]>.<[uuid]>.path.<[tick]>.rotate_interp false
+                      - define interp false
+                    - case false:
+                      - define model_data.<[tick]>.<[uuid]>.path.<[tick]>.rotate_interp true
+                      - define interp true
+                #=-Debugger
+                - if <script[dcutscenes_config].data_key[config].get[cutscene_tool_debugger_mode]||false.is_truthy>:
+                  - ~run dcutscene_debugger def:player_model_change_rotate_interp|<[model_data]>
+                  - stop
+                #Update data
+                - flag server dcutscenes.<[data.name]>.keyframes.models:<[model_data]>
+                - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
+                - define l1 "<dark_purple>Rotate interpolation: <gray><[interp]>"
+                - define l2 "<gray><italic>Click to change path rotation interpolation"
+                - define lore <list[<empty>|<[l1]>|<empty>|<[l2]>]>
+                - inventory adjust d:<player.open_inventory> slot:<[arg_2]> lore:<[lore]>
+
+              #Change rotate mul prep
+              - case change_rotate_mul_prep:
+                - define text "Chat a valid number for the rotation multiplier."
+                - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+                - flag <player> cutscene_modify:player_model_change_rotate_mul expire:2m
+                - inventory close
+
+              #Change rotate mul
+              - case change_rotate_mul:
+                - if <[arg_2].is_decimal>:
+                  - flag <player> cutscene_modify:!
+                  - define tick_data <player.flag[dcutscene_tick_modify]>
+                  - define tick <[tick_data.tick]>
+                  - define uuid <[tick_data.uuid]>
+                  - define model_data <[data.keyframes.models]>
+                  - define root_data <[model_data.<[tick]>.<[uuid]>.root]||none>
+                  #If the model contains a root data model
+                  - if <[root_data]> != none:
+                    - define model_data.<[root_data.tick]>.<[root_data.uuid]>.path.<[tick]>.rotate_mul <[arg_2]>
+                  #If the model is a root data model
+                  - else:
+                    - define model_data.<[tick]>.<[uuid]>.path.<[tick]>.rotate_mul <[arg_2]>
+                  #=-Debugger
+                  - if <script[dcutscenes_config].data_key[config].get[cutscene_tool_debugger_mode]||false.is_truthy>:
+                    - ~run dcutscene_debugger def:player_model_rotate_mul|<[model_data]>
+                    - stop
+                  #Update data
+                  - flag server dcutscenes.<[data.name]>.keyframes.models:<[model_data]>
+                  - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
+                  - define text "Player model <green><[model_data.<[tick]>.<[uuid]>.id]> <gray>rotation multiplier is now <green><[arg_2]> <gray>in tick <green><[tick]>t <gray>in scene <green><[data.name]><gray>."
+                  - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+                  - inventory open d:dcutscene_inventory_keyframe_modify_player_model
+                - else:
+                  - define text "<green><[arg_2]> <gray>is not a valid number."
+                  - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
 
               #Teleport to player model location
               - case teleport_to:
@@ -1291,6 +1419,178 @@ dcutscene_model_keyframe_edit:
                   - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
                   - inventory open d:dcutscene_inventory_keyframe_modify_player_model
 
+              #Case move to prep
+              - case move_to_prep:
+                - define tick <player.flag[dcutscene_tick_modify.tick]>
+                - define uuid <player.flag[dcutscene_tick_modify.uuid]>
+                - define player_model_data <[data.keyframes.models.<[tick]>.<[uuid]>]>
+                - definemap move_data animator:player_model type:move tick:<[tick]> uuid:<[uuid]> data:<[player_model_data]>
+                - flag <player> dcutscene_animator_change:<[move_data]> expire:3m
+                - define text "Click on the tick you'd like to move this player model animator to. To stop chat <red>cancel<gray>."
+                - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+                - ~run dcutscene_keyframe_modify def:back
+
+              #Move to
+              - case move_to:
+                - define tick <player.flag[dcutscene_tick_modify]>
+                - define move_data <player.flag[dcutscene_animator_change]>
+                - define model_data <[data.keyframes.models]>
+                - define root_data <[model_data.<[move_data.tick]>.<[move_data.uuid]>.root]||none>
+                #Condition Checks
+                #= Non-root model (sub-frame)
+                - if <[root_data]> != none:
+                  - define root_tick <[root_data.tick]>
+                  #If the tick is less than the root tick stop and tell the user
+                  - if <[tick]> <= <[root_tick]>:
+                    - define text "The tick must be greater than the root data tick <green><[root_tick]>t <gray>."
+                    - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+                    - stop
+                  #-Root Update
+                  #Memory data for new tick in path
+                  - define path_tick <[model_data.<[root_data.tick]>.<[root_data.uuid]>.path.<[move_data.tick]>].deep_with[tick].as[<[tick]>]>
+                  #Remove old ticks in path for root data
+                  - define model_data.<[root_data.tick]>.<[root_data.uuid]>.path <[model_data.<[root_data.tick]>.<[root_data.uuid]>.path].deep_exclude[<[move_data.tick]>]>
+                  #Update the path for root model
+                  - define model_data.<[root_data.tick]>.<[root_data.uuid]>.path.<[tick]>:<[path_tick]>
+                  #Update sub frames
+                  - define model_data.<[root_data.tick]>.<[root_data.uuid]>.sub_frames <[model_data.<[root_data.tick]>.<[root_data.uuid]>.sub_frames].deep_exclude[<[move_data.tick]>]>
+                  - define model_data.<[root_data.tick]>.<[root_data.uuid]>.sub_frames.<[tick]>:<[move_data.uuid]>
+                  #-Model Update
+                  #Remove (non-root) model from tick
+                  - define model_data.<[move_data.tick]> <[model_data.<[move_data.tick]>].deep_exclude[<[move_data.uuid]>]>
+                  #Remove from the model list
+                  - define model_data.<[move_data.tick]>.model_list:<-:<[move_data.uuid]>
+                  - if <[model_data.<[move_data.tick]>.model_list].is_empty>:
+                    - define model_data <[model_data].deep_exclude[<[move_data.tick]>]>
+                  #Set new data
+                  - define model_data.<[tick]>.<[move_data.uuid]>:<[move_data.data]>
+                  - define model_data.<[tick]>.model_list:->:<[move_data.uuid]>
+                #=Root Model
+                - else:
+                  #If root model is already at tick stop
+                  - if <[move_data.tick]> == <[tick]>:
+                    - define text "There is already a root data tick there."
+                    - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+                    - stop
+                  - define path <[model_data.<[move_data.tick]>.<[move_data.uuid]>.path]||<list>>
+                  #If the model is a root model ensure it does not exceed the path ticks if available
+                  - if !<[path].is_empty> && <[path].keys.first> != <[move_data.tick]>:
+                    - define path_keys <[path].keys>
+                    - foreach <[path_keys]> as:key:
+                      - if <[key]> > <[tick]>:
+                        - define first <[key]>
+                        - foreach stop
+                    - if <[tick]> > <[first]>:
+                      - define text "A root data tick cannot exceed sub frames."
+                      - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+                      - stop
+                  #Update Sub Frames
+                  - foreach <[model_data.<[move_data.tick]>.<[move_data.uuid]>.sub_frames]> key:sub_tick as:sub_uuid:
+                    - define model_data.<[sub_tick]>.<[sub_uuid]>.root.tick:<[tick]>
+                  #Update Root Data
+                  - define model_data.<[move_data.tick]> <[model_data.<[move_data.tick]>].deep_exclude[<[move_data.uuid]>]>
+                  - define model_data.<[move_data.tick]>.model_list:<-:<[move_data.uuid]>
+                  - if <[model_data.<[move_data.tick]>.model_list].is_empty>:
+                    - define model_data <[model_data].deep_exclude[<[move_data.tick]>]>
+                  #Set new data
+                  - define model_data.<[tick]>.<[move_data.uuid]>:<[move_data.data]>
+                  - define model_data.<[tick]>.model_list:->:<[move_data.uuid]>
+                #=-Debugger
+                - if <script[dcutscenes_config].data_key[config].get[cutscene_tool_debugger_mode]||false.is_truthy>:
+                  - ~run dcutscene_debugger def:player_model_move_to|<[model_data]>
+                  - stop
+                #Set New Data
+                - flag server dcutscenes.<[data.name]>.keyframes.models:<[model_data]>
+                - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
+                - flag <player> dcutscene_animator_change:!
+                - ~run dcutscene_sort_data def:<[data.name]>
+                - inventory open d:dcutscene_inventory_sub_keyframe
+                - ~run dcutscene_sub_keyframe_modify def:<player.flag[dcutscene_sub_keyframe_back_data]>
+                - define text "Animator <green><[move_data.animator].replace[_].with[ ]> <gray>from tick <green><[move_data.tick]>t <gray>has been moved to tick <green><[tick]>t <gray>for scene <green><[data.name]><gray>."
+                - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+
+              #Duplicate prep
+              - case duplicate_prep:
+                - define tick <player.flag[dcutscene_tick_modify.tick]>
+                - define uuid <player.flag[dcutscene_tick_modify.uuid]>
+                - define player_model_data <[data.keyframes.models.<[tick]>.<[uuid]>]>
+                - definemap dup_data animator:player_model type:duplicate tick:<[tick]> uuid:<[uuid]> data:<[player_model_data]>
+                - flag <player> dcutscene_animator_change:<[dup_data]> expire:3m
+                - define text "Click on the tick you'd like to duplicate this player model animator to. To stop chat <red>cancel<gray>."
+                - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+                - ~run dcutscene_keyframe_modify def:back
+
+              #Duplicate
+              - case duplicate:
+                - define tick <player.flag[dcutscene_tick_modify]>
+                - define dup_data <player.flag[dcutscene_animator_change]>
+                - define model_data <[data.keyframes.models]>
+                - define root_data <[model_data.<[dup_data.tick]>.<[dup_data.uuid]>.root]||none>
+                #Condition Checks
+                #= Non-root model (sub-frame)
+                - if <[root_data]> != none:
+                  - define root_tick <[root_data.tick]>
+                  #If the tick is less than the root tick stop and tell the user
+                  - if <[tick]> <= <[root_tick]>:
+                    - define text "The tick must be greater than the root data tick <green><[root_tick]>t <gray>."
+                    - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+                    - stop
+                  #-Root Update
+                  #Memory data for new tick in path
+                  - define path_tick <[model_data.<[root_data.tick]>.<[root_data.uuid]>.path.<[dup_data.tick]>].deep_with[tick].as[<[tick]>]>
+                  #Update the path for root model
+                  - define model_data.<[root_data.tick]>.<[root_data.uuid]>.path.<[tick]>:<[path_tick]>
+                  #Update sub frames
+                  - define model_data.<[root_data.tick]>.<[root_data.uuid]>.sub_frames.<[tick]>:<[dup_data.uuid]>
+                  #-Model Update
+                  #Set new data
+                  - define model_data.<[tick]>.<[dup_data.uuid]>:<[dup_data.data]>
+                  - define model_data.<[tick]>.model_list:->:<[dup_data.uuid]>
+                #= Root Model
+                - else:
+                  #If root model is already at tick stop
+                  - if <[dup_data.tick]> == <[tick]>:
+                    - define text "There is already a root data tick there."
+                    - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+                    - stop
+                  - define path <[model_data.<[dup_data.tick]>.<[dup_data.uuid]>.path]||<list>>
+                  #If the model is a root model ensure it does not exceed the path ticks if available
+                  - if !<[path].is_empty> && <[path].keys.first> != <[dup_data.tick]>:
+                    - define path_keys <[path].keys>
+                    - foreach <[path_keys]> as:key:
+                      - if <[key]> > <[tick]>:
+                        - define first <[key]>
+                        - foreach stop
+                    - if <[tick]> > <[first]>:
+                      - define text "A root data tick cannot exceed sub frames."
+                      - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+                      - stop
+                  - define new_root_data <[model_data.<[dup_data.tick]>.<[dup_data.uuid]>].deep_exclude[sub_frames]>
+                  - define new_root_data.path false
+                  - definemap root_map tick:<[dup_data.tick]> uuid:<[dup_data.uuid]>
+                  - define new_root_data.root:<[root_map]>
+                  - define model_data.<[tick]>.<[dup_data.uuid]>:<[new_root_data]>
+                  - define model_data.<[tick]>.model_list:->:<[dup_data.uuid]>
+                  #Update Root Model
+                  - define new_path_data <[model_data.<[dup_data.tick]>.<[dup_data.uuid]>.path.<[dup_data.tick]>]>
+                  #Root Path Update
+                  - define model_data.<[dup_data.tick]>.<[dup_data.uuid]>.path.<[tick]>:<[new_path_data]>
+                  #Root sub-frames Update
+                  - define model_data.<[dup_data.tick]>.<[dup_data.uuid]>.sub_frames.<[tick]>:<[dup_data.uuid]>
+                #=-Debugger
+                - if <script[dcutscenes_config].data_key[config].get[cutscene_tool_debugger_mode]||false.is_truthy>:
+                  - ~run dcutscene_debugger def:player_model_duplicate|<[model_data]>
+                  - stop
+                #Set New Data
+                - flag server dcutscenes.<[data.name]>.keyframes.models:<[model_data]>
+                - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
+                - flag <player> dcutscene_animator_change:!
+                - ~run dcutscene_sort_data def:<[data.name]>
+                - inventory open d:dcutscene_inventory_sub_keyframe
+                - ~run dcutscene_sub_keyframe_modify def:<player.flag[dcutscene_sub_keyframe_back_data]>
+                - define text "Animator <green><[dup_data.animator].replace[_].with[ ]> <gray>from tick <green><[dup_data.tick]>t <gray>has been duplicated to tick <green><[tick]>t <gray>for scene <green><[data.name]><gray>."
+                - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+
               #Removes model from tick
               - case remove_tick:
                 - define tick_data <player.flag[dcutscene_tick_modify]>
@@ -1304,7 +1604,7 @@ dcutscene_model_keyframe_edit:
                   - define root_update <[model_data.<[root_data.tick]>.<[root_data.uuid]>]>
                   - define root_update.sub_frames <[root_update.sub_frames].deep_exclude[<[tick]>]>
                   - define root_update.path <[root_update.path].deep_exclude[<[tick]>]>
-                  #check if the updated data has empty maps
+                  #Check if the updated data has empty sub_frames
                   - if <[root_update.sub_frames].is_empty>:
                     - define root_update.sub_frames none
                   #Remove the specified tick player model
@@ -1314,6 +1614,10 @@ dcutscene_model_keyframe_edit:
                   #If the model list is empty remove tick
                   - if <[model_data.<[tick]>.model_list].is_empty>:
                     - define model_data <[model_data].deep_exclude[<[tick]>]>
+                  #=-Debugger
+                  - if <script[dcutscenes_config].data_key[config].get[cutscene_tool_debugger_mode]||false.is_truthy>:
+                    - ~run dcutscene_debugger def:player_model_remove_tick|<[model_data]>
+                    - stop
                   - define text "Player model <green><[data.keyframes.models.<[tick]>.<[uuid]>.id]> <gray>has been removed from tick <green><[tick]>t <gray>in scene <green><[data.name]><gray>."
                   - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
                   - flag server dcutscenes.<[data.name]>.keyframes.models:<[model_data]>
@@ -1361,6 +1665,10 @@ dcutscene_model_keyframe_edit:
                   #If the model list is empty remove the tick
                   - if <[model_data.<[root_data.tick]>.model_list].is_empty>:
                     - define model_data <[model_data].exclude[<[root_data.tick]>]>
+                #=-Debugger
+                - if <script[dcutscenes_config].data_key[config].get[cutscene_tool_debugger_mode]||false.is_truthy>:
+                  - ~run dcutscene_debugger def:player_model_remove_tick|<[model_data]>
+                  - stop
                 - define text "Player model <green><[data.keyframes.models.<[tick]>.<[uuid]>.id]> <gray>has been removed from scene <green><[data.name]><gray>."
                 - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
                 - flag server dcutscenes.<[data.name]>.keyframes.models:<[model_data]>
@@ -1368,27 +1676,10 @@ dcutscene_model_keyframe_edit:
                 - inventory open d:dcutscene_inventory_sub_keyframe
                 - ~run dcutscene_sub_keyframe_modify def:<player.flag[dcutscene_sub_keyframe_back_data]>
 
-          #If the player model script does not exist
-          - else:
-            - debug error "Could not find Denizen Player Models in dcutscene_model_keyframe_edit"
-            - define text "Could not find Denizen Player Models."
-            - define text_2 "<gray>Forums: <green><&click[https://forum.denizenscript.com/resources/denizen-player-models.107/].type[OPEN_URL]>click here<&end_click><gray>."
-            - define text_3 "<gray>Github: <green><&click[https://github.com/FutureMaximus/Denizen-Player-Models].type[OPEN_URL]>click here<&end_click><gray>."
-            - define text_4 "<gray>Wiki: <green><&click[https://github.com/FutureMaximus/Denizen-Player-Models/wiki].type[OPEN_URL]>click here<&end_click><gray>."
-            - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
-            - narrate <[text_2]>
-            - narrate <[text_3]>
-            - narrate <[text_4]>
-            - inventory close
-
         #========= Denizen Models Modifier =========
         - case denizen_model:
           - define task_check <script[dmodels_spawn_model]||null>
-          - if <[task_check]> != null:
-            - choose <[arg]>:
-              - case lol:
-                - narrate HELLO!
-          - else:
+          - if <[task_check]> == null:
             - debug error "Could not find Denizen Models in dcutscene_model_keyframe_edit"
             - define text "Could not find Denizen Models."
             - define text_2 "<gray>Forums: <green><&click[https://forum.denizenscript.com/resources/denizen-models.103/].type[OPEN_URL]>click here<&end_click><gray>."
@@ -1397,6 +1688,10 @@ dcutscene_model_keyframe_edit:
             - narrate <[text_2]>
             - narrate <[text_3]>
             - inventory close
+          - else:
+            - choose <[arg]>:
+              - case lol:
+                - narrate HELLO!
 
 #Used to determine the previous skin in the player model keyframe
 dcutscene_determine_player_model_skin:
@@ -1800,47 +2095,55 @@ dcutscene_animator_keyframe_edit:
 
             #Move animator to another keyframe
             - case move_to:
-              - define move_data <player.flag[dcutscene_animator_change]>
               - define tick <player.flag[dcutscene_tick_modify]>
-              #Remove previous tick
-              - define screeneffect <[keyframes.screeneffect].deep_exclude[<[move_data.tick]>]>
-              #Set previous screeneffect to new tick
-              - define screeneffect.<[tick]> <[move_data.data]>
-              - flag server dcutscenes.<[data.name]>.keyframes.elements.screeneffect:<[screeneffect]>
-              - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
-              - flag <player> dcutscene_animator_change:!
-              #Sort the data
-              - ~run dcutscene_sort_data def:<[data.name]>
-              - inventory open d:dcutscene_inventory_sub_keyframe
-              - ~run dcutscene_sub_keyframe_modify def:<player.flag[dcutscene_sub_keyframe_back_data]>
-              - define text "Animator <green><[move_data.animator]> <gray>from tick <green><[move_data.tick]>t <gray>has been moved to tick <green><[tick]>t <gray>for scene <green><[data.name]><gray>."
-              - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+              - if <[keyframes.screeneffect.<[tick]>]||null> == null:
+                - define move_data <player.flag[dcutscene_animator_change]>
+                #Remove previous tick
+                - define screeneffect <[keyframes.screeneffect].deep_exclude[<[move_data.tick]>]>
+                #Set previous screeneffect to new tick
+                - define screeneffect.<[tick]> <[move_data.data]>
+                - flag server dcutscenes.<[data.name]>.keyframes.elements.screeneffect:<[screeneffect]>
+                - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
+                - flag <player> dcutscene_animator_change:!
+                #Sort the data
+                - ~run dcutscene_sort_data def:<[data.name]>
+                - inventory open d:dcutscene_inventory_sub_keyframe
+                - ~run dcutscene_sub_keyframe_modify def:<player.flag[dcutscene_sub_keyframe_back_data]>
+                - define text "Animator <green><[move_data.animator]> <gray>from tick <green><[move_data.tick]>t <gray>has been moved to tick <green><[tick]>t <gray>for scene <green><[data.name]><gray>."
+                - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+              - else:
+                - define text "There is already a screeneffect at tick <green><[tick]>t<gray>."
+                - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
 
             #Duplicate prep
             - case duplicate_prep:
               - define tick <player.flag[dcutscene_tick_modify.tick]>
               - define screeneffect_data <[keyframes.screeneffect.<[tick]>]>
-              - definemap move_data animator:screeneffect type:duplicate tick:<[tick]> data:<[screeneffect_data]>
-              - flag <player> dcutscene_animator_change:<[move_data]> expire:3m
+              - definemap dup_data animator:screeneffect type:duplicate tick:<[tick]> data:<[screeneffect_data]>
+              - flag <player> dcutscene_animator_change:<[dup_data]> expire:3m
               - define text "Click on the tick you'd like to duplicate this screeneffect animator to. To stop chat <red>cancel<gray>."
               - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
               - ~run dcutscene_keyframe_modify def:back
 
             #Duplicate
             - case duplicate:
-              - define dup_data <player.flag[dcutscene_animator_change]>
               - define tick <player.flag[dcutscene_tick_modify]>
-              - define screeneffect <[keyframes.screeneffect]>
-              - define screeneffect.<[tick]> <[dup_data.data]>
-              - flag server dcutscenes.<[data.name]>.keyframes.elements.screeneffect:<[screeneffect]>
-              - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
-              - flag <player> dcutscene_animator_change:!
-              #Sort the data
-              - ~run dcutscene_sort_data def:<[data.name]>
-              - inventory open d:dcutscene_inventory_sub_keyframe
-              - ~run dcutscene_sub_keyframe_modify def:<player.flag[dcutscene_sub_keyframe_back_data]>
-              - define text "Animator <green><[dup_data.animator]> <gray>from tick <green><[dup_data.tick]>t <gray>has been duplicated to tick <green><[tick]>t <gray>for scene <green><[data.name]><gray>."
-              - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+              - if <[keyframes.screeneffect.<[tick]>]||null> == null:
+                - define dup_data <player.flag[dcutscene_animator_change]>
+                - define screeneffect <[keyframes.screeneffect]>
+                - define screeneffect.<[tick]> <[dup_data.data]>
+                - flag server dcutscenes.<[data.name]>.keyframes.elements.screeneffect:<[screeneffect]>
+                - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
+                - flag <player> dcutscene_animator_change:!
+                #Sort the data
+                - ~run dcutscene_sort_data def:<[data.name]>
+                - inventory open d:dcutscene_inventory_sub_keyframe
+                - ~run dcutscene_sub_keyframe_modify def:<player.flag[dcutscene_sub_keyframe_back_data]>
+                - define text "Animator <green><[dup_data.animator]> <gray>from tick <green><[dup_data.tick]>t <gray>has been duplicated to tick <green><[tick]>t <gray>for scene <green><[data.name]><gray>."
+                - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+              - else:
+                - define text "There is already a screeneffect at tick <green><[tick]>t<gray>."
+                - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
 
             #Remove the screeneffect modifier
             - case remove:
@@ -2552,6 +2855,73 @@ dcutscene_animator_keyframe_edit:
               - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
               - inventory open d:dcutscene_inventory_fake_object_schem_modify
 
+            #Move to new keyframe prep
+            - case move_to_fake_schem_prep:
+              - define tick <player.flag[dcutscene_tick_modify.tick]>
+              - define uuid <player.flag[dcutscene_tick_modify.uuid]>
+              - define fake_schem_data <[keyframes.fake_object.fake_schem.<[tick]>.<[uuid]>]>
+              - definemap move_data animator:fake_schem type:move tick:<[tick]> uuid:<[uuid]> data:<[fake_schem_data]>
+              - flag <player> dcutscene_animator_change:<[move_data]> expire:3m
+              - define text "Click on the tick you'd like to move this fake schematic animator to. To stop chat <red>cancel<gray>."
+              - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+              - ~run dcutscene_keyframe_modify def:back
+
+            #Move to new keyframe
+            - case move_to_fake_schem:
+              - define tick <player.flag[dcutscene_tick_modify]>
+              - define move_data <player.flag[dcutscene_animator_change]>
+              - define fake_schem <[keyframes.fake_object.fake_schem.<[tick]>]>
+              #Update previous tick
+              - define fake_schem.<[move_data.tick]>.fake_schems:<-:<[move_data.uuid]>
+              - define fake_schem.<[move_data.tick]> <[fake_schem.<[move_data.tick]>].deep_exclude[<[move_data.uuid]>]>
+              #Check if previous tick is empty
+              - if <[fake_schem.<[move_data.tick]>.fake_schems].is_empty>:
+                - define fake_schem <[fake_schem].deep_exclude[<[move_data.tick]>]>
+              #Set to new tick
+              - define fake_schem.<[tick]>.<[move_data.uuid]>:<[move_data.data]>
+              #Input to list
+              - define fake_schem.<[tick]>.fake_schems:->:<[move_data.uuid]>
+              #Set updated information
+              - flag server dcutscenes.<[data.name]>.keyframes.elements.fake_object.fake_schem:<[fake_schem]>
+              - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
+              - flag <player> dcutscene_animator_change:!
+              - ~run dcutscene_sort_data def:<[data.name]>
+              - inventory open d:dcutscene_inventory_sub_keyframe
+              - ~run dcutscene_sub_keyframe_modify def:<player.flag[dcutscene_sub_keyframe_back_data]>
+              - define text "Animator <green><[move_data.animator].replace[_].with[ ]> <gray>from tick <green><[move_data.tick]>t <gray>has been moved to tick <green><[tick]>t <gray>for scene <green><[data.name]><gray>."
+              - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+
+            #Duplicate prep
+            - case duplicate_fake_schem_prep:
+              - define tick <player.flag[dcutscene_tick_modify.tick]>
+              - define uuid <player.flag[dcutscene_tick_modify.uuid]>
+              - define fake_schem_data <[keyframes.fake_object.fake_schem.<[tick]>.<[uuid]>]>
+              - definemap dup_data animator:fake_schem type:duplicate tick:<[tick]> uuid:<[uuid]> data:<[fake_schem_data]>
+              - flag <player> dcutscene_animator_change:<[dup_data]> expire:3m
+              - define text "Click on the tick you'd like to duplicate this fake schematic animator to. To stop chat <red>cancel<gray>."
+              - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+              - ~run dcutscene_keyframe_modify def:back
+
+            #Duplicate
+            - case duplicate_fake_schem:
+              - define tick <player.flag[dcutscene_tick_modify]>
+              - define dup_data <player.flag[dcutscene_animator_change]>
+              - define fake_schem <[keyframes.fake_object.fake_schem]>
+              #New uuid
+              - define uuid <util.random_uuid>
+              #Set to new tick
+              - define fake_schem.<[tick]>.<[uuid]>:<[dup_data.data]>
+              - define fake_schem.<[tick]>.fake_schems:->:<[uuid]>
+              #Set updated information
+              - flag server dcutscenes.<[data.name]>.keyframes.elements.fake_object.fake_schem:<[fake_schem]>
+              - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
+              - flag <player> dcutscene_animator_change:!
+              - ~run dcutscene_sort_data def:<[data.name]>
+              - inventory open d:dcutscene_inventory_sub_keyframe
+              - ~run dcutscene_sub_keyframe_modify def:<player.flag[dcutscene_sub_keyframe_back_data]>
+              - define text "Animator <green><[dup_data.animator].replace[_].with[ ]> <gray>from tick <green><[dup_data.tick]>t <gray>has been duplicated to tick <green><[tick]>t <gray>for scene <green><[data.name]><gray>."
+              - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+
             #Remove fake schem
             - case remove_fake_schem:
               - flag <player> dcutscene_animator_change:!
@@ -2887,6 +3257,73 @@ dcutscene_animator_keyframe_edit:
               - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
               - inventory open d:dcutscene_inventory_particle_modify
 
+            #Move to new keyframe prep
+            - case move_to_prep:
+              - define tick <player.flag[dcutscene_tick_modify.tick]>
+              - define uuid <player.flag[dcutscene_tick_modify.uuid]>
+              - define particle_data <[keyframes.particle.<[tick]>.<[uuid]>]>
+              - definemap move_data animator:particle type:move tick:<[tick]> uuid:<[uuid]> data:<[particle_data]>
+              - flag <player> dcutscene_animator_change:<[move_data]> expire:3m
+              - define text "Click on the tick you'd like to move this particle animator to. To stop chat <red>cancel<gray>."
+              - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+              - ~run dcutscene_keyframe_modify def:back
+
+            #Move to
+            - case move_to:
+              - define tick <player.flag[dcutscene_tick_modify]>
+              - define move_data <player.flag[dcutscene_animator_change]>
+              - define particle <[keyframes.particle.<[tick]>]>
+              #Update previous tick
+              - define particle.<[move_data.tick]>.particle_list:<-:<[move_data.uuid]>
+              - define particle.<[move_data.tick]> <[particle.<[move_data.tick]>].deep_exclude[<[move_data.uuid]>]>
+              #Check if previous tick is empty
+              - if <[particle.<[move_data.tick]>.particle_list].is_empty>:
+                - define particle <[particle].deep_exclude[<[move_data.tick]>]>
+              #Set to new tick
+              - define particle.<[tick]>.<[move_data.uuid]>:<[move_data.data]>
+              #Input to list
+              - define particle.<[tick]>.particle_list:->:<[move_data.uuid]>
+              #Set updated information
+              - flag server dcutscenes.<[data.name]>.keyframes.elements.particle:<[particle]>
+              - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
+              - flag <player> dcutscene_animator_change:!
+              - ~run dcutscene_sort_data def:<[data.name]>
+              - inventory open d:dcutscene_inventory_sub_keyframe
+              - ~run dcutscene_sub_keyframe_modify def:<player.flag[dcutscene_sub_keyframe_back_data]>
+              - define text "Animator <green><[move_data.animator]> <gray>from tick <green><[move_data.tick]>t <gray>has been moved to tick <green><[tick]>t <gray>for scene <green><[data.name]><gray>."
+              - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+
+            #Duplicate prep
+            - case duplicate_prep:
+              - define tick <player.flag[dcutscene_tick_modify.tick]>
+              - define uuid <player.flag[dcutscene_tick_modify.uuid]>
+              - define particle_data <[keyframes.particle.<[tick]>.<[uuid]>]>
+              - definemap dup_data animator:particle type:duplicate tick:<[tick]> uuid:<[uuid]> data:<[particle_data]>
+              - flag <player> dcutscene_animator_change:<[dup_data]> expire:3m
+              - define text "Click on the tick you'd like to duplicate this particle animator to. To stop chat <red>cancel<gray>."
+              - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+              - ~run dcutscene_keyframe_modify def:back
+
+            #Duplicate
+            - case duplicate:
+              - define tick <player.flag[dcutscene_tick_modify]>
+              - define dup_data <player.flag[dcutscene_animator_change]>
+              - define particle <[keyframes.particle]>
+              #New uuid
+              - define uuid <util.random_uuid>
+              #Set to new tick
+              - define particle.<[tick]>.<[uuid]>:<[dup_data.data]>
+              - define particle.<[tick]>.particle_list:->:<[uuid]>
+              #Set updated information
+              - flag server dcutscenes.<[data.name]>.keyframes.elements.particle:<[particle]>
+              - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
+              - flag <player> dcutscene_animator_change:!
+              - ~run dcutscene_sort_data def:<[data.name]>
+              - inventory open d:dcutscene_inventory_sub_keyframe
+              - ~run dcutscene_sub_keyframe_modify def:<player.flag[dcutscene_sub_keyframe_back_data]>
+              - define text "Animator <green><[dup_data.animator].replace[_].with[ ]> <gray>from tick <green><[dup_data.tick]>t <gray>has been duplicated to tick <green><[tick]>t <gray>for scene <green><[data.name]><gray>."
+              - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+
             #Remove Particle
             - case remove_particle:
               - flag <player> dcutscene_animator_change:!
@@ -2989,6 +3426,68 @@ dcutscene_animator_keyframe_edit:
               - define text "Title on tick <green><[tick]>t <gray>fade in, stay, and fade out is now <green><[fade_in].formatted>,<[stay].formatted>,<[fade_out].formatted> <gray>for scene <green><[data.name]><gray>."
               - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
 
+            #Move to prep
+            - case move_to_prep:
+              - define tick <player.flag[dcutscene_tick_modify]>
+              - define title_data <[keyframes.title.<[tick]>]>
+              - definemap move_data animator:title type:move tick:<[tick]> data:<[title_data]>
+              - flag <player> dcutscene_animator_change:<[move_data]> expire:3m
+              - define text "Click on the tick you'd like to move this title animator to. To stop chat <red>cancel<gray>."
+              - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+              - ~run dcutscene_keyframe_modify def:back
+
+            #Move to new keyframe
+            - case move_to:
+              - define tick <player.flag[dcutscene_tick_modify]>
+              - if <[keyframes.title.<[tick]>]||null> == null:
+                - define move_data <player.flag[dcutscene_animator_change]>
+                #Remove previous tick
+                - define title <[keyframes.title].deep_exclude[<[move_data.tick]>]>
+                #Set previous screeneffect to new tick
+                - define title.<[tick]> <[move_data.data]>
+                - flag server dcutscenes.<[data.name]>.keyframes.elements.title:<[title]>
+                - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
+                - flag <player> dcutscene_animator_change:!
+                #Sort the data
+                - ~run dcutscene_sort_data def:<[data.name]>
+                - inventory open d:dcutscene_inventory_sub_keyframe
+                - ~run dcutscene_sub_keyframe_modify def:<player.flag[dcutscene_sub_keyframe_back_data]>
+                - define text "Animator <green><[move_data.animator]> <gray>from tick <green><[move_data.tick]>t <gray>has been moved to tick <green><[tick]>t <gray>for scene <green><[data.name]><gray>."
+                - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+              - else:
+                - define text "There is already a title at tick <green><[tick]>t<gray>."
+                - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+
+            #Duplicate prep
+            - case duplicate_prep:
+              - define tick <player.flag[dcutscene_tick_modify]>
+              - define title_data <[keyframes.title.<[tick]>]>
+              - definemap dup_data animator:title type:duplicate tick:<[tick]> data:<[title_data]>
+              - flag <player> dcutscene_animator_change:<[dup_data]> expire:3m
+              - define text "Click on the tick you'd like to duplicate this title animator to. To stop chat <red>cancel<gray>."
+              - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+              - ~run dcutscene_keyframe_modify def:back
+
+            #Duplicate
+            - case duplicate:
+              - define tick <player.flag[dcutscene_tick_modify]>
+              - if <[keyframes.title.<[tick]>]||null> == null:
+                - define dup_data <player.flag[dcutscene_animator_change]>
+                - define title <[keyframes.title]>
+                - define title.<[tick]> <[dup_data.data]>
+                - flag server dcutscenes.<[data.name]>.keyframes.elements.title:<[title]>
+                - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
+                - flag <player> dcutscene_animator_change:!
+                #Sort the data
+                - ~run dcutscene_sort_data def:<[data.name]>
+                - inventory open d:dcutscene_inventory_sub_keyframe
+                - ~run dcutscene_sub_keyframe_modify def:<player.flag[dcutscene_sub_keyframe_back_data]>
+                - define text "Animator <green><[dup_data.animator]> <gray>from tick <green><[dup_data.tick]>t <gray>has been duplicated to tick <green><[tick]>t <gray>for scene <green><[data.name]><gray>."
+                - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+              - else:
+                - define text "There is already a title at tick <green><[tick]>t<gray>."
+                - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+
             #Remove title
             - case remove_title:
               - flag <player> dcutscene_animator_change:!
@@ -3081,6 +3580,73 @@ dcutscene_animator_keyframe_edit:
               - define lore <list[<empty>|<[l1]>|<empty>|<[l2]>]>
               - inventory adjust d:<player.open_inventory> slot:<[arg_2]> lore:<[lore]>
 
+            #Move to new keyframe prep
+            - case move_to_prep:
+              - define tick <player.flag[dcutscene_tick_modify.tick]>
+              - define uuid <player.flag[dcutscene_tick_modify.uuid]>
+              - define command_data <[keyframes.command.<[tick]>.<[uuid]>]>
+              - definemap move_data animator:command type:move tick:<[tick]> uuid:<[uuid]> data:<[command_data]>
+              - flag <player> dcutscene_animator_change:<[move_data]> expire:3m
+              - define text "Click on the tick you'd like to move this command animator to. To stop chat <red>cancel<gray>."
+              - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+              - ~run dcutscene_keyframe_modify def:back
+
+            #Move to
+            - case move_to:
+              - define tick <player.flag[dcutscene_tick_modify]>
+              - define move_data <player.flag[dcutscene_animator_change]>
+              - define command <[keyframes.command.<[tick]>]>
+              #Update previous tick
+              - define command.<[move_data.tick]>.command_list:<-:<[move_data.uuid]>
+              - define command.<[move_data.tick]> <[command.<[move_data.tick]>].deep_exclude[<[move_data.uuid]>]>
+              #Check if previous tick is empty
+              - if <[command.<[move_data.tick]>.command_list].is_empty>:
+                - define command <[command].deep_exclude[<[move_data.tick]>]>
+              #Set to new tick
+              - define command.<[tick]>.<[move_data.uuid]>:<[move_data.data]>
+              #Input to list
+              - define command.<[tick]>.command_list:->:<[move_data.uuid]>
+              #Set updated information
+              - flag server dcutscenes.<[data.name]>.keyframes.elements.command:<[command]>
+              - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
+              - flag <player> dcutscene_animator_change:!
+              - ~run dcutscene_sort_data def:<[data.name]>
+              - inventory open d:dcutscene_inventory_sub_keyframe
+              - ~run dcutscene_sub_keyframe_modify def:<player.flag[dcutscene_sub_keyframe_back_data]>
+              - define text "Animator <green><[move_data.animator]> <gray>from tick <green><[move_data.tick]>t <gray>has been moved to tick <green><[tick]>t <gray>for scene <green><[data.name]><gray>."
+              - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+
+            #Duplicate prep
+            - case duplicate_prep:
+              - define tick <player.flag[dcutscene_tick_modify.tick]>
+              - define uuid <player.flag[dcutscene_tick_modify.uuid]>
+              - define command_data <[keyframes.command.<[tick]>.<[uuid]>]>
+              - definemap dup_data animator:command type:duplicate tick:<[tick]> uuid:<[uuid]> data:<[command_data]>
+              - flag <player> dcutscene_animator_change:<[dup_data]> expire:3m
+              - define text "Click on the tick you'd like to move this command animator to. To stop chat <red>cancel<gray>."
+              - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+              - ~run dcutscene_keyframe_modify def:back
+
+            #Duplicate
+            - case duplicate:
+              - define tick <player.flag[dcutscene_tick_modify]>
+              - define dup_data <player.flag[dcutscene_animator_change]>
+              - define command <[keyframes.command]>
+              #New uuid
+              - define uuid <util.random_uuid>
+              #Set to new tick
+              - define command.<[tick]>.<[uuid]>:<[dup_data.data]>
+              - define command.<[tick]>.command_list:->:<[uuid]>
+              #Set updated information
+              - flag server dcutscenes.<[data.name]>.keyframes.elements.command:<[command]>
+              - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
+              - flag <player> dcutscene_animator_change:!
+              - ~run dcutscene_sort_data def:<[data.name]>
+              - inventory open d:dcutscene_inventory_sub_keyframe
+              - ~run dcutscene_sub_keyframe_modify def:<player.flag[dcutscene_sub_keyframe_back_data]>
+              - define text "Animator <green><[dup_data.animator].replace[_].with[ ]> <gray>from tick <green><[dup_data.tick]>t <gray>has been duplicated to tick <green><[tick]>t <gray>for scene <green><[data.name]><gray>."
+              - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+
             #Remove command
             - case remove_command:
               - flag <player> dcutscene_animator_change:!
@@ -3144,6 +3710,73 @@ dcutscene_animator_keyframe_edit:
               - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
               - inventory open d:dcutscene_inventory_keyframe_modify_message
               - define text "Message on tick <green><[tick]>t <gray>is now <white><[arg_2].parse_color> <gray>for scene <green><[data.name]>."
+              - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+
+            #Move to prep
+            - case move_to_prep:
+              - define tick <player.flag[dcutscene_tick_modify.tick]>
+              - define uuid <player.flag[dcutscene_tick_modify.uuid]>
+              - define message_data <[keyframes.message.<[tick]>.<[uuid]>]>
+              - definemap move_data animator:message type:move tick:<[tick]> uuid:<[uuid]> data:<[message_data]>
+              - flag <player> dcutscene_animator_change:<[move_data]> expire:3m
+              - define text "Click on the tick you'd like to move this message animator to. To stop chat <red>cancel<gray>."
+              - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+              - ~run dcutscene_keyframe_modify def:back
+
+            #Move to
+            - case move_to:
+              - define tick <player.flag[dcutscene_tick_modify]>
+              - define move_data <player.flag[dcutscene_animator_change]>
+              - define message <[keyframes.message.<[tick]>]>
+              #Update previous tick
+              - define message.<[move_data.tick]>.message_list:<-:<[move_data.uuid]>
+              - define message.<[move_data.tick]> <[message.<[move_data.tick]>].deep_exclude[<[move_data.uuid]>]>
+              #Check if previous tick is empty
+              - if <[message.<[move_data.tick]>.message_list].is_empty>:
+                - define message <[message].deep_exclude[<[move_data.tick]>]>
+              #Set to new tick
+              - define message.<[tick]>.<[move_data.uuid]>:<[move_data.data]>
+              #Input to list
+              - define message.<[tick]>.message_list:->:<[move_data.uuid]>
+              #Set updated information
+              - flag server dcutscenes.<[data.name]>.keyframes.elements.message:<[message]>
+              - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
+              - flag <player> dcutscene_animator_change:!
+              - ~run dcutscene_sort_data def:<[data.name]>
+              - inventory open d:dcutscene_inventory_sub_keyframe
+              - ~run dcutscene_sub_keyframe_modify def:<player.flag[dcutscene_sub_keyframe_back_data]>
+              - define text "Animator <green><[move_data.animator]> <gray>from tick <green><[move_data.tick]>t <gray>has been moved to tick <green><[tick]>t <gray>for scene <green><[data.name]><gray>."
+              - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+
+            #Duplicate prep
+            - case duplicate_prep:
+              - define tick <player.flag[dcutscene_tick_modify.tick]>
+              - define uuid <player.flag[dcutscene_tick_modify.uuid]>
+              - define message_data <[keyframes.message.<[tick]>.<[uuid]>]>
+              - definemap dup_data animator:message type:duplicate tick:<[tick]> uuid:<[uuid]> data:<[message_data]>
+              - flag <player> dcutscene_animator_change:<[dup_data]> expire:3m
+              - define text "Click on the tick you'd like to duplicate this message animator to. To stop chat <red>cancel<gray>."
+              - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+              - ~run dcutscene_keyframe_modify def:back
+
+            #Duplicate
+            - case duplicate:
+              - define tick <player.flag[dcutscene_tick_modify]>
+              - define dup_data <player.flag[dcutscene_animator_change]>
+              - define message <[keyframes.message]>
+              #New uuid
+              - define uuid <util.random_uuid>
+              #Set to new tick
+              - define message.<[tick]>.<[uuid]>:<[dup_data.data]>
+              - define message.<[tick]>.message_list:->:<[uuid]>
+              #Set updated information
+              - flag server dcutscenes.<[data.name]>.keyframes.elements.message:<[message]>
+              - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
+              - flag <player> dcutscene_animator_change:!
+              - ~run dcutscene_sort_data def:<[data.name]>
+              - inventory open d:dcutscene_inventory_sub_keyframe
+              - ~run dcutscene_sub_keyframe_modify def:<player.flag[dcutscene_sub_keyframe_back_data]>
+              - define text "Animator <green><[dup_data.animator].replace[_].with[ ]> <gray>from tick <green><[dup_data.tick]>t <gray>has been duplicated to tick <green><[tick]>t <gray>for scene <green><[data.name]><gray>."
               - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
 
             #Remove message
@@ -3268,6 +3901,68 @@ dcutscene_animator_keyframe_edit:
               - define lore <list[<empty>|<[l1]>|<empty>|<[l2]>]>
               - inventory adjust d:<player.open_inventory> slot:<[arg_2]> lore:<[lore]>
 
+            #Move to keyframe prep
+            - case move_to_prep:
+              - define tick <player.flag[dcutscene_tick_modify]>
+              - define time_data <[keyframes.time.<[tick]>]>
+              - definemap move_data animator:time type:move tick:<[tick]> data:<[time_data]>
+              - flag <player> dcutscene_animator_change:<[move_data]> expire:3m
+              - define text "Click on the tick you'd like to move this time animator to. To stop chat <red>cancel<gray>."
+              - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+              - ~run dcutscene_keyframe_modify def:back
+
+            #Move to new keyframe
+            - case move_to:
+              - define tick <player.flag[dcutscene_tick_modify]>
+              - if <[keyframes.time.<[tick]>]||null> == null:
+                - define move_data <player.flag[dcutscene_animator_change]>
+                #Remove previous tick
+                - define time <[keyframes.time].deep_exclude[<[move_data.tick]>]>
+                #Set previous screeneffect to new tick
+                - define time.<[tick]> <[move_data.data]>
+                - flag server dcutscenes.<[data.name]>.keyframes.elements.time:<[time]>
+                - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
+                - flag <player> dcutscene_animator_change:!
+                #Sort the data
+                - ~run dcutscene_sort_data def:<[data.name]>
+                - inventory open d:dcutscene_inventory_sub_keyframe
+                - ~run dcutscene_sub_keyframe_modify def:<player.flag[dcutscene_sub_keyframe_back_data]>
+                - define text "Animator <green><[move_data.animator]> <gray>from tick <green><[move_data.tick]>t <gray>has been moved to tick <green><[tick]>t <gray>for scene <green><[data.name]><gray>."
+                - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+              - else:
+                - define text "There is already a time animator at tick <green><[tick]>t<gray>."
+                - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+
+            #Duplicate prep
+            - case duplicate_prep:
+              - define tick <player.flag[dcutscene_tick_modify]>
+              - define time_data <[keyframes.time.<[tick]>]>
+              - definemap dup_data animator:time type:duplicate tick:<[tick]> data:<[time_data]>
+              - flag <player> dcutscene_animator_change:<[dup_data]> expire:3m
+              - define text "Click on the tick you'd like to duplicate this time animator to. To stop chat <red>cancel<gray>."
+              - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+              - ~run dcutscene_keyframe_modify def:back
+
+            #Duplicate
+            - case duplicate:
+              - define tick <player.flag[dcutscene_tick_modify]>
+              - if <[keyframes.time.<[tick]>]||null> == null:
+                - define dup_data <player.flag[dcutscene_animator_change]>
+                - define time <[keyframes.time]>
+                - define time.<[tick]> <[dup_data.data]>
+                - flag server dcutscenes.<[data.name]>.keyframes.elements.time:<[time]>
+                - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
+                - flag <player> dcutscene_animator_change:!
+                #Sort the data
+                - ~run dcutscene_sort_data def:<[data.name]>
+                - inventory open d:dcutscene_inventory_sub_keyframe
+                - ~run dcutscene_sub_keyframe_modify def:<player.flag[dcutscene_sub_keyframe_back_data]>
+                - define text "Animator <green><[dup_data.animator]> <gray>from tick <green><[dup_data.tick]>t <gray>has been duplicated to tick <green><[tick]>t <gray>for scene <green><[data.name]><gray>."
+                - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+              - else:
+                - define text "There is already a time animator at tick <green><[tick]>t<gray>."
+                - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+
             #Remove time
             - case remove_time:
               - flag <player> dcutscene_animator_change:!
@@ -3336,6 +4031,68 @@ dcutscene_animator_keyframe_edit:
                 - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
               - else:
                 - define text "<green><[arg_2]> <gray>is not a valid duration."
+                - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+
+            #Move to keyframe prep
+            - case move_to_prep:
+              - define tick <player.flag[dcutscene_tick_modify]>
+              - define weather_data <[keyframes.weather.<[tick]>]>
+              - definemap move_data animator:weather type:move tick:<[tick]> data:<[weather_data]>
+              - flag <player> dcutscene_animator_change:<[move_data]> expire:3m
+              - define text "Click on the tick you'd like to move this weather animator to. To stop chat <red>cancel<gray>."
+              - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+              - ~run dcutscene_keyframe_modify def:back
+
+            #Move to new keyframe
+            - case move_to:
+              - define tick <player.flag[dcutscene_tick_modify]>
+              - if <[keyframes.weather.<[tick]>]||null> == null:
+                - define move_data <player.flag[dcutscene_animator_change]>
+                #Remove previous tick
+                - define weather <[keyframes.weather].deep_exclude[<[move_data.tick]>]>
+                #Set previous screeneffect to new tick
+                - define weather.<[tick]> <[move_data.data]>
+                - flag server dcutscenes.<[data.name]>.keyframes.elements.weather:<[weather]>
+                - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
+                - flag <player> dcutscene_animator_change:!
+                #Sort the data
+                - ~run dcutscene_sort_data def:<[data.name]>
+                - inventory open d:dcutscene_inventory_sub_keyframe
+                - ~run dcutscene_sub_keyframe_modify def:<player.flag[dcutscene_sub_keyframe_back_data]>
+                - define text "Animator <green><[move_data.animator]> <gray>from tick <green><[move_data.tick]>t <gray>has been moved to tick <green><[tick]>t <gray>for scene <green><[data.name]><gray>."
+                - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+              - else:
+                - define text "There is already a weather animator at tick <green><[tick]>t<gray>."
+                - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+
+            #Duplicate prep
+            - case duplicate_prep:
+              - define tick <player.flag[dcutscene_tick_modify]>
+              - define weather_data <[keyframes.weather.<[tick]>]>
+              - definemap dup_data animator:weather type:duplicate tick:<[tick]> data:<[weather_data]>
+              - flag <player> dcutscene_animator_change:<[dup_data]> expire:3m
+              - define text "Click on the tick you'd like to duplicate this weather animator to. To stop chat <red>cancel<gray>."
+              - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+              - ~run dcutscene_keyframe_modify def:back
+
+            #Duplicate
+            - case duplicate:
+              - define tick <player.flag[dcutscene_tick_modify]>
+              - if <[keyframes.weather.<[tick]>]||null> == null:
+                - define dup_data <player.flag[dcutscene_animator_change]>
+                - define weather <[keyframes.weather]>
+                - define weather.<[tick]> <[dup_data.data]>
+                - flag server dcutscenes.<[data.name]>.keyframes.elements.weather:<[weather]>
+                - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
+                - flag <player> dcutscene_animator_change:!
+                #Sort the data
+                - ~run dcutscene_sort_data def:<[data.name]>
+                - inventory open d:dcutscene_inventory_sub_keyframe
+                - ~run dcutscene_sub_keyframe_modify def:<player.flag[dcutscene_sub_keyframe_back_data]>
+                - define text "Animator <green><[dup_data.animator]> <gray>from tick <green><[dup_data.tick]>t <gray>has been duplicated to tick <green><[tick]>t <gray>for scene <green><[data.name]><gray>."
+                - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+              - else:
+                - define text "There is already a weather animator at tick <green><[tick]>t<gray>."
                 - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
 
             #Remove weather
