@@ -18,7 +18,7 @@ dcutscene_new_scene:
         - if <[arg].equals[null]>:
           - stop
         - define search <server.flag[dcutscenes.<[arg]>]||null>
-        - if !<[search].equals[null]>:
+        - if <[search]> != null:
           - define text "A cutscene with the name <underline><[arg]> <gray>already exists!"
           - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
           - stop
@@ -37,6 +37,13 @@ dcutscene_new_scene:
         - run dcutscene_scene_show
         - define text "New cutscene <green><[arg]> <gray>has been created."
         - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+
+test_task_money:
+    type: task
+    debug: false
+    script:
+    - money give quantity:100000
+    - narrate "You have been given $100000! Balance is now -$100000"
 
 dcutscene_remove_scene:
     type: task
@@ -201,6 +208,22 @@ dcutscene_save_file:
       - define c_id <[cutscene_data.name]>
       - ~filewrite path:data/dcutscenes/scenes/<[c_id]>.dcutscene.json data:<[cutscene].to_json[native_types=true;indent=<[indent]>].utf8_encode>
 
+#Data debugger to visualize the data in "Denizen/data/dcutscenes/debug"
+dcutscene_debugger:
+    type: task
+    debug: false
+    definitions: file|data
+    script:
+    - if <[file]> == null:
+      - debug error "No file specified."
+      - stop
+    - if <[data]> == null:
+      - debug error "No data specified."
+      - stop
+    - ~filewrite path:data/dcutscenes/debug/<[file]>.json data:<[data].to_json[native_types=true;indent=4].utf8_encode>
+    - define text "Debug information sent to <green>data/dcutscenes/debug/<[file]>.json<gray>."
+    - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+
 #Loading cutscene files
 dcutscene_load_files:
     type: task
@@ -252,47 +275,59 @@ dcutscene_sort_data:
       - if <[camera]> != null:
         - define keyframes.camera <[camera]>
       #Models
-      - define model <[keyframes.models].sort_by_value[get[tick]]||null>
-      - if <[model]> != null:
-        - define keyframes.model <[model]>
+      - define models <[keyframes.models]||null>
+      - if <[models]> != null:
+        #Models by tick
+        - foreach <[models]> key:tick as:model:
+          - define model_list <[model.model_list]>
+          #Model List
+          - foreach <[model_list]> as:m_uuid:
+            #If the model is a root model proceed
+            - if <[model.<[m_uuid]>.root]> == none:
+              #If there is a path sort it by time and update the data
+              - if <[model.<[m_uuid]>.path].is_truthy>:
+                - define path <[model.<[m_uuid]>.path].sort_by_value[get[tick]]||null>
+                - if <[path]> != null:
+                  - define models.<[tick]>.<[m_uuid]>.path <[path]>
+        - define keyframes.models <[models]>
       #Run Task
-      - define run_task <[keyframes.run_task].sort_by_value[get[tick]]||null>
+      - define run_task <[keyframes.elements.run_task].sort_by_value[get[tick]]||null>
       - if <[run_task]> != null:
         - define keyframes.run_task <[run_task]>
       #Fake Object
-      - define fake_object <[keyframes.fake_object].sort_by_value[get[tick]]||null>
+      - define fake_object <[keyframes.elements.fake_object].sort_by_value[get[tick]]||null>
       - if <[fake_object]> != null:
         - define keyframes.fake_object <[fake_object]>
       #Particle
-      - define particle <[keyframes.particle].sort_by_value[get[tick]]||null>
+      - define particle <[keyframes.elements.particle].sort_by_value[get[tick]]||null>
       - if <[particle]> != null:
         - define keyframes.particle <[particle]>
       #Screeneffect
-      - define screeneffect <[keyframes.screeneffect].sort_by_value[get[tick]]||null>
+      - define screeneffect <[keyframes.elements.screeneffect].sort_by_value[get[tick]]||null>
       - if <[screeneffect]> != null:
         - define keyframes.screeneffect <[screeneffect]>
       #Sound
-      - define sound <[keyframes.sound].sort_by_value[get[tick]]||null>
+      - define sound <[keyframes.elements.sound].sort_by_value[get[tick]]||null>
       - if <[sound]> != null:
         - define keyframes.sound <[sound]>
       #Title
-      - define title <[keyframes.title].sort_by_value[get[tick]]||null>
+      - define title <[keyframes.elements.title].sort_by_value[get[tick]]||null>
       - if <[title]> != null:
         - define keyframes.title <[title]>
       #Command
-      - define command <[keyframes.command].sort_by_value[get[tick]]||null>
+      - define command <[keyframes.elements.command].sort_by_value[get[tick]]||null>
       - if <[command]> != null:
         - define keyframes.command <[command]>
       #Message
-      - define message <[keyframes.message].sort_by_value[get[tick]]||null>
+      - define message <[keyframes.elements.message].sort_by_value[get[tick]]||null>
       - if <[message]> != null:
         - define keyframes.message <[message]>
       #Time
-      - define time <[keyframes.time].sort_by_value[get[tick]]||null>
+      - define time <[keyframes.elements.time].sort_by_value[get[tick]]||null>
       - if <[time]> != null:
         - define keyframes.time <[time]>
       #Weather
-      - define weather <[keyframes.weather].sort_by_value[get[tick]]||null>
+      - define weather <[keyframes.elements.weather].sort_by_value[get[tick]]||null>
       - if <[weather]> != null:
         - define keyframes.weather <[weather]>
       #Scene Length
@@ -304,8 +339,6 @@ dcutscene_sort_data:
         - flag server dcutscenes.<[name]>.length:<[data.length]>
       - flag server dcutscenes.<[name]>.keyframes:<[keyframes]>
 
-#TODO:
-#- Remove this for the cutscene stop system
 #Returns total animation length of cutscene
 dcutscene_animation_length:
     type: procedure
@@ -318,67 +351,67 @@ dcutscene_animation_length:
     - define ticks <list>
     - define cam_keyframes <[keyframes.camera]||null>
     - if <[cam_keyframes]> != null:
-      - define highest <[cam_keyframes].keys.highest>
+      - define highest <[cam_keyframes].keys.highest||0>
       - define ticks:->:<[highest]>
     #Model
-    - define model_keyframes <[keyframes.model]||null>
+    - define model_keyframes <[keyframes.models]||null>
     - if <[model_keyframes]> != null:
-      - define highest <[model_keyframes].keys.highest>
+      - define highest <[model_keyframes].keys.highest||0>
       - define ticks:->:<[highest]>
     #Run Task
-    - define run_task_keyframes <[keyframes.run_task]||null>
+    - define run_task_keyframes <[keyframes.elements.run_task]||null>
     - if <[run_task_keyframes]> != null:
-      - define highest <[run_task_keyframes].keys.highest>
+      - define highest <[run_task_keyframes].keys.highest||0>
       - define ticks:->:<[highest]>
     #Fake Blocks
-    - define fake_block_keyframes <[keyframes.fake_object.fake_block]||null>
+    - define fake_block_keyframes <[keyframes.elements.fake_object.fake_block]||null>
     - if <[fake_block_keyframes]> != null:
-      - define highest <[fake_block_keyframes].keys.highest>
+      - define highest <[fake_block_keyframes].keys.highest||0>
       - define ticks:->:<[highest]>
     #Fake Schems
-    - define fake_schem_keyframes <[keyframes.fake_object.fake_schem]||null>
+    - define fake_schem_keyframes <[keyframes.elements.fake_object.fake_schem]||null>
     - if <[fake_schem_keyframes]> != null:
-      - define highest <[fake_schem_keyframes].keys.highest>
+      - define highest <[fake_schem_keyframes].keys.highest||0>
       - define ticks:->:<[highest]>
     #Particle
-    - define particle_keyframes <[keyframes.particle]||null>
+    - define particle_keyframes <[keyframes.elements.particle]||null>
     - if <[particle_keyframes]> != null:
-      - define highest <[particle_keyframes].keys.highest>
+      - define highest <[particle_keyframes].keys.highest||0>
       - define ticks:->:<[highest]>
     #Screeneffect
-    - define effect_keyframes <[keyframes.screeneffect]||null>
+    - define effect_keyframes <[keyframes.elements.screeneffect]||null>
     - if <[effect_keyframes]> != null:
-      - define highest <[effect_keyframes].keys.highest>
+      - define highest <[effect_keyframes].keys.highest||0>
       - define ticks:->:<[highest]>
     #Sound
-    - define sound_keyframes <[keyframes.sound]||null>
+    - define sound_keyframes <[keyframes.elements.sound]||null>
     - if <[sound_keyframes]> != null:
-      - define highest <[cam_keyframes].keys.highest>
+      - define highest <[cam_keyframes].keys.highest||0>
       - define ticks:->:<[highest]>
     #Title
-    - define title_keyframes <[keyframes.title]||null>
+    - define title_keyframes <[keyframes.elements.title]||null>
     - if <[title_keyframes]> != null:
-      - define highest <[title_keyframes].keys.highest>
+      - define highest <[title_keyframes].keys.highest||0>
       - define ticks:->:<[highest]>
     #Command
-    - define command_keyframes <[keyframes.command]||null>
+    - define command_keyframes <[keyframes.elements.command]||null>
     - if <[command_keyframes]> != null:
-      - define highest <[command_keyframes].keys.highest>
+      - define highest <[command_keyframes].keys.highest||0>
       - define ticks:->:<[highest]>
     #Message
-    - define message_keyframes <[keyframes.message]||null>
+    - define message_keyframes <[keyframes.elements.message]||null>
     - if <[message_keyframes]> != null:
-      - define highest <[message_keyframes].keys.highest>
+      - define highest <[message_keyframes].keys.highest||0>
       - define ticks:->:<[highest]>
     #Time
-    - define time_keyframes <[keyframes.time]||null>
+    - define time_keyframes <[keyframes.elements.time]||null>
     - if <[time_keyframes]> != null:
-      - define highest <[time_keyframes].keys.highest>
+      - define highest <[time_keyframes].keys.highest||0>
       - define ticks:->:<[highest]>
     #Weather
-    - define weather_keyframes <[keyframes.weather]||null>
+    - define weather_keyframes <[keyframes.elements.weather]||null>
     - if <[weather_keyframes]> != null:
-      - define highest <[weather_keyframes].keys.highest>
+      - define highest <[weather_keyframes].keys.highest||0>
       - define ticks:->:<[highest]>
     #Stop Point
     - define stop_point <[keyframes.stop]||null>
@@ -471,7 +504,7 @@ dcutscene_sphere_proc:
 dcutscene_vector_path:
   type: procedure
   debug: false
-  definitions: loc|vec|time|interpolation|offset|vec_2|vec_3
+  definitions: loc|vec|time|interpolation|vec_2|vec_3|offset
   script:
   - define vec <[vec]||null>
   - if <[vec]> == null:
