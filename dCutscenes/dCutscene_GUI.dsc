@@ -41,7 +41,7 @@ dcutscene_events:
         ##Misc #################
         after player clicks dcutscene_exit in inventory:
         - inventory close
-        ##Right click for location input in keyframe modifier##
+        ##Right click for location input in animator modifier
         after player right clicks block flagged:cutscene_modify using:hand:
         - ratelimit <player> 1t
         - choose <player.flag[cutscene_modify]>:
@@ -83,6 +83,7 @@ dcutscene_events:
         - define msg <context.message>
         - if <[msg]> == cancel:
           - flag <player> cutscene_modify:!
+          - flag <player> dcutscene_animator_change:!
           - if <player.gamemode> == spectator:
             - adjust <player> gamemode:creative
           - determine passively cancelled
@@ -183,6 +184,9 @@ dcutscene_events:
           - case set_new_player_model_location:
             - if <[msg]> == confirm:
               - run dcutscene_model_keyframe_edit def:player_model|location|set_location|<player.flag[dcutscene_location_editor.location]>
+          #Set rotation multiplier
+          - case player_model_change_rotate_mul:
+            - run dcutscene_model_keyframe_edit def:player_model|change_rotate_mul|<[msg]>
           #Sets a new skin for the player model
           - case player_model_change_skin:
             - run dcutscene_model_keyframe_edit def:player_model|change_skin|set_new_skin|<[msg]>
@@ -306,6 +310,7 @@ dcutscene_events:
           - flag <player> sub_keyframe_tick_page:0
           - inventory open d:dcutscene_inventory_sub_keyframe
           - ~run dcutscene_sub_keyframe_modify def:<[i].flag[keyframe_data]>
+        ##########################
         ##Animators to modify click event
         after player clicks item in dcutscene_inventory_sub_keyframe:
         - define i <context.item>
@@ -313,6 +318,7 @@ dcutscene_events:
         - if <[i].has_flag[keyframe_modify]>:
           - flag <player> dcutscene_tick_modify:<[i].flag[keyframe_modify]>
           - inventory open d:dcutscene_inventory_keyframe_modify
+
         #Modify present keyframe modifier
         - else if <[i].has_flag[keyframe_opt_modify]>:
           #Modify type
@@ -373,6 +379,104 @@ dcutscene_events:
             - case stop_point:
               - flag <player> dcutscene_tick_modify:<[i].flag[keyframe_opt_modify]>
               - inventory open d:dcutscene_inventory_keyframe_modify_stop_point
+
+        #Used for moving or duplicating animators
+        - else if <[i].has_flag[change_animator]>:
+          - if <player.has_flag[dcutscene_animator_change]>:
+            - flag <player> dcutscene_tick_modify:<[i].flag[keyframe_tick]>
+            - define data <player.flag[dcutscene_animator_change]>
+            - choose <[data.animator]>:
+              #Camera
+              - case camera:
+                - choose <[data.type]>:
+                  - case move:
+                    - run dcutscene_cam_keyframe_edit def:edit|move_camera
+                  - case duplicate:
+                    - run dcutscene_cam_keyframe_edit def:edit|duplicate_camera\
+              #Player Model
+              - case player_model:
+                - choose <[data.type]>:
+                  - case move:
+                    - run dcutscene_model_keyframe_edit def:player_model|move_to
+                  - case duplicate:
+                    - run dcutscene_model_keyframe_edit def:player_model|duplicate
+              #Run Task
+              - case run_task:
+                - choose <[data.type]>:
+                  - case move:
+                    - run dcutscene_animator_keyframe_edit def:run_task|move_to
+                  - case duplicate:
+                    - run dcutscene_animator_keyframe_edit def:run_task|duplicate
+              #Screeneffect
+              - case screeneffect:
+                - choose <[data.type]>:
+                  - case move:
+                    - run dcutscene_animator_keyframe_edit def:screeneffect|move_to
+                  - case duplicate:
+                    - run dcutscene_animator_keyframe_edit def:screeneffect|duplicate
+              #Sound
+              - case sound:
+                - choose <[data.type]>:
+                  - case move:
+                    - run dcutscene_animator_keyframe_edit def:sound|move_to
+                  - case duplicate:
+                    - run dcutscene_animator_keyframe_edit def:sound|duplicate
+              #Fake Block
+              - case fake_block:
+                - choose <[data.type]>:
+                  - case move:
+                    - run dcutscene_animator_keyframe_edit def:fake_object|move_to_fake_block
+                  - case duplicate:
+                    - run dcutscene_animator_keyframe_edit def:fake_object|duplicate_fake_block
+              #Fake Schem
+              - case fake_schem:
+                - choose <[data.type]>:
+                  - case move:
+                    - run dcutscene_animator_keyframe_edit def:fake_object|move_to_fake_schem
+                  - case duplicate:
+                    - run dcutscene_animator_keyframe_edit def:fake_object|duplicate_fake_schem
+              #Particle
+              - case particle:
+                - choose <[data.type]>:
+                  - case move:
+                    - run dcutscene_animator_keyframe_edit def:particle|move_to
+                  - case duplicate:
+                    - run dcutscene_animator_keyframe_edit def:particle|duplicate
+              #Title
+              - case title:
+                - choose <[data.type]>:
+                  - case move:
+                    - run dcutscene_animator_keyframe_edit def:title|move_to
+                  - case duplicate:
+                    - run dcutscene_animator_keyframe_edit def:title|duplicate
+              #Command
+              - case command:
+                - choose <[data.type]>:
+                  - case move:
+                    - run dcutscene_animator_keyframe_edit def:command|move_to
+                  - case duplicate:
+                    - run dcutscene_animator_keyframe_edit def:command|duplicate
+              #Message
+              - case message:
+                - choose <[data.type]>:
+                  - case move:
+                    - run dcutscene_animator_keyframe_edit def:message|move_to
+                  - case duplicate:
+                    - run dcutscene_animator_keyframe_edit def:message|duplicate
+              #Time
+              - case time:
+                - choose <[data.type]>:
+                  - case move:
+                    - run dcutscene_animator_keyframe_edit def:time|move_to
+                  - case duplicate:
+                    - run dcutscene_animator_keyframe_edit def:time|duplicate
+              #Weather
+              - case weather:
+                - choose <[data.type]>:
+                  - case move:
+                    - run dcutscene_animator_keyframe_edit def:weather|move_to
+                  - case duplicate:
+                    - run dcutscene_animator_keyframe_edit def:weather|duplicate
         #Previous models that were created and can be modified for further use
         after player clicks item in dcutscene_inventory_keyframe_model_list:
         - define i <context.item>
@@ -435,6 +539,12 @@ dcutscene_events:
         after player clicks dcutscene_camera_path_show in dcutscene_inventory_keyframe_modify_camera:
         - inventory close
         - run dcutscene_path_show_interval def:camera
+        #Move camera to new keyframe
+        after player clicks dcutscene_camera_move_to_keyframe in dcutscene_inventory_keyframe_modify_camera:
+        - run dcutscene_cam_keyframe_edit def:edit|move_camera_prep
+        #Duplicate camera to new keyframe
+        after player clicks dcutscene_camera_duplicate_to_keyframe in dcutscene_inventory_keyframe_modify_camera:
+        - run dcutscene_cam_keyframe_edit def:edit|duplicate_camera_prep
         ## All Models #######
         #New Model in model list gui
         after player clicks dcutscene_add_new_model in dcutscene_inventory_keyframe_model_list:
@@ -472,6 +582,12 @@ dcutscene_events:
         #Ray Trace GUI
         after player clicks dcutscene_player_model_ray_trace_change in dcutscene_inventory_keyframe_modify_player_model:
         - inventory open d:dcutscene_inventory_keyframe_ray_trace_player_model
+        #Move to a new keyframe
+        after player clicks dcutscene_player_model_move_to_keyframe in dcutscene_inventory_keyframe_modify_player_model:
+        - run dcutscene_model_keyframe_edit def:player_model|move_to_prep
+        #Duplicate
+        after player clicks dcutscene_player_model_duplicate in dcutscene_inventory_keyframe_modify_player_model:
+        - run dcutscene_model_keyframe_edit def:player_model|duplicate_prep
         #Remove from tick
         after player clicks dcutscene_remove_player_model_tick in dcutscene_inventory_keyframe_modify_player_model:
         - run dcutscene_model_keyframe_edit def:player_model|remove_tick
@@ -500,6 +616,12 @@ dcutscene_events:
         #Change the player model skin
         after player clicks dcutscene_player_model_change_skin in dcutscene_inventory_keyframe_modify_player_model:
         - run dcutscene_model_keyframe_edit def:player_model|change_skin|new_skin_prepare
+        #Change path rotation interpolation
+        after player clicks dcutscene_player_model_interp_rotate_change in dcutscene_inventory_keyframe_modify_player_model:
+        - run dcutscene_model_keyframe_edit def:player_model|change_rotate_interp|<context.slot>
+        #Change path rotation multiplier
+        after player clicks dcutscene_player_model_interp_rotate_mul in dcutscene_inventory_keyframe_modify_player_model:
+        - run dcutscene_model_keyframe_edit def:player_model|change_rotate_mul_prep|<context.slot>
         #Teleport to player model location
         after player clicks dcutscene_player_model_teleport_loc in dcutscene_inventory_keyframe_modify_player_model:
         - run dcutscene_model_keyframe_edit def:player_model|teleport_to
@@ -523,6 +645,12 @@ dcutscene_events:
         #Determine if the run task is delayed
         after player clicks dcutscene_run_task_delay_modify in dcutscene_inventory_keyframe_modify_run_task:
         - run dcutscene_animator_keyframe_edit def:run_task|delay_prepare
+        #Move to new tick
+        after player clicks dcutscene_run_task_move_to_keyframe in dcutscene_inventory_keyframe_modify_run_task:
+        - run dcutscene_animator_keyframe_edit def:run_task|move_to_prep
+        #Duplicate run task
+        after player clicks dcutscene_run_task_duplicate in dcutscene_inventory_keyframe_modify_run_task:
+        - run dcutscene_animator_keyframe_edit def:run_task|duplicate_prep
         #Remove the run task
         after player clicks dcutscene_run_task_remove_modify in dcutscene_inventory_keyframe_modify_run_task:
         - run dcutscene_animator_keyframe_edit def:run_task|remove
@@ -542,6 +670,12 @@ dcutscene_events:
         #New location
         after player clicks dcutscene_sound_loc_modify in dcutscene_inventory_keyframe_modify_sound:
         - run dcutscene_animator_keyframe_edit def:sound|new_location
+        #Move to new tick
+        after player clicks dcutscene_sound_move_to_keyframe in dcutscene_inventory_keyframe_modify_sound:
+        - run dcutscene_animator_keyframe_edit def:sound|move_to_prep
+        #Duplicate
+        after player clicks dcutscene_sound_duplicate in dcutscene_inventory_keyframe_modify_sound:
+        - run dcutscene_animator_keyframe_edit def:sound|duplicate_prep
         #Remove sound
         after player clicks dcutscene_sound_remove_modify in dcutscene_inventory_keyframe_modify_sound:
         - run dcutscene_animator_keyframe_edit def:sound|remove_sound
@@ -555,10 +689,16 @@ dcutscene_events:
         #Set cinematic screeneffect color for present modifier
         after player clicks dcutscene_screeneffect_color_modify in dcutscene_inventory_keyframe_modify_screeneffect:
         - run dcutscene_animator_keyframe_edit def:screeneffect|new_color
+        #Move to new keyframe
+        after player clicks dcutscene_screeneffect_move_to_keyframe in dcutscene_inventory_keyframe_modify_screeneffect:
+        - run dcutscene_animator_keyframe_edit def:screeneffect|move_to_prep
+        #Move to another keyframe
+        after player clicks dcutscene_screeneffect_duplicate in dcutscene_inventory_keyframe_modify_screeneffect:
+        - run dcutscene_animator_keyframe_edit def:screeneffect|duplicate_prep
         #Remove cinematic screeneffect
         after player clicks dcutscene_screeneffect_remove_modify in dcutscene_inventory_keyframe_modify_screeneffect:
         - run dcutscene_animator_keyframe_edit def:screeneffect|remove
-        ##Fake Object ######
+        ##Fake Object ###########
         ##Fake Block ##
         #Add new fake block
         after player clicks dcutscene_add_fake_block in dcutscene_inventory_keyframe_modify:
@@ -584,13 +724,19 @@ dcutscene_events:
         #Set procedure definitions
         after player clicks dcutscene_fake_object_block_proc_def_change in dcutscene_inventory_fake_object_block_modify:
         - run dcutscene_animator_keyframe_edit def:fake_object|set_fake_block_proc_def_prepare
-        #Remove the fake block
-        after player clicks dcutscene_fake_object_block_remove in dcutscene_inventory_fake_object_block_modify:
-        - run dcutscene_animator_keyframe_edit def:fake_object|remove_fake_block
         #Teleport to fake block
         after player clicks dcutscene_fake_object_block_teleport in dcutscene_inventory_fake_object_block_modify:
         - run dcutscene_animator_keyframe_edit def:fake_object|teleport_to_fake_block
-        ##Fake Schem ##
+        #Move fake block animator
+        after player clicks dcutscene_fake_block_move_to_keyframe in dcutscene_inventory_fake_object_block_modify:
+        - run dcutscene_animator_keyframe_edit def:fake_object|move_to_fake_block_prep
+        #Duplicate fake block animator
+        after player clicks dcutscene_fake_block_duplicate in dcutscene_inventory_fake_object_block_modify:
+        - run dcutscene_animator_keyframe_edit def:fake_object|duplicate_fake_block_prep
+        #Remove the fake block
+        after player clicks dcutscene_fake_object_block_remove in dcutscene_inventory_fake_object_block_modify:
+        - run dcutscene_animator_keyframe_edit def:fake_object|remove_fake_block
+        ##Fake Schem ###
         #Add new fake schem
         after player clicks dcutscene_add_fake_schem in dcutscene_inventory_keyframe_modify:
         - run dcutscene_animator_keyframe_edit def:fake_object|new_schem_name
@@ -615,6 +761,12 @@ dcutscene_events:
         #Teleport to fake schem location
         after player clicks dcutscene_fake_object_schem_teleport in dcutscene_inventory_fake_object_schem_modify:
         - run dcutscene_animator_keyframe_edit def:fake_object|teleport_to_fake_schem
+        #Move to new keyframe
+        after player clicks dcutscene_fake_schem_move_to in dcutscene_inventory_fake_object_schem_modify:
+        - run dcutscene_animator_keyframe_edit def:fake_object|move_to_fake_schem_prep
+        #Duplicate
+        after player clicks dcutscene_fake_schem_duplicate in dcutscene_inventory_fake_object_schem_modify:
+        - run dcutscene_animator_keyframe_edit def:fake_object|duplicate_fake_schem_prep
         #Remove fake schem
         after player clicks dcutscene_fake_object_schem_remove in dcutscene_inventory_fake_object_schem_modify:
         - run dcutscene_animator_keyframe_edit def:fake_object|remove_fake_schem
@@ -658,6 +810,12 @@ dcutscene_events:
         #Teleport to particle
         after player clicks dcutscene_particle_teleport_to in dcutscene_inventory_particle_modify:
         - run dcutscene_animator_keyframe_edit def:particle|teleport_to_particle
+        #Move to new keyframe
+        after player clicks dcutscene_particle_move_to_keyframe in dcutscene_inventory_particle_modify:
+        - run dcutscene_animator_keyframe_edit def:particle|move_to_prep
+        #Duplicate
+        after player clicks dcutscene_particle_duplicate in dcutscene_inventory_particle_modify:
+        - run dcutscene_animator_keyframe_edit def:particle|duplicate_prep
         #Remove particle
         after player clicks dcutscene_particle_remove in dcutscene_inventory_particle_modify:
         - run dcutscene_animator_keyframe_edit def:particle|remove_particle
@@ -674,6 +832,12 @@ dcutscene_events:
         #Change duration
         after player clicks dcutscene_title_duration_modify in dcutscene_inventory_keyframe_modify_title:
         - run dcutscene_animator_keyframe_edit def:title|set_duration_prep
+        #Move to a new keyframe
+        after player clicks dcutscene_title_move_to_keyframe in dcutscene_inventory_keyframe_modify_title:
+        - run dcutscene_animator_keyframe_edit def:title|move_to_prep
+        #Duplicate
+        after player clicks dcutscene_title_duplicate in dcutscene_inventory_keyframe_modify_title:
+        - run dcutscene_animator_keyframe_edit def:title|duplicate_prep
         #Remove title
         after player clicks dcutscene_title_remove_modify in dcutscene_inventory_keyframe_modify_title:
         - run dcutscene_animator_keyframe_edit def:title|remove_title
@@ -690,6 +854,12 @@ dcutscene_events:
         #Change silent command
         after player clicks dcutscene_command_silent_modify in dcutscene_inventory_keyframe_modify_command:
         - run dcutscene_animator_keyframe_edit def:command|change_silent|<context.slot>
+        #Move to new keyframe
+        after player clicks dcutscene_command_move_to_keyframe in dcutscene_inventory_keyframe_modify_command:
+        - run dcutscene_animator_keyframe_edit def:command|move_to_prep
+        #Duplicate
+        after player clicks dcutscene_command_duplicate in dcutscene_inventory_keyframe_modify_command:
+        - run dcutscene_animator_keyframe_edit def:command|duplicate_prep
         #Remove command
         after player clicks dcutscene_command_remove_modify in dcutscene_inventory_keyframe_modify_command:
         - run dcutscene_animator_keyframe_edit def:command|remove_command
@@ -700,6 +870,12 @@ dcutscene_events:
         #Change message
         after player clicks dcutscene_message_modify in dcutscene_inventory_keyframe_modify_message:
         - run dcutscene_animator_keyframe_edit def:message|change_message_prep
+        #Move to a keyframe
+        after player clicks dcutscene_message_move_to_keyframe in dcutscene_inventory_keyframe_modify_message:
+        - run dcutscene_animator_keyframe_edit def:message|move_to_prep
+        #Duplicate
+        after player clicks dcutscene_message_duplicate in dcutscene_inventory_keyframe_modify_message:
+        - run dcutscene_animator_keyframe_edit def:message|duplicate_prep
         #Remove message
         after player clicks dcutscene_message_remove_modify in dcutscene_inventory_keyframe_modify_message:
         - run dcutscene_animator_keyframe_edit def:message|remove_message
@@ -719,6 +895,12 @@ dcutscene_events:
         #Change time reset
         after player clicks dcutscene_time_reset_modify in dcutscene_inventory_keyframe_modify_time:
         - run dcutscene_animator_keyframe_edit def:time|change_time_reset|<context.slot>
+        #Move to a keyframe
+        after player clicks dcutscene_time_move_to_keyframe in dcutscene_inventory_keyframe_modify_time:
+        - run dcutscene_animator_keyframe_edit def:time|move_to_prep
+        #Duplicate
+        after player clicks dcutscene_time_duplicate in dcutscene_inventory_keyframe_modify_time:
+        - run dcutscene_animator_keyframe_edit def:time|duplicate_prep
         #Remove time
         after player clicks dcutscene_time_remove_modify in dcutscene_inventory_keyframe_modify_time:
         - run dcutscene_animator_keyframe_edit def:time|remove_time
@@ -732,6 +914,12 @@ dcutscene_events:
         #Set weather duration
         after player clicks dcutscene_weather_duration_modify in dcutscene_inventory_keyframe_modify_weather:
         - run dcutscene_animator_keyframe_edit def:weather|change_weather_duration_prep
+        #Move to a keyframe
+        after player clicks dcutscene_weather_move_to_keyframe in dcutscene_inventory_keyframe_modify_weather:
+        - run dcutscene_animator_keyframe_edit def:weather|move_to_prep
+        #Duplicate
+        after player clicks dcutscene_weather_duplicate in dcutscene_inventory_keyframe_modify_weather:
+        - run dcutscene_animator_keyframe_edit def:weather|duplicate_prep
         #Remove weather
         after player clicks dcutscene_weather_remove_modify in dcutscene_inventory_keyframe_modify_weather:
         - run dcutscene_animator_keyframe_edit def:weather|remove_weather
@@ -796,6 +984,9 @@ dcutscene_events:
         - inventory open d:dcutscene_inventory_sub_keyframe
         - ~run dcutscene_sub_keyframe_modify def:<player.flag[dcutscene_sub_keyframe_back_data]>
         after player clicks dcutscene_back_page in dcutscene_inventory_keyframe_modify_message:
+        - inventory open d:dcutscene_inventory_sub_keyframe
+        - ~run dcutscene_sub_keyframe_modify def:<player.flag[dcutscene_sub_keyframe_back_data]>
+        after player clicks dcutscene_back_page in dcutscene_inventory_keyframe_modify_time:
         - inventory open d:dcutscene_inventory_sub_keyframe
         - ~run dcutscene_sub_keyframe_modify def:<player.flag[dcutscene_sub_keyframe_back_data]>
         after player clicks dcutscene_back_page in dcutscene_inventory_keyframe_modify_weather:
@@ -1228,34 +1419,48 @@ dcutscene_sub_keyframe_modify:
                   - if <[data.root]||none> != none:
                     - define root_tick <[data.root.tick]>
                     - define root_uuid <[data.root.uuid]>
+                    #Lore information
                     - define start_tick <[models.<[root_tick]>.<[root_uuid]>.path].keys.first||null>
-                    - define anim_lore "<aqua>Animation: <gray><[models.<[root_tick]>.<[root_uuid]>.path.<[tick]>.animation]>"
-                    - define loc_lore "<aqua>Location: <gray><[models.<[root_tick]>.<[root_uuid]>.path.<[tick]>.location].simple>"
+                    - define lore_data <[models.<[root_tick]>.<[root_uuid]>.path.<[tick]>]>
+                    - define anim_lore "<aqua>Animation: <gray><[lore_data.animation]>"
+                    - define loc_lore "<aqua>Location: <gray><[lore_data.location].simple>"
+                    - define path_interp_lore "<aqua>Path Interpolation: <gray><[lore_data.interpolation]>"
+                    - define rotate_interp "<aqua>Rotate Interpolation: <gray><[lore_data.rotate_interp]>"
+                    - define rotate_mul "<aqua>Rotate Multiplier: <gray><[lore_data.rotate_mul]||1.0>"
+                    - define ray_dir "<aqua>Ray Trace Direction: <gray><[lore_data.ray_trace.direction]>"
+                    - define move_lore "<aqua>Move: <gray><[lore_data.move]>"
                     - define skin <proc[dcutscene_determine_player_model_skin].context[<[scene_name]>|<[tick]>|<[model_uuid]>]||none>
                     - if <[skin]> == none || <[skin]> == player:
                       - define skin <player>
                     #If the starting point keyframe has a skin update the ones without a skin
                     - adjust <[opt_item]> skull_skin:<[skin].parsed.skull_skin||<player.skull_skin>> save:item
                     - define opt_item <entry[item].result>
-                    - define skin_lore "<aqua>Skin: <gray><[skin].parsed||<[skin]>>"
+                    - define skin_lore "<aqua>Skin: <gray><[skin].parsed.name||<[skin].name>>"
                     - if <[start_tick]> == null:
                       - define start_lore <empty>
-                      - define m_lore <list[<empty>|<[pmodel_id]>|<[time_lore]>|<[anim_lore]>|<[skin_lore]>|<[loc_lore]>|<empty>|<[modify]>]>
+                      - define m_lore <list[<empty>|<[pmodel_id]>|<[time_lore]>|<[anim_lore]>|<[skin_lore]>|<[loc_lore]>|<[path_interp_lore]>|<[rotate_interp]>|<[rotate_mul]>|<[ray_dir]>|<[move_lore]>|<empty>|<[modify]>]>
                     - else:
                       - define start_lore "<aqua>Starting Frame: <gray><[start_tick]>t"
-                      - define m_lore <list[<empty>|<[pmodel_id]>|<[time_lore]>|<[anim_lore]>|<[skin_lore]>|<[loc_lore]>|<[start_lore]>|<empty>|<[modify]>]>
+                      - define m_lore <list[<empty>|<[pmodel_id]>|<[time_lore]>|<[anim_lore]>|<[skin_lore]>|<[loc_lore]>|<[path_interp_lore]>|<[rotate_interp]>|<[rotate_mul]>|<[ray_dir]>|<[move_lore]>|<[start_lore]>|<empty>|<[modify]>]>
+
                   #If the model is a root data model
                   - else:
-                    - define start_lore <empty>
-                    - define anim_lore "<aqua>Animation: <gray><[models.<[tick]>.<[model_uuid]>.path.<[tick]>.animation]>"
-                    - define loc_lore "<aqua>Location: <gray><[models.<[tick]>.<[model_uuid]>.path.<[tick]>.location].simple>"
+                    #Lore information
+                    - define lore_data <[models.<[tick]>.<[model_uuid]>.path.<[tick]>]>
+                    - define anim_lore "<aqua>Animation: <gray><[lore_data.animation]>"
+                    - define loc_lore "<aqua>Location: <gray><[lore_data.location].simple>"
+                    - define path_interp_lore "<aqua>Path Interpolation: <gray><[lore_data.interpolation]>"
+                    - define rotate_interp "<aqua>Rotate Interpolation: <gray><[lore_data.rotate_interp]>"
+                    - define rotate_mul "<aqua>Rotate Multiplier: <gray><[lore_data.rotate_mul]||1.0>"
+                    - define ray_dir "<aqua>Ray Trace Direction: <gray><[lore_data.ray_trace.direction]>"
+                    - define move_lore "<aqua>Move: <gray><[lore_data.move]>"
                     - define skin <proc[dcutscene_determine_player_model_skin].context[<[scene_name]>|<[tick]>|<[model_uuid]>]||none>
                     - if <[skin]> == none || <[skin]> == player:
                       - define skin <player>
                     - adjust <[opt_item]> skull_skin:<[skin].parsed.skull_skin||<player.skull_skin>> save:item
                     - define opt_item <entry[item].result>
-                    - define skin_lore "<aqua>Skin: <gray><[skin].parsed||<[skin]>>"
-                    - define m_lore <list[<empty>|<[pmodel_id]>|<[time_lore]>|<[anim_lore]>|<[skin_lore]>|<[loc_lore]>|<empty>|<[modify]>]>
+                    - define skin_lore "<aqua>Skin: <gray><[skin].parsed.name||<[skin].name>>"
+                    - define m_lore <list[<empty>|<[pmodel_id]>|<[time_lore]>|<[anim_lore]>|<[skin_lore]>|<[loc_lore]>|<[path_interp_lore]>|<[rotate_interp]>|<[rotate_mul]>|<[ray_dir]>|<[move_lore]>|<empty>|<[modify]>]>
                   - adjust <[opt_item]> lore:<[m_lore]> save:item
                   - define opt_item <entry[item].result>
                   #Data to pass through for use of modifying the modifier
@@ -1624,8 +1829,8 @@ dcutscene_sub_keyframe_modify:
               - inventory set d:<[inv]> o:<[add_item]> slot:<[loop_i].add[<[tick_column]>]>
 
         #======= Time =========
-        - define time <[elements.time.<[tick]>]||null>
-        - if <[time]> != null:
+        - define time_anim <[elements.time.<[tick]>]||null>
+        - if <[time_anim]> != null:
           - define tick_column_check true
           #Option Item
           - define opt_item <item[dcutscene_time_keyframe]>
@@ -1635,10 +1840,10 @@ dcutscene_sub_keyframe_modify:
           - if <[tick_row]> > 4:
             - define tick_row:1
           - if <[tick_index]> > <[tick_page]>:
-            - define l1 "<aqua>Time: <gray><duration[<[time.time]>].in_ticks>t"
-            - define l2 "<aqua>Duration: <gray><duration[<[time.duration]>].formatted>"
-            - define l3 "<aqua>Freeze: <gray><[time.freeze]>"
-            - define l4 "<aqua>Reset: <gray><[time.reset]>"
+            - define l1 "<aqua>Time: <gray><duration[<[time_anim.time]>].in_ticks>t"
+            - define l2 "<aqua>Duration: <gray><duration[<[time_anim.duration]>].formatted>"
+            - define l3 "<aqua>Freeze: <gray><[time_anim.freeze]>"
+            - define l4 "<aqua>Reset: <gray><[time_anim.reset]>"
             - define modify "<gray><italic>Click to modify time"
             - define time_lore <list[<empty>|<[l1]>|<[l2]>|<[l3]>|<[l4]>|<empty>|<[modify]>]>
             - adjust <[opt_item]> lore:<[time_lore]> save:item
@@ -1737,12 +1942,25 @@ dcutscene_sub_keyframe_modify:
           - inventory set d:<[inv]> o:<item[dcutscene_scroll_up]> slot:49
         #Tick info item
         - define item <item[dcutscene_sub_keyframe]>
+        - flag <[item]> keyframe_tick:<[tick]>
         - define display "<aqua><bold>Tick <gray><bold><[tick]>t"
         - adjust <[item]> display:<[display]> save:item
         - define item <entry[item].result>
         - define t_lore "<blue><bold>Main Keyframe Time <gray><bold><duration[<[time]>].formatted>"
         - define s_lore "<green><bold>Tick to seconds <gray><bold><duration[<[tick]>t].in_seconds.round_down_to_precision[0.05]>s"
-        - adjust <[item]> lore:<list[<[t_lore]>|<[s_lore]>]> save:item
+        #If player is moving or duplicating an animator modify the lore
+        - if <player.has_flag[dcutscene_animator_change]>:
+          - flag <[item]> change_animator
+          - define data <player.flag[dcutscene_animator_change]>
+          - choose <[data.type]>:
+            - case move:
+              - define modify "<gray><italic>Click to move <green><[data.animator].replace[_].with[ ]> <gray><italic>from tick <green><[data.tick]>t <gray><italic>here"
+            - case duplicate:
+              - define modify "<gray><italic>Click to duplicate <green><[data.animator].replace[_].with[ ]> <gray><italic>from tick <green><[data.tick]>t <gray><italic>here"
+          - define lore <list[<[t_lore]>|<[s_lore]>|<empty>|<[modify]>]>
+        - else:
+          - define lore <list[<[t_lore]>|<[s_lore]>]>
+        - adjust <[item]> lore:<[lore]> save:item
         - define item <entry[item].result>
         - inventory set d:<[inv]> o:<[item]> slot:<[loop_i]>
 
@@ -1849,11 +2067,11 @@ dcutscene_inventory_keyframe_modify_camera:
     gui: true
     slots:
     - [] [] [] [] [] [] [] [] []
-    - [] [] [] [dcutscene_camera_loc_modify] [dcutscene_camera_look_modify] [dcutscene_camera_move_modify] [] [] []
-    - [] [] [] [dcutscene_camera_rotate_modify] [dcutscene_camera_interpolate_look] [dcutscene_camera_upside_down] [] [] []
-    - [] [] [] [dcutscene_camera_teleport] [dcutscene_camera_interp_modify] [dcutscene_camera_record_player] [] [] []
+    - [] [] [dcutscene_camera_loc_modify] [dcutscene_camera_look_modify] [dcutscene_camera_move_modify] [dcutscene_camera_rotate_modify] [dcutscene_camera_interpolate_look] [] []
+    - [] [] [dcutscene_camera_upside_down] [dcutscene_camera_interp_modify] [dcutscene_camera_record_player] [dcutscene_camera_path_show] [dcutscene_camera_move_to_keyframe] [] []
+    - [] [] [dcutscene_camera_duplicate_to_keyframe] [dcutscene_camera_teleport] [] [] [] [] []
     - [] [] [] [] [] [] [] [] []
-    - [dcutscene_back_page] [] [dcutscene_camera_path_show] [] [dcutscene_camera_remove_modify] [] [] [] [dcutscene_exit]
+    - [dcutscene_back_page] [] [] [] [dcutscene_camera_remove_modify] [] [] [] [dcutscene_exit]
 
 #Location Tool Modify GUI
 dcutscene_inventory_location_tool:
@@ -1894,9 +2112,9 @@ dcutscene_inventory_keyframe_modify_player_model:
     gui: true
     slots:
     - [] [] [] [] [] [] [] [] []
-    - [] [] [] [dcutscene_player_model_change_id] [dcutscene_player_model_change_location] [dcutscene_player_model_ray_trace_change] [] [] []
-    - [] [] [] [dcutscene_player_model_change_move] [dcutscene_player_model_change_animation] [dcutscene_player_model_change_skin] [] [] []
-    - [] [] [] [dcutscene_player_model_interp_method] [dcutscene_player_model_show_path] [dcutscene_player_model_teleport_loc] [] [] []
+    - [] [] [dcutscene_player_model_change_id] [dcutscene_player_model_change_location] [dcutscene_player_model_ray_trace_change] [dcutscene_player_model_change_move] [dcutscene_player_model_change_animation] [] []
+    - [] [] [dcutscene_player_model_change_skin] [dcutscene_player_model_interp_method] [dcutscene_player_model_show_path] [dcutscene_player_model_interp_rotate_change] [dcutscene_player_model_interp_rotate_mul] [] []
+    - [] [] [dcutscene_player_model_move_to_keyframe] [dcutscene_player_model_duplicate] [dcutscene_player_model_teleport_loc] [] [] [] []
     - [] [] [] [] [] [] [] [] []
     - [dcutscene_back_page] [] [] [dcutscene_remove_player_model_tick] [] [dcutscene_remove_player_model] [] [] [dcutscene_exit]
 
@@ -1926,7 +2144,7 @@ dcutscene_inventory_particle_modify:
     - [] [] [] [] [] [] [] [] []
     - [] [] [dcutscene_particle_modify] [dcutscene_particle_loc_modify] [dcutscene_particle_quantity_modify] [dcutscene_particle_range_modify] [dcutscene_particle_repeat_modify] [] []
     - [] [] [dcutscene_particle_repeat_interval_modify] [dcutscene_particle_offset_modify] [dcutscene_particle_procedure_modify] [dcutscene_particle_procedure_defs_modify] [dcutscene_particle_special_data_modify] [] []
-    - [] [] [dcutscene_particle_velocity_modify] [dcutscene_particle_teleport_to] [] [] [] [] []
+    - [] [] [dcutscene_particle_velocity_modify] [dcutscene_particle_move_to_keyframe] [dcutscene_particle_duplicate] [dcutscene_particle_teleport_to] [] [] []
     - [] [] [] [] [] [] [] [] []
     - [dcutscene_back_page] [] [] [] [dcutscene_particle_remove] [] [] [] [dcutscene_exit]
 
@@ -1941,7 +2159,7 @@ dcutscene_inventory_fake_object_block_modify:
     - [] [] [] [] [] [] [] [] []
     - [] [] [] [dcutscene_fake_object_block_loc_change] [dcutscene_fake_object_block_material_change] [dcutscene_fake_object_block_duration_change] [] [] []
     - [] [] [] [dcutscene_fake_object_block_proc_change] [dcutscene_fake_object_block_proc_def_change] [dcutscene_fake_object_block_teleport] [] [] []
-    - [] [] [] [] [] [] [] [] []
+    - [] [] [] [dcutscene_fake_block_move_to_keyframe] [dcutscene_fake_block_duplicate] [] [] [] []
     - [] [] [] [] [] [] [] [] []
     - [dcutscene_back_page] [] [] [] [dcutscene_fake_object_block_remove] [] [] [] [dcutscene_exit]
 
@@ -1956,7 +2174,7 @@ dcutscene_inventory_fake_object_schem_modify:
     - [] [] [] [] [] [] [] [] []
     - [] [] [] [dcutscene_fake_object_schem_name_change] [dcutscene_fake_object_schem_loc_change] [dcutscene_fake_object_schem_duration_change] [] [] []
     - [] [] [] [dcutscene_fake_object_schem_noair_change] [dcutscene_fake_object_schem_waitable_change] [dcutscene_fake_object_schem_angle_change] [] [] []
-    - [] [] [] [dcutscene_fake_object_schem_teleport] [] [] [] [] []
+    - [] [] [] [dcutscene_fake_schem_move_to] [dcutscene_fake_schem_duplicate] [dcutscene_fake_object_schem_teleport] [] [] []
     - [] [] [] [] [] [] [] [] []
     - [dcutscene_back_page] [] [] [] [dcutscene_fake_object_schem_remove] [] [] [] [dcutscene_exit]
 
@@ -1970,7 +2188,7 @@ dcutscene_inventory_keyframe_modify_run_task:
     slots:
     - [] [] [] [] [] [] [] [] []
     - [] [] [] [dcutscene_run_task_change_modify] [dcutscene_run_task_def_modify] [dcutscene_run_task_wait_modify] [] [] []
-    - [] [] [] [dcutscene_run_task_delay_modify] [] [] [] [] []
+    - [] [] [] [dcutscene_run_task_delay_modify] [dcutscene_run_task_move_to_keyframe] [dcutscene_run_task_duplicate] [] [] []
     - [] [] [] [] [] [] [] [] []
     - [] [] [] [] [] [] [] [] []
     - [dcutscene_back_page] [] [] [] [dcutscene_run_task_remove_modify] [] [] [] [dcutscene_exit]
@@ -1986,7 +2204,7 @@ dcutscene_inventory_keyframe_modify_sound:
     - [] [] [] [] [] [] [] [] []
     - [] [] [] [dcutscene_sound_modify] [dcutscene_sound_volume_modify] [dcutscene_sound_pitch_modify] [] [] []
     - [] [] [] [dcutscene_sound_loc_modify] [dcutscene_sound_custom_modify] [dcutscene_sound_stop_modify] [] [] []
-    - [] [] [] [] [] [] [] [] []
+    - [] [] [] [dcutscene_sound_move_to_keyframe] [dcutscene_sound_duplicate] [] [] [] []
     - [] [] [] [] [] [] [] [] []
     - [dcutscene_back_page] [] [] [] [dcutscene_sound_remove_modify] [] [] [] [dcutscene_exit]
 
@@ -1999,8 +2217,8 @@ dcutscene_inventory_keyframe_modify_screeneffect:
     gui: true
     slots:
     - [] [] [] [] [] [] [] [] []
-    - [] [] [] [dcutscene_screeneffect_time_modify] [] [dcutscene_screeneffect_color_modify] [] [] []
-    - [] [] [] [] [] [] [] [] []
+    - [] [] [] [dcutscene_screeneffect_time_modify] [dcutscene_screeneffect_color_modify] [dcutscene_screeneffect_move_to_keyframe] [] [] []
+    - [] [] [] [dcutscene_screeneffect_duplicate] [] [] [] [] []
     - [] [] [] [] [] [] [] [] []
     - [] [] [] [] [] [] [] [] []
     - [dcutscene_back_page] [] [] [] [dcutscene_screeneffect_remove_modify] [] [] [] [dcutscene_exit]
@@ -2015,12 +2233,12 @@ dcutscene_inventory_keyframe_modify_title:
     slots:
     - [] [] [] [] [] [] [] [] []
     - [] [] [] [dcutscene_title_title_modify] [dcutscene_title_subtitle_modify] [dcutscene_title_duration_modify] [] [] []
-    - [] [] [] [] [] [] [] [] []
+    - [] [] [] [dcutscene_title_move_to_keyframe] [dcutscene_title_duplicate] [] [] [] []
     - [] [] [] [] [] [] [] [] []
     - [] [] [] [] [] [] [] [] []
     - [dcutscene_back_page] [] [] [] [dcutscene_title_remove_modify] [] [] [] [dcutscene_exit]
 
-#Play Command GUI
+#Play command GUI
 dcutscene_inventory_keyframe_modify_command:
     type: inventory
     inventory: CHEST
@@ -2030,7 +2248,7 @@ dcutscene_inventory_keyframe_modify_command:
     slots:
     - [] [] [] [] [] [] [] [] []
     - [] [] [] [dcutscene_command_modify] [dcutscene_command_execute_as_modify] [dcutscene_command_silent_modify] [] [] []
-    - [] [] [] [] [] [] [] [] []
+    - [] [] [] [dcutscene_command_move_to_keyframe] [dcutscene_command_duplicate] [] [] [] []
     - [] [] [] [] [] [] [] [] []
     - [] [] [] [] [] [] [] [] []
     - [dcutscene_back_page] [] [] [] [dcutscene_command_remove_modify] [] [] [] [dcutscene_exit]
@@ -2044,7 +2262,7 @@ dcutscene_inventory_keyframe_modify_message:
     gui: true
     slots:
     - [] [] [] [] [] [] [] [] []
-    - [] [] [] [] [dcutscene_message_modify] [] [] [] []
+    - [] [] [] [dcutscene_message_modify] [dcutscene_message_move_to_keyframe] [dcutscene_message_duplicate] [] [] []
     - [] [] [] [] [] [] [] [] []
     - [] [] [] [] [] [] [] [] []
     - [] [] [] [] [] [] [] [] []
@@ -2060,7 +2278,7 @@ dcutscene_inventory_keyframe_modify_time:
     slots:
     - [] [] [] [] [] [] [] [] []
     - [] [] [] [dcutscene_time_modify] [dcutscene_time_duration_modify] [dcutscene_time_freeze_modify] [] [] []
-    - [] [] [] [dcutscene_time_reset_modify] [] [] [] [] []
+    - [] [] [] [dcutscene_time_reset_modify] [dcutscene_time_move_to_keyframe] [dcutscene_time_duplicate] [] [] []
     - [] [] [] [] [] [] [] [] []
     - [] [] [] [] [] [] [] [] []
     - [dcutscene_back_page] [] [] [] [dcutscene_time_remove_modify] [] [] [] [dcutscene_exit]
@@ -2074,8 +2292,8 @@ dcutscene_inventory_keyframe_modify_weather:
     gui: true
     slots:
     - [] [] [] [] [] [] [] [] []
-    - [] [] [] [dcutscene_weather_modify] [] [dcutscene_weather_duration_modify] [] [] []
-    - [] [] [] [] [] [] [] [] []
+    - [] [] [] [dcutscene_weather_modify] [dcutscene_weather_duration_modify] [dcutscene_weather_move_to_keyframe] [] [] []
+    - [] [] [] [dcutscene_weather_duplicate] [] [] [] [] []
     - [] [] [] [] [] [] [] [] []
     - [] [] [] [] [] [] [] [] []
     - [dcutscene_back_page] [] [] [] [dcutscene_weather_remove_modify] [] [] [] [dcutscene_exit]
