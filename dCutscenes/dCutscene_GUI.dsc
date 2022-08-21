@@ -81,14 +81,13 @@ dcutscene_events:
         ##Chat Input ################
         on player chats flagged:cutscene_modify:
         - define msg <context.message>
+        - determine passively cancelled
         - if <[msg]> == cancel:
           - flag <player> cutscene_modify:!
           - flag <player> dcutscene_animator_change:!
           - if <player.gamemode> == spectator:
             - adjust <player> gamemode:creative
-          - determine passively cancelled
           - stop
-        - determine passively cancelled
         - choose <player.flag[cutscene_modify]>:
           #Show camera path in cutscene
           - case camera_path:
@@ -100,7 +99,7 @@ dcutscene_events:
               - flag <player> cutscene_modify:!
           #New cutscene name
           - case new_name:
-            - run dcutscene_new_scene def:name|<[msg]>
+            - run dcutscene_new_scene def.type:name def.scene:<[msg]>
           #Modify name for present cutscene
           - case name:
             - define name
@@ -127,6 +126,13 @@ dcutscene_events:
               - run dcutscene_cam_keyframe_edit def:edit|create_look_location|false
             - else:
               - run dcutscene_cam_keyframe_edit def:edit|create_look_location|<[msg]>
+          #Set camera record to false
+          - case camera_record_false:
+            - if <[msg].equals[false]>:
+              - run dcutscene_cam_keyframe_edit def:edit|record_camera_false|<[msg]>
+          #Set duration for camera recorder
+          - case camera_recorder_duration:
+            - run dcutscene_cam_keyframe_edit def:edit|record_camera_begin|own|<[msg]>
           ##Sound
           #Input new volume for sound modifier
           - case sound_volume:
@@ -392,7 +398,7 @@ dcutscene_events:
                   - case move:
                     - run dcutscene_cam_keyframe_edit def:edit|move_camera
                   - case duplicate:
-                    - run dcutscene_cam_keyframe_edit def:edit|duplicate_camera\
+                    - run dcutscene_cam_keyframe_edit def:edit|duplicate_camera
               #Player Model
               - case player_model:
                 - choose <[data.type]>:
@@ -523,6 +529,9 @@ dcutscene_events:
         #Modify path interpolation
         after player clicks dcutscene_camera_interp_modify in dcutscene_inventory_keyframe_modify_camera:
         - run dcutscene_cam_keyframe_edit def:edit|interpolation_change|<context.item>|<context.slot>
+        #Record camera
+        after player clicks dcutscene_camera_record_player in dcutscene_inventory_keyframe_modify_camera:
+        - run dcutscene_cam_keyframe_edit def:edit|record_camera_prep
         #Determine move
         after player clicks dcutscene_camera_move_modify in dcutscene_inventory_keyframe_modify_camera:
         - run dcutscene_cam_keyframe_edit def:edit|move_change|<context.item>|<context.slot>
@@ -1169,7 +1178,7 @@ dcutscene_keyframe_modify:
             - define display "<blue><bold>Time <gray><bold><[time]>"
         #######################################
         ####Keyframe calculation ##############
-        - define keyframe_data <proc[dcutscene_keyframe_calculate].context[<[data.name]>|<[timespot]>]>
+        - define keyframe_data <[data.name].proc[dcutscene_keyframe_calculate].context[<[timespot]>]>
         - if <[keyframe_data].equals[null]>:
           - define lore_list null
         - else:
@@ -1312,8 +1321,6 @@ dcutscene_keyframe_modify:
         - inventory set d:<[inv]> o:<[item]> slot:<[loop_i]>
         ########################################
 
-#TODO:
-# - Ensure elements that contain lists are a single thing and only when clicking it can you view that list such as multiple sounds on the same tick
 #Sub keyframe list
 dcutscene_sub_keyframe_modify:
     type: task
@@ -1375,9 +1382,13 @@ dcutscene_sub_keyframe_modify:
             - define cam_interp_look "<aqua>Interpolate Look: <gray><[cam_data.interpolate_look]||true>"
             - define cam_move "<aqua>Move: <gray><[cam_data.move]||true>"
             - define cam_invert "<aqua>Invert Look: <gray><[cam_data.invert]||false>"
+            - if <[cam_data.recording.bool]> != false:
+              - define cam_recording "<aqua>Recording: <gray>true"
+            - else:
+              - define cam_recording "<aqua>Recording: <gray>false"
             - define cam_tick "<aqua>Time: <gray><[cam_data.tick]||<[tick]>>t"
             - define modify "<gray><italic>Click to modify camera"
-            - define cam_lore <list[<empty>|<[cam_loc]>|<[cam_look]>|<[cam_interp]>|<[cam_rotate]>|<[cam_interp_look]>|<[cam_move]>|<[cam_invert]>|<[cam_tick]>|<empty>|<[modify]>]>
+            - define cam_lore <list[<empty>|<[cam_loc]>|<[cam_look]>|<[cam_interp]>|<[cam_rotate]>|<[cam_interp_look]>|<[cam_move]>|<[cam_invert]>|<[cam_recording]>|<[cam_tick]>|<empty>|<[modify]>]>
             - adjust <[cam_item]> lore:<[cam_lore]> save:item
             - define cam_item <entry[item].result>
             - define display <dark_gray><bold>Camera
