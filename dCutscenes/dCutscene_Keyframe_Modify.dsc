@@ -470,7 +470,7 @@ dcutscene_cam_keyframe_edit:
           - define ray <player.eye_location.ray_trace[range=4;return=precise;default=air]>
           #data input
           - definemap eye_loc location:<[ray]> boolean:false
-          - definemap cam_keyframe location:<player.location> rotate_mul:1.0 interpolation:linear move:true eye_loc:<[eye_loc]> tick:<[tick]>
+          - definemap cam_keyframe location:<player.location> rotate_mul:1.0 interpolation:linear move:true eye_loc:<[eye_loc]> tick:<[tick]> recording:false
           #Reason we're storing the tick is so the sort task has something to sort the map with
           - look <[camera]> <[ray]> duration:2t
           - adjust <[camera]> armor_pose:[head=<player.location.pitch.to_radians>,0.0,0.0]
@@ -681,6 +681,126 @@ dcutscene_cam_keyframe_edit:
                     - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
                     - inventory open d:dcutscene_inventory_keyframe_modify_camera
 
+              #Record camera preparation
+              - case record_camera_prep:
+                - define tick <player.flag[dcutscene_tick_modify]>
+                #Check if there is a keyframe in the way
+                - foreach <[camera_data]> key:c_tick as:cam_data:
+                  - if <[cam_data.tick]> > <[tick]>:
+                    - define keyframe_check <[cam_data]>
+                    - foreach stop
+                #If there is a camera animator in the way
+                - if <[keyframe_check]||null> != null:
+                  - flag <player> cutscene_modify:camera_record_false expire:4m
+                  - define key_time <[keyframe_check.tick]>
+                  - define text "There is a camera animator at tick <green><[key_time]>t<gray>."
+                  - define calc_time <[key_time].sub[<[tick]>]>t
+                  - clickable dcutscene_cam_keyframe_edit usages:1 def:edit|record_camera_begin|default save:default
+                  - clickable dcutscene_cam_keyframe_edit usages:1 def:edit|record_camera_duration_chat save:own
+                  - define prefix <element[DCutscenes].color_gradient[from=blue;to=aqua].bold>
+                  - define click_default "<element[<green><bold>Use duration <[calc_time]>].on_hover[<[prefix]> <gray>Use the duration calculated.].type[SHOW_TEXT].on_click[<entry[default].command>]>"
+                  - define click_own "<element[<aqua><bold>Use my own].on_hover[<[prefix]> <gray>Chat your own duration (Must be less than duration <[calc_time]>).].type[SHOW_TEXT].on_click[<entry[own].command>]>"
+                  - define text_2 "<gray>Would you like to use the duration <green><[calc_time]> <gray>or specify your own duration?  <[click_default]>  <[click_own]>"
+                  - define text_3 "<gray>Note that if you specify your own duration it must be less than the time duration <green><[calc_time]><gray>."
+                  - define text_4 "<gray>Chat <red>false <gray>for no camera recording."
+                  - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+                  - narrate <[text_2]>
+                  - narrate <[text_3]>
+                  - narrate <[text_4]>
+                  - definemap record_data tick:<[tick]> key_time:<[calc_time]>
+                  - flag <player> dcutscene_save_data.record_data:<[record_data]>
+                #No keyframe animator
+                - else:
+                  - definemap record_data tick:<[tick]> key_time:false
+                  - flag <player> dcutscene_save_data.record_data:<[record_data]>
+                  - run dcutscene_cam_keyframe_edit def:edit|record_camera_duration_chat
+                - inventory close
+
+              #Set the duration of the camera recorder
+              - case record_camera_duration_chat:
+                - define text "Chat the duration the camera will record your movement."
+                - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+                - flag <player> cutscene_modify:camera_recorder_duration expire:4m
+
+              #Set camera recorder to false
+              - case record_camera_false:
+                - define tick <player.flag[dcutscene_save_data.record_data.tick]>
+                - define camera_data.<[tick]>.recording.bool:false
+                - flag server dcutscenes.<[data.name]>.keyframes.camera:<[camera_data]>
+                - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
+                - define text "Camera animator at tick <green><[tick]>t<gray> recording is now <red>false<gray>."
+                - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+                - inventory open d:dcutscene_inventory_keyframe_modify_camera
+
+              #Record and set the recorded data
+              - case record_camera_begin:
+                - define max_time <player.flag[dcutscene_save_data.record_data.key_time]>
+                - define tick <player.flag[dcutscene_save_data.record_data.tick]>
+                - choose <[arg_2]>:
+                  - case default:
+                    - define duration <duration[<[max_time]>]>
+                  - case own:
+                    - define duration <duration[<[arg_3]>]||null>
+                    - if <[duration]> == null:
+                      - define text "<green><[duration]> <gray>is not a valid duration"
+                      - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+                      - stop
+                    - if <[max_time]> != false:
+                      - if <[duration].in_ticks> > <duration[<[max_time]>].in_ticks>:
+                        - define text "The duration cannot be more than <green><[max_time]><gray>."
+                        - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+                        - stop
+                - if <[duration]> == null:
+                  - define text "Invalid duration specified."
+                  - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+                  - stop
+                - flag <player> cutscene_modify:!
+                #If there is previous recording data
+                - if <[camera_data.<[tick]>.recording]> != false:
+                  - define camera_data.<[tick]>.recording:<empty>
+                #Data
+                - define text "<gray>Recording will begin in..."
+                - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+                - narrate <green><bold>5
+                - wait 1s
+                - narrate <green><bold>4
+                - wait 1s
+                - narrate <green><bold>3
+                - wait 1s
+                - narrate <green><bold>2
+                - wait 1s
+                - narrate <green><bold>1
+                - wait 1s
+                - adjust <player> gamemode:spectator
+                - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray>Recording has begun."
+                #l = location
+                #e = eye_location
+                - repeat <[duration].in_ticks> as:tick-i:
+                  - define pl <player.location>
+                  - define loc <location[<[pl].x.round_up_to_precision[0.005]>,<[pl].y.round_up_to_precision[0.005]>,<[pl].z.round_up_to_precision[0.005]>]>
+                  - define e <player.eye_location>
+                  - define y <[e].yaw.round_up_to_precision[0.005]>
+                  - define p <[e].pitch.round_up_to_precision[0.005]>
+                  - definemap rec_data l:<[loc]> y:<[y]> p:<[p]>
+                  - define camera_data.<[tick]>.recording.frames.<[tick-i]>:<[rec_data]>
+                  - wait 1t
+                #=-Debugger
+                - if <script[dcutscenes_config].data_key[config].get[cutscene_tool_debugger_mode]||false.is_truthy>:
+                  - ~run dcutscene_debugger def:camera_record|<[camera_data]>
+                  - stop
+                #Sort
+                - define camera_data.<[tick]>.recording.frames <[camera_data.<[tick]>.recording.frames].sort_by_value[get[tick]]>
+                - define highest <[camera_data.<[tick]>.recording.frames].keys.highest>
+                - define camera_data.<[tick]>.recording.length:<[highest]>
+                - define camera_data.<[tick]>.recording.bool:true
+                #Data set
+                - flag server dcutscenes.<[data.name]>.keyframes.camera:<[camera_data]>
+                - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
+                - define text "Camera recording is finished and has been set to tick <green><[tick]>t <gray>for scene <green><[data.name]><gray>."
+                - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+                - adjust <player> gamemode:creative
+                - inventory open d:dcutscene_inventory_keyframe_modify_camera
+
               #Move camera animator to new keyframe prep
               - case move_camera_prep:
                 - define tick <player.flag[dcutscene_tick_modify]>
@@ -701,6 +821,10 @@ dcutscene_cam_keyframe_edit:
                 - define data.keyframes.camera.<[tick]>:<[move_data.data]>
                 #Update tick on camera
                 - define data.keyframes.camera.<[tick]>.tick <[tick]>
+                #=-Debugger
+                - if <script[dcutscenes_config].data_key[config].get[cutscene_tool_debugger_mode]||false.is_truthy>:
+                  - ~run dcutscene_debugger def:camera_move|<[data]>
+                  - stop
                 - flag server dcutscenes.<[data.name]>:<[data]>
                 - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
                 - flag <player> dcutscene_animator_change:!
@@ -729,6 +853,10 @@ dcutscene_cam_keyframe_edit:
                 - define data.keyframes.camera.<[tick]>:<[dup_data.data]>
                 #Update tick on camera
                 - define data.keyframes.camera.<[tick]>.tick <[tick]>
+                #=-Debugger
+                - if <script[dcutscenes_config].data_key[config].get[cutscene_tool_debugger_mode]||false.is_truthy>:
+                  - ~run dcutscene_debugger def:camera_duplicate|<[data]>
+                  - stop
                 - flag server dcutscenes.<[data.name]>:<[data]>
                 - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
                 - flag <player> dcutscene_animator_change:!
@@ -757,8 +885,6 @@ dcutscene_cam_keyframe_edit:
 
 #========== Models and Entity Modifiers ============
 
-#TODO:
-#- Implement move and duplication (dear god help me)
 #Used to modify models or entities in keyframes
 dcutscene_model_keyframe_edit:
     type: task
@@ -775,9 +901,8 @@ dcutscene_model_keyframe_edit:
       - choose <[option]>:
         #======== Denizen Player Models Modifier =========
         - case player_model:
-          - define task_check <script[pmodels_spawn_model]||null>
           #If player model script does not exist
-          - if <[task_check]> == null:
+          - if <script[pmodels_spawn_model]||null> == null:
             - debug error "Could not find Denizen Player Models in dcutscene_model_keyframe_edit"
             - define text "Could not find Denizen Player Models."
             - define text_2 "<gray>Forums: <green><&click[https://forum.denizenscript.com/resources/denizen-player-models.107/].type[OPEN_URL]>click here<&end_click><gray>."
@@ -899,8 +1024,15 @@ dcutscene_model_keyframe_edit:
                   - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
                   - define text "Denizen Player Model has been created for tick <green><[tick]>t <gray>with an ID of <green><player.flag[dcutscene_save_data.id]> <gray>in scene <green><[data.name]><gray>."
                   - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
-                  - if <player.flag[dcutscene_save_data.root].is_spawned>:
-                    - run pmodels_remove_model def.root:<player.flag[dcutscene_save_data.root]>
+                  #Remove created player model
+                  - if <player.has_flag[dcutscene_location_editor]>:
+                    - define loc_data <player.flag[dcutscene_location_editor]>
+                    - define root_ent <[loc_data.root_ent]>
+                    - define root_type <[loc_data.root_type]>
+                    - choose <[root_type]>:
+                      - case player_model:
+                        - if <[root_ent].is_spawned>:
+                          - run pmodels_remove_model def:<[root_ent]>
                   - run dcutscene_location_tool_return_inv
                   - flag <player> dcutscene_location_editor:!
                   - inventory open d:dcutscene_inventory_sub_keyframe
@@ -978,9 +1110,15 @@ dcutscene_model_keyframe_edit:
                     - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
                     #Sort ticks by time
                     - run dcutscene_sort_data def:<[data.name]>
-                    #If model is spawned remove it
-                    - if <player.flag[dcutscene_save_data.root].is_spawned>:
-                      - run pmodels_remove_model def.root:<player.flag[dcutscene_save_data.root]>
+                    #Remove created player model
+                    - if <player.has_flag[dcutscene_location_editor]>:
+                      - define loc_data <player.flag[dcutscene_location_editor]>
+                      - define root_ent <[loc_data.root_ent]>
+                      - define root_type <[loc_data.root_type]>
+                      - choose <[root_type]>:
+                        - case player_model:
+                          - if <[root_ent].is_spawned>:
+                            - run pmodels_remove_model def:<[root_ent]>
                     - run dcutscene_location_tool_return_inv
                     - flag <player> dcutscene_location_editor:!
                     - inventory open d:dcutscene_inventory_sub_keyframe
@@ -1041,8 +1179,6 @@ dcutscene_model_keyframe_edit:
               #New location for player model
               - case location:
                 #New Location for Player Model
-                #- TODO:
-                #- Implement semi-path system in keyframe
                 - define arg_2 <[arg_2]||null>
                 - if <[arg_2]> != null:
                   - choose <[arg_2]>:
@@ -1116,7 +1252,7 @@ dcutscene_model_keyframe_edit:
                     - case new_animation_prepare:
                       - flag <player> cutscene_modify:set_model_animation
                       - flag <player> dcutscene_save_data.type:player_model
-                      - define text "To set the animation use the command <green>/dcutscene animate my_animation <gray>to prevent an animation from playing put <red>false<gray>."
+                      - define text "To set the animation use the command <green>/dcutscene animate my_animation <gray>to prevent an animation from playing put <red>false<gray> to stop an animation from playing put <red>stop<gray>."
                       - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
                       - inventory close
 
@@ -1142,7 +1278,10 @@ dcutscene_model_keyframe_edit:
                           - stop
                         - flag server dcutscenes.<[data.name]>.keyframes.models:<[model_data]>
                         - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
-                        - define text "Player Model <green><[model_data.<[tick]>.<[uuid]>.id]> <gray>animation is now <green><[arg_3]> <gray>in tick <green><[tick]>t <gray>for scene <green><[data.name]><gray>."
+                        - if <[arg_3]> != stop:
+                          - define text "Player Model <green><[model_data.<[tick]>.<[uuid]>.id]> <gray>animation is now <green><[arg_3]> <gray>in tick <green><[tick]>t <gray>for scene <green><[data.name]><gray>."
+                        - else:
+                          - define text "Player Model <green><[model_data.<[tick]>.<[uuid]>.id]> <gray>animation will now <red><[arg_3]> <gray>in tick <green><[tick]>t <gray>for scene <green><[data.name]><gray>."
                         - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
                         - inventory open d:dcutscene_inventory_keyframe_modify_player_model
 
@@ -1446,7 +1585,7 @@ dcutscene_model_keyframe_edit:
                     - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
                     - stop
                   #-Root Update
-                  #Memory data for new tick in path
+                  #Data for new tick in path
                   - define path_tick <[model_data.<[root_data.tick]>.<[root_data.uuid]>.path.<[move_data.tick]>].deep_with[tick].as[<[tick]>]>
                   #Remove old ticks in path for root data
                   - define model_data.<[root_data.tick]>.<[root_data.uuid]>.path <[model_data.<[root_data.tick]>.<[root_data.uuid]>.path].deep_exclude[<[move_data.tick]>]>
@@ -1465,7 +1604,7 @@ dcutscene_model_keyframe_edit:
                   #Set new data
                   - define model_data.<[tick]>.<[move_data.uuid]>:<[move_data.data]>
                   - define model_data.<[tick]>.model_list:->:<[move_data.uuid]>
-                #=Root Model
+                #= Root Model
                 - else:
                   #If root model is already at tick stop
                   - if <[move_data.tick]> == <[tick]>:
@@ -1641,33 +1780,41 @@ dcutscene_model_keyframe_edit:
                 - define uuid <[tick_data.uuid]>
                 - define model_data <[data.keyframes.models]>
                 - define root_data <[model_data.<[tick]>.<[uuid]>.root]||none>
-                #If there is a root data model in the tick
+                #=Non root (sub-frame) model
                 - if <[root_data]> != none:
-                  - define sub_frames <[model_data.<[root_data.tick]>.<[root_data.uuid]>.sub_frames]>
+                  - define sub_frames <[model_data.<[root_data.tick]>.<[root_data.uuid]>.sub_frames]||<list>>
                   #Remove sub frames
                   - foreach <[sub_frames]> key:tick_id as:subframe:
-                    - define model_data <[model_data.<[tick_id]>].exclude[<[subframe]>]>
-                    - define model_data <[model_data.<[tick_id]>.model_list]>:<-:<[subframe]>
+                    - define model_data.<[tick_id]> <[model_data.<[tick_id]>].deep_exclude[<[subframe]>]>
+                    - define model_data.<[tick_id]>.model_list:<-:<[subframe]>
                     #If the model list is empty remove the tick
                     - if <[model_data.<[tick_id]>.model_list].is_empty>:
-                      - define model_data <[model_data].exclude[<[tick_id]>]>
+                      - define model_data <[model_data].deep_exclude[<[tick_id]>]>
                   #Remove the root
-                  - define model_data <[model_data.<[root_data.tick]>].exclude[<[root_data.uuid]>]>
-                  - define model_data <[model_data.<[root_data.tick]>.model_list]>:<-:<[subframe]>
+                  - define model_data.<[root_data.tick]> <[model_data.<[root_data.tick]>].exclude[<[root_data.uuid]>]>
+                  - define model_data.<[root_data.tick]>.model_list:<-:<[root_data.uuid]>
                   #If the model list is empty remove the tick
                   - if <[model_data.<[root_data.tick]>.model_list].is_empty>:
-                    - define model_data <[model_data].exclude[<[root_data.tick]>]>
-                #If the model is a root data model
+                    - define model_data <[model_data].deep_exclude[<[root_data.tick]>]>
+                #=Root Model
                 - else:
+                  #Remove sub frames
+                  - define sub_frames <[model_data.<[tick]>.<[uuid]>.sub_frames]||<list>>
+                  - foreach <[sub_frames]> key:tick_id as:subframe:
+                    - define model_data.<[tick_id]> <[model_data.<[tick_id]>].deep_exclude[<[subframe]>]>
+                    - define model_data.<[tick_id]>.model_list:<-:<[subframe]>
+                    #If the model list is empty remove the tick
+                    - if <[model_data.<[tick_id]>.model_list].is_empty>:
+                      - define model_data <[model_data].deep_exclude[<[tick_id]>]>
                   #Remove the root
-                  - define model_data <[model_data.<[root_data.tick]>].exclude[<[root_data.uuid]>]>
-                  - define model_data <[model_data.<[root_data.tick]>.model_list]>:<-:<[subframe]>
+                  - define model_data.<[tick]> <[model_data.<[tick]>].deep_exclude[<[uuid]>]>
+                  - define model_data.<[tick]>.model_list:<-:<[uuid]>
                   #If the model list is empty remove the tick
-                  - if <[model_data.<[root_data.tick]>.model_list].is_empty>:
-                    - define model_data <[model_data].exclude[<[root_data.tick]>]>
+                  - if <[model_data.<[tick]>.model_list].is_empty>:
+                    - define model_data <[model_data].deep_exclude[<[tick]>]>
                 #=-Debugger
                 - if <script[dcutscenes_config].data_key[config].get[cutscene_tool_debugger_mode]||false.is_truthy>:
-                  - ~run dcutscene_debugger def:player_model_remove_tick|<[model_data]>
+                  - ~run dcutscene_debugger def:player_model_remove_all|<[model_data]>
                   - stop
                 - define text "Player model <green><[data.keyframes.models.<[tick]>.<[uuid]>.id]> <gray>has been removed from scene <green><[data.name]><gray>."
                 - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
@@ -1678,8 +1825,8 @@ dcutscene_model_keyframe_edit:
 
         #========= Denizen Models Modifier =========
         - case denizen_model:
-          - define task_check <script[dmodels_spawn_model]||null>
-          - if <[task_check]> == null:
+          #Chck if player has DModels
+          - if <script[dmodels_spawn_model]||null> == null:
             - debug error "Could not find Denizen Models in dcutscene_model_keyframe_edit"
             - define text "Could not find Denizen Models."
             - define text_2 "<gray>Forums: <green><&click[https://forum.denizenscript.com/resources/denizen-models.103/].type[OPEN_URL]>click here<&end_click><gray>."
@@ -1770,28 +1917,26 @@ dcutscene_animator_keyframe_edit:
 
             #Create new run task
             - case create:
-              - define arg_2 <[arg_2]||null>
-              - if <[arg_2]> != null:
-                - define script_check <script[<[arg_2]>]||null>
-                - if <[script_check]> != null:
-                  - flag <player> cutscene_modify:!
-                  - define task_uuid <util.random_uuid>
-                  #List of run tasks
-                  - define keyframes.run_task.<[tick]>.run_task_list:->:<[task_uuid]>
-                  #Starter data
-                  - definemap run_task_data script:<[arg_2]> defs:false waitable:false delay:<duration[0s]>
-                  - define keyframes.run_task.<[tick]>.<[task_uuid]>:<[run_task_data]>
-                  #Input the data
-                  - flag server dcutscenes.<[scene_name]>.keyframes.elements:<[keyframes]>
-                  - flag <player> cutscene_data:<server.flag[dcutscenes.<[scene_name]>]>
-                  - ~run dcutscene_sort_data def:<[scene_name]>
-                  - inventory open d:dcutscene_inventory_sub_keyframe
-                  - ~run dcutscene_sub_keyframe_modify def:<player.flag[dcutscene_sub_keyframe_back_data]>
-                  - define text "Run task <green><[arg_2]> <gray>has been created for tick <green><[tick]>t <gray>in scene <green><[data.name]><gray>."
-                  - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
-                - else:
-                  - define text "Could not find script named <green><[arg_2]><gray>."
-                  - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+              - define script_check <script[<[arg_2]>]||null>
+              - if <[script_check]> != null:
+                - flag <player> cutscene_modify:!
+                - define task_uuid <util.random_uuid>
+                #List of run tasks
+                - define keyframes.run_task.<[tick]>.run_task_list:->:<[task_uuid]>
+                #Starter data
+                - definemap run_task_data script:<[arg_2]> defs:false waitable:false delay:<duration[0s]>
+                - define keyframes.run_task.<[tick]>.<[task_uuid]>:<[run_task_data]>
+                #Input the data
+                - flag server dcutscenes.<[scene_name]>.keyframes.elements:<[keyframes]>
+                - flag <player> cutscene_data:<server.flag[dcutscenes.<[scene_name]>]>
+                - ~run dcutscene_sort_data def:<[scene_name]>
+                - inventory open d:dcutscene_inventory_sub_keyframe
+                - ~run dcutscene_sub_keyframe_modify def:<player.flag[dcutscene_sub_keyframe_back_data]>
+                - define text "Run task <green><[arg_2]> <gray>has been created for tick <green><[tick]>t <gray>in scene <green><[data.name]><gray>."
+                - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+              - else:
+                - define text "Could not find script named <green><[arg_2]><gray>."
+                - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
 
             #Prepare for new run task
             - case change_task_prepare:
@@ -1802,24 +1947,22 @@ dcutscene_animator_keyframe_edit:
 
             #Change the task
             - case change_task:
-              - define arg_2 <[arg_2]||null>
-              - if <[arg_2]> != null:
-                - define script_check <script[<[arg_2]>]||null>
-                - if <[script_check]> != null:
-                  - flag <player> cutscene_modify:!
-                  - define tick <player.flag[dcutscene_tick_modify.tick]>
-                  - define uuid <player.flag[dcutscene_tick_modify.uuid]>
-                  - define run_task <[keyframes.run_task.<[tick]>.<[uuid]>]>
-                  - if <[run_task]> != null:
-                    - define run_task.script <[arg_2]>
-                    - flag server dcutscenes.<[data.name]>.keyframes.elements.run_task.<[tick]>.<[uuid]>:<[run_task]>
-                    - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
-                    - inventory open d:dcutscene_inventory_keyframe_modify_run_task
-                    - define text "Run task script has been changed to <green><[arg_2]> <gray>for tick <green><[tick]>t <gray>in scene <green><[data.name]><gray>."
-                    - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
-                - else:
-                  - define text "Could not find script named <green><[arg_2]><gray>."
+              - define script_check <script[<[arg_2]>]||null>
+              - if <[script_check]> != null:
+                - flag <player> cutscene_modify:!
+                - define tick <player.flag[dcutscene_tick_modify.tick]>
+                - define uuid <player.flag[dcutscene_tick_modify.uuid]>
+                - define run_task <[keyframes.run_task.<[tick]>.<[uuid]>]>
+                - if <[run_task]> != null:
+                  - define run_task.script <[arg_2]>
+                  - flag server dcutscenes.<[data.name]>.keyframes.elements.run_task.<[tick]>.<[uuid]>:<[run_task]>
+                  - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
+                  - inventory open d:dcutscene_inventory_keyframe_modify_run_task
+                  - define text "Run task script has been changed to <green><[arg_2]> <gray>for tick <green><[tick]>t <gray>in scene <green><[data.name]><gray>."
                   - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+              - else:
+                - define text "Could not find script named <green><[arg_2]><gray>."
+                - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
 
             #Prepare to set new definitions for run task
             - case task_definition:
@@ -1832,42 +1975,38 @@ dcutscene_animator_keyframe_edit:
 
             #Set the definitions for the run task
             - case set_task_definition:
-              - define arg_2 <[arg_2]||null>
-              - if <[arg_2]> != null:
-                - flag <player> cutscene_modify:!
-                - define tick <player.flag[dcutscene_tick_modify.tick]>
-                - define uuid <player.flag[dcutscene_tick_modify.uuid]>
-                - define run_task <[keyframes.run_task.<[tick]>.<[uuid]>]||null>
-                - if <[run_task]> != null:
-                  - define run_task.defs <[arg_2]>
-                  - flag server dcutscenes.<[data.name]>.keyframes.elements.run_task.<[tick]>.<[uuid]>:<[run_task]>
-                  - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
-                  - inventory open d:dcutscene_inventory_keyframe_modify_run_task
-                  - define text "Run task <green><[run_task.script]> <gray>definition is set to <green><[arg_2]><gray>."
-                  - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+              - flag <player> cutscene_modify:!
+              - define tick <player.flag[dcutscene_tick_modify.tick]>
+              - define uuid <player.flag[dcutscene_tick_modify.uuid]>
+              - define run_task <[keyframes.run_task.<[tick]>.<[uuid]>]||null>
+              - if <[run_task]> != null:
+                - define run_task.defs <[arg_2]>
+                - flag server dcutscenes.<[data.name]>.keyframes.elements.run_task.<[tick]>.<[uuid]>:<[run_task]>
+                - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
+                - inventory open d:dcutscene_inventory_keyframe_modify_run_task
+                - define text "Run task <green><[run_task.script]> <gray>definition is set to <green><[arg_2]><gray>."
+                - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
 
             #Change run task waitable boolean
             - case change_waitable:
-              - define arg_2 <[arg_2]||null>
-              - if <[arg_2]> != null:
-                - define tick <player.flag[dcutscene_tick_modify.tick]>
-                - define uuid <player.flag[dcutscene_tick_modify.uuid]>
-                - define run_task <[keyframes.run_task.<[tick]>.<[uuid]>]||null>
-                - if <[run_task]> != null:
-                  - choose <[run_task.waitable]||false>:
-                    - case true:
-                      - define run_task.waitable false
-                    - case false:
-                      - define run_task.waitable true
-                  - flag server dcutscenes.<[data.name]>.keyframes.elements.run_task.<[tick]>.<[uuid]>:<[run_task]>
-                  - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
-                  - define item <item[<[arg_2]>]>
-                  - define inv <player.open_inventory>
-                  - define lore "<gold><bold>Waitable <gray><[run_task.waitable]>"
-                  - define click "<gray><italic>Click to change waitable"
-                  - adjust <[item]> lore:<list[<empty>|<[lore]>|<empty>|<[click]>]> save:item
-                  - define item <entry[item].result>
-                  - inventory set d:<[inv]> o:<[arg_2]> slot:<[arg_3]>
+              - define tick <player.flag[dcutscene_tick_modify.tick]>
+              - define uuid <player.flag[dcutscene_tick_modify.uuid]>
+              - define run_task <[keyframes.run_task.<[tick]>.<[uuid]>]||null>
+              - if <[run_task]> != null:
+                - choose <[run_task.waitable]||false>:
+                  - case true:
+                    - define run_task.waitable false
+                  - case false:
+                    - define run_task.waitable true
+                - flag server dcutscenes.<[data.name]>.keyframes.elements.run_task.<[tick]>.<[uuid]>:<[run_task]>
+                - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
+                - define item <item[<[arg_2]>]>
+                - define inv <player.open_inventory>
+                - define lore "<gold><bold>Waitable <gray><[run_task.waitable]>"
+                - define click "<gray><italic>Click to change waitable"
+                - adjust <[item]> lore:<list[<empty>|<[lore]>|<empty>|<[click]>]> save:item
+                - define item <entry[item].result>
+                - inventory set d:<[inv]> o:<[arg_2]> slot:<[arg_3]>
 
             #Prepare for new run task delay
             - case delay_prepare:
@@ -2005,26 +2144,24 @@ dcutscene_animator_keyframe_edit:
 
             #Create new screeneffect
             - case create:
-              - define arg_2 <[arg_2]||null>
-              - if <[arg_2]> != null:
-                - define split <[arg_2].split[,]>
-                - define fade_in <duration[<[split].get[1]>]||null>
-                - define stay <duration[<[split].get[2]>]||null>
-                - define fade_out <duration[<[split].get[3]>]||null>
-                - if <[fade_in]> != null && <[stay]> != null && <[fade_out]> != null:
-                  - flag <player> cutscene_modify:!
-                  - definemap screeneffect_data fade_in:<[fade_in]> stay:<[stay]> fade_out:<[fade_out]> color:black
-                  - define keyframes.screeneffect.<[tick]>:<[screeneffect_data]>
-                  - flag server dcutscenes.<[data.name]>.keyframes.elements:<[keyframes]>
-                  - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
-                  - ~run dcutscene_sort_data def:<[data.name]>
-                  - inventory open d:dcutscene_inventory_sub_keyframe
-                  - ~run dcutscene_sub_keyframe_modify def:<player.flag[dcutscene_sub_keyframe_back_data]>
-                  - define text "Cinematic Screeneffect created at tick <green><[tick]>t <gray>in scene <green><[data.name]><gray>."
-                  - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
-                - else:
-                  - define text "Invalid input to specify fade in, stay, and fade out chat it like this <green>1s,5s,1s<gray>."
-                  - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+              - define split <[arg_2].split[,]>
+              - define fade_in <duration[<[split].get[1]>]||null>
+              - define stay <duration[<[split].get[2]>]||null>
+              - define fade_out <duration[<[split].get[3]>]||null>
+              - if <[fade_in]> != null && <[stay]> != null && <[fade_out]> != null:
+                - flag <player> cutscene_modify:!
+                - definemap screeneffect_data fade_in:<[fade_in]> stay:<[stay]> fade_out:<[fade_out]> color:black
+                - define keyframes.screeneffect.<[tick]>:<[screeneffect_data]>
+                - flag server dcutscenes.<[data.name]>.keyframes.elements:<[keyframes]>
+                - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
+                - ~run dcutscene_sort_data def:<[data.name]>
+                - inventory open d:dcutscene_inventory_sub_keyframe
+                - ~run dcutscene_sub_keyframe_modify def:<player.flag[dcutscene_sub_keyframe_back_data]>
+                - define text "Cinematic Screeneffect created at tick <green><[tick]>t <gray>in scene <green><[data.name]><gray>."
+                - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+              - else:
+                - define text "Invalid input to specify fade in, stay, and fade out chat it like this <green>1s,5s,1s<gray>."
+                - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
 
             #Prepare for presently new screeneffect time
             - case new_time:
@@ -2035,27 +2172,25 @@ dcutscene_animator_keyframe_edit:
 
             #Set the new time
             - case set_time:
-              - define arg_2 <[arg_2]||null>
-              - if <[arg_2]> != null:
-                - define split <[arg_2].split[,]>
-                - define fade_in <duration[<[split].get[1]>]||null>
-                - define stay <duration[<[split].get[2]>]||null>
-                - define fade_out <duration[<[split].get[3]>]||null>
-                - if <[fade_in]> != null && <[stay]> != null && <[fade_out]> != null:
-                  - flag <player> cutscene_modify:!
-                  - define tick <player.flag[dcutscene_tick_modify.tick]>
-                  - define keyframe <[keyframes.screeneffect.<[tick]>]>
-                  - definemap time_data fade_in:<[fade_in]> stay:<[stay]> fade_out:<[fade_out]>
-                  - define keyframe <[time_data]>
-                  - flag server dcutscenes.<[data.name]>.keyframes.elements.screeneffect.<[tick]>:<[keyframe]>
-                  - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
-                  - ~run dcutscene_sort_data def:<[data.name]>
-                  - define text "New cinematic screeneffect time created at tick <green><[tick]>t <gray>in scene <green><[data.name]><gray>."
-                  - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
-                  - inventory open d:dcutscene_inventory_keyframe_modify_screeneffect
-                - else:
-                  - define text "Invalid input to specify fade in, stay, and fade out chat it like this <green>1s,5s,1s<gray>."
-                  - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+              - define split <[arg_2].split[,]>
+              - define fade_in <duration[<[split].get[1]>]||null>
+              - define stay <duration[<[split].get[2]>]||null>
+              - define fade_out <duration[<[split].get[3]>]||null>
+              - if <[fade_in]> != null && <[stay]> != null && <[fade_out]> != null:
+                - flag <player> cutscene_modify:!
+                - define tick <player.flag[dcutscene_tick_modify.tick]>
+                - define keyframe <[keyframes.screeneffect.<[tick]>]>
+                - definemap time_data fade_in:<[fade_in]> stay:<[stay]> fade_out:<[fade_out]>
+                - define keyframe <[time_data]>
+                - flag server dcutscenes.<[data.name]>.keyframes.elements.screeneffect.<[tick]>:<[keyframe]>
+                - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
+                - ~run dcutscene_sort_data def:<[data.name]>
+                - define text "New cinematic screeneffect time created at tick <green><[tick]>t <gray>in scene <green><[data.name]><gray>."
+                - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+                - inventory open d:dcutscene_inventory_keyframe_modify_screeneffect
+              - else:
+                - define text "Invalid input to specify fade in, stay, and fade out chat it like this <green>1s,5s,1s<gray>."
+                - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
 
             #Prepare for present screeneffect new color
             - case new_color:
@@ -2066,22 +2201,20 @@ dcutscene_animator_keyframe_edit:
 
             #Set new screeneffect color
             - case set_color:
-              - define arg_2 <[arg_2]||null>
-              - if <[arg_2]> != null:
-                - define color <&color[<[arg_2]>]||null>
-                - if <[color]> != null:
-                  - define tick <player.flag[dcutscene_tick_modify.tick]>
-                  - define keyframe <[keyframes.screeneffect.<[tick]>]>
-                  - define keyframe.color <[arg_2]>
-                  - flag server dcutscenes.<[data.name]>.keyframes.elements.screeneffect.<[tick]>:<[keyframe]>
-                  - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
-                  - ~run dcutscene_sort_data def:<[data.name]>
-                  - define text "New cinematic screeneffect color created at tick <green><[tick]>t <gray>in scene <green><[data.name]><gray>."
-                  - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
-                  - inventory open d:dcutscene_inventory_keyframe_modify_screeneffect
-                - else:
-                  - define text "Invalid color."
-                  - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+              - define color <&color[<[arg_2]>]||null>
+              - if <[color]> != null:
+                - define tick <player.flag[dcutscene_tick_modify.tick]>
+                - define keyframe <[keyframes.screeneffect.<[tick]>]>
+                - define keyframe.color <[arg_2]>
+                - flag server dcutscenes.<[data.name]>.keyframes.elements.screeneffect.<[tick]>:<[keyframe]>
+                - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
+                - ~run dcutscene_sort_data def:<[data.name]>
+                - define text "New cinematic screeneffect color created at tick <green><[tick]>t <gray>in scene <green><[data.name]><gray>."
+                - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+                - inventory open d:dcutscene_inventory_keyframe_modify_screeneffect
+              - else:
+                - define text "Invalid color."
+                - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
 
             #Move to another keyframe preparation
             - case move_to_prep:
@@ -2169,27 +2302,23 @@ dcutscene_animator_keyframe_edit:
 
             #Create new sound
             - case create:
-              - define arg_2 <[arg_2]||null>
-              - if <[arg_2]> != null:
-                - flag <player> cutscene_modify:!
-                - if <server.sound_types.contains[<[arg_2]>]>:
-                  - playsound <player> sound:<[arg_2]>
-                - define uuid <util.random_uuid>
-                #List of sounds by uuid
-                - define keyframes.sound.<[tick]>.sounds:->:<[uuid]>
-                #Default values when creating new sound
-                - definemap sound_data sound:<[arg_2]> volume:1.0 location:false pitch:1 custom:false
-                - define keyframes.sound.<[tick]>.<[uuid]>:<[sound_data]>
-                #Input the data
-                - flag server dcutscenes.<[scene_name]>.keyframes.elements:<[keyframes]>
-                - flag <player> cutscene_data:<server.flag[dcutscenes.<[scene_name]>]>
-                - ~run dcutscene_sort_data def:<[scene_name]>
-                - inventory open d:dcutscene_inventory_sub_keyframe
-                - ~run dcutscene_sub_keyframe_modify def:<player.flag[dcutscene_sub_keyframe_back_data]>
-                - define text "Sound <green><[arg_2]> <gray>has been added to tick <green><[tick]>t <gray>in scene <green><[scene_name]><gray>."
-                - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
-              - else:
-                - debug error "Could not determine new sound in dcutscene_animator_keyframe_edit"
+              - flag <player> cutscene_modify:!
+              - if <server.sound_types.contains[<[arg_2]>]>:
+                - playsound <player> sound:<[arg_2]>
+              - define uuid <util.random_uuid>
+              #List of sounds by uuid
+              - define keyframes.sound.<[tick]>.sounds:->:<[uuid]>
+              #Default values when creating new sound
+              - definemap sound_data sound:<[arg_2]> volume:1.0 location:false pitch:1 custom:false
+              - define keyframes.sound.<[tick]>.<[uuid]>:<[sound_data]>
+              #Input the data
+              - flag server dcutscenes.<[scene_name]>.keyframes.elements:<[keyframes]>
+              - flag <player> cutscene_data:<server.flag[dcutscenes.<[scene_name]>]>
+              - ~run dcutscene_sort_data def:<[scene_name]>
+              - inventory open d:dcutscene_inventory_sub_keyframe
+              - ~run dcutscene_sub_keyframe_modify def:<player.flag[dcutscene_sub_keyframe_back_data]>
+              - define text "Sound <green><[arg_2]> <gray>has been added to tick <green><[tick]>t <gray>in scene <green><[scene_name]><gray>."
+              - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
 
             #Prepare for new volume
             - case new_volume:
@@ -2200,8 +2329,7 @@ dcutscene_animator_keyframe_edit:
 
             #Set new volume
             - case set_volume:
-              - define arg_2 <[arg_2]||null>
-              - if <[arg_2]> != null && <[arg_2].is_decimal>:
+              - if <[arg_2].is_decimal>:
                 - flag <player> cutscene_modify:!
                 - define tick <player.flag[dcutscene_tick_modify.tick]>
                 - define uuid <player.flag[dcutscene_tick_modify.uuid]>
@@ -2215,7 +2343,7 @@ dcutscene_animator_keyframe_edit:
                   - inventory open d:dcutscene_inventory_keyframe_modify_sound
                 - else:
                   - debug error "Something went wrong in dcutscene_animator_keyframe_edit for set_volume in sound modifier"
-              - else if <[arg_2]> != null && !<[arg_2].is_decimal>:
+              - else if !<[arg_2].is_decimal>:
                 - define text "<green><[arg_2]> <gray>is not a number!"
                 - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
               - else:
@@ -2231,8 +2359,7 @@ dcutscene_animator_keyframe_edit:
 
             #Set new pitch
             - case set_pitch:
-              - define arg_2 <[arg_2]||null>
-              - if <[arg_2]> != null && <[arg_2].is_decimal>:
+              - if <[arg_2].is_decimal>:
                 - flag <player> cutscene_modify:!
                 - define tick <player.flag[dcutscene_tick_modify.tick]>
                 - define uuid <player.flag[dcutscene_tick_modify.uuid]>
@@ -2246,7 +2373,7 @@ dcutscene_animator_keyframe_edit:
                   - inventory open d:dcutscene_inventory_keyframe_modify_sound
                 - else:
                   - debug error "Something went wrong in dcutscene_animator_keyframe_edit for set_pitch in sound modifier"
-              - else if <[arg_2]> != null && !<[arg_2].is_decimal>:
+              - else if && !<[arg_2].is_decimal>:
                 - define text "<green><[arg_2]> <gray>is not a number!"
                 - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
               - else:
@@ -2255,29 +2382,25 @@ dcutscene_animator_keyframe_edit:
 
             #Determine if sound is custom or not
             - case set_custom:
-              - define arg_2 <[arg_2]||null>
-              - if <[arg_2]> != null:
-                - define tick <player.flag[dcutscene_tick_modify.tick]>
-                - define uuid <player.flag[dcutscene_tick_modify.uuid]>
-                - define keyframe <[keyframes.sound.<[tick]>.<[uuid]>]||null>
-                - if <[keyframe]> != null:
-                  - choose <[keyframe.custom]||false>:
-                    - case true:
-                      - define keyframe.custom false
-                    - case false:
-                      - define keyframe.custom true
-                  - flag server dcutscenes.<[data.name]>.keyframes.elements.sound.<[tick]>.<[uuid]>:<[keyframe]>
-                  - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
-                  - define item <item[<[arg_2]>]||null>
-                  - if <[item]> != null:
-                    - define inv <player.open_inventory>
-                    - define lore "<dark_purple><bold>Custom <gray><[keyframe.custom]>"
-                    - define click "<gray><italic>Click to change custom sound"
-                    - adjust <[item]> lore:<list[<empty>|<[lore]>|<empty>|<[click]>]> save:item
-                    - define item <entry[item].result>
-                    - inventory set d:<[inv]> o:<[item]> slot:<[arg_3]>
-                - else:
-                  - debug error "Something went wrong in dcutscene_animator_keyframe_edit for set_custom in sound modifier"
+              - define tick <player.flag[dcutscene_tick_modify.tick]>
+              - define uuid <player.flag[dcutscene_tick_modify.uuid]>
+              - define keyframe <[keyframes.sound.<[tick]>.<[uuid]>]||null>
+              - if <[keyframe]> != null:
+                - choose <[keyframe.custom]||false>:
+                  - case true:
+                    - define keyframe.custom false
+                  - case false:
+                    - define keyframe.custom true
+                - flag server dcutscenes.<[data.name]>.keyframes.elements.sound.<[tick]>.<[uuid]>:<[keyframe]>
+                - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
+                - define item <item[<[arg_2]>]||null>
+                - if <[item]> != null:
+                  - define inv <player.open_inventory>
+                  - define lore "<dark_purple><bold>Custom <gray><[keyframe.custom]>"
+                  - define click "<gray><italic>Click to change custom sound"
+                  - adjust <[item]> lore:<list[<empty>|<[lore]>|<empty>|<[click]>]> save:item
+                  - define item <entry[item].result>
+                  - inventory set d:<[inv]> o:<[item]> slot:<[arg_3]>
 
             #Prepare for new sound location
             - case new_location:
@@ -2292,31 +2415,25 @@ dcutscene_animator_keyframe_edit:
 
             #Set new sound location
             - case set_location:
-              - define arg_2 <[arg_2]||null>
-              - if <[arg_2]> != null:
-                - if <[arg_2]> != false:
-                  - define loc <location[<[arg_2].parsed>]||null>
-                  - if <[loc]> == null:
-                    - define text "<green><[arg_2]> <gray>is not a valid location."
-                    - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
-                    - stop
-                - else:
-                  - define loc false
-                - define tick <player.flag[dcutscene_tick_modify.tick]>
-                - define uuid <player.flag[dcutscene_tick_modify.uuid]>
-                - define keyframe <[keyframes.sound.<[tick]>.<[uuid]>]||null>
-                - if <[keyframe]> != null:
-                  - flag <player> cutscene_modify:!
-                  - define keyframe.location <[loc]>
-                  - flag server dcutscenes.<[data.name]>.keyframes.elements.sound.<[tick]>.<[uuid]>:<[keyframe]>
-                  - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
-                  - define text "Sound <green><[keyframe.sound]> <gray>location is now <green><[keyframe.location]><gray> in tick <green><[tick]>t <gray>for scene <green><[data.name]><gray>."
+              - if <[arg_2]> != false:
+                - define loc <location[<[arg_2].parsed>]||null>
+                - if <[loc]> == null:
+                  - define text "<green><[arg_2]> <gray>is not a valid location."
                   - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
-                  - inventory open d:dcutscene_inventory_keyframe_modify_sound
-                - else:
-                  - debug error "Something went wrong in dcutscene_animator_keyframe_edit for set_location in sound modifier"
+                  - stop
               - else:
-                - debug error "Something went wrong in dcutscene_animator_keyframe_edit for set_location in sound modifier"
+                - define loc false
+              - define tick <player.flag[dcutscene_tick_modify.tick]>
+              - define uuid <player.flag[dcutscene_tick_modify.uuid]>
+              - define keyframe <[keyframes.sound.<[tick]>.<[uuid]>]||null>
+              - if <[keyframe]> != null:
+                - flag <player> cutscene_modify:!
+                - define keyframe.location <[loc]>
+                - flag server dcutscenes.<[data.name]>.keyframes.elements.sound.<[tick]>.<[uuid]>:<[keyframe]>
+                - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
+                - define text "Sound <green><[keyframe.sound]> <gray>location is now <green><[keyframe.location]><gray> in tick <green><[tick]>t <gray>for scene <green><[data.name]><gray>."
+                - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+                - inventory open d:dcutscene_inventory_keyframe_modify_sound
 
             #Move to prep
             - case move_to_prep:
@@ -3272,7 +3389,7 @@ dcutscene_animator_keyframe_edit:
             - case move_to:
               - define tick <player.flag[dcutscene_tick_modify]>
               - define move_data <player.flag[dcutscene_animator_change]>
-              - define particle <[keyframes.particle.<[tick]>]>
+              - define particle <[keyframes.particle]>
               #Update previous tick
               - define particle.<[move_data.tick]>.particle_list:<-:<[move_data.uuid]>
               - define particle.<[move_data.tick]> <[particle.<[move_data.tick]>].deep_exclude[<[move_data.uuid]>]>
