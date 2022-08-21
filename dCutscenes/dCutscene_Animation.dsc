@@ -20,9 +20,7 @@ dcutscene_camera_entity:
 #========= Cutscene Animator Tasks and Procedures =========
 
 #TODO:
-#- Implement cutscene stop animator instead of having the camera do it
 #- Implement timespot mechanism for camera or model path
-#- Implement task scripts for each animator
 #Start the cutscene
 dcutscene_animation_begin:
     type: task
@@ -32,14 +30,14 @@ dcutscene_animation_begin:
     - define player <[player]||<player>>
     - define cutscene <server.flag[dcutscenes.<[scene]>]||null>
     - if <[cutscene]> != null:
-      #TODO:
-      #- Replace with cutscene stop
-      - if <[player].has_flag[dcutscene_camera]>:
-        - remove <[player].flag[dcutscene_camera]>
-        - flag <[player]> dcutscene_camera:!
+      #Check if another cutscene is in progress
+      - if <[player].has_flag[dcutscene_played_scene]>:
+        - run dcutscene_animation_stop def.player:<[player]>
+      - define scene_uuid <util.random_uuid>
+      - definemap scene_data name:<[cutscene.name]> uuid:<[scene_uuid]>
+      - flag <[player]> dcutscene_played_scene:<[scene_data]>
       #Allows the animation to begin at a certain tick
       - define timespot <[timespot]||0>
-      - define world <world[<[world]||<[player].world>>]>
       - define keyframes <[cutscene.keyframes]||null>
       - define length <[cutscene.length]||null>
       - if <[keyframes]> == null:
@@ -48,39 +46,27 @@ dcutscene_animation_begin:
       - if <[length]> == null:
         - debug error "Length of cutscene could not be found for scene <[scene]>"
         - stop
-      #Camera in keyframes
-      - define camera <[keyframes.camera]||null>
+      #TODO:
+      #- Implement cutscene inventory
       #Models in keyframes
       - define models <[keyframes.models]||null>
       #Elements in keyframe
       - define elements <[keyframes.elements]||null>
       #Stop point in keyframe
       - define stop_point <[keyframes.stop]||null>
-      - if <[camera]> != null:
-         #Chunks must be loaded
-        - define first <[camera].keys.first>
-        - define first_loc <location[<[camera.<[first]>.location]>]||null>
-        - if <[first_loc]> != null:
-          - teleport <[player]> <[first_loc].with_world[<[world]>]>
-        - wait <duration[<script[dcutscenes_config].data_key[config].get[cutscene_chunk_load_delay]>].in_ticks||10.sub[1]>t
-        - cast INVISIBILITY d:10000000000000s <[player]> hide_particles no_ambient no_icon
-        - define uuid <util.random_uuid>
-        - spawn dcutscene_camera_entity <[player].location> save:<[uuid]>
-        - define camera_ent <entry[<[uuid]>].spawned_entity>
-        - adjust <[player]> spectate:<[camera_ent]>
-        - adjust <[camera_ent]> tracking_range:256
-        - flag <[player]> dcutscene_camera:<[camera_ent]>
-        #Used as mount
-        - define m_uuid <util.random_uuid>
-        - spawn dcutscene_camera_entity <[player].location> save:<[m_uuid]>
-        - define camera_mount <entry[<[m_uuid]>].spawned_entity>
-        - adjust <[camera_mount]> tracking_range:256
-        - mount <[player]>|<[camera_mount]>
-        - flag <[player]> dcutscene_mount:<[camera_mount]>
+      #Camera in keyframes (keys check for extra validation)
+      - define camera <[keyframes.camera]||null>
+      - define world <world[<[world]||<[player].world>>]>
+      - if <[camera].keys.first||null> != null:
         - define cam_count 0
-        - wait 1t
-      - run dcutscene_bars
+        - ~run dcutscene_camera_spawn def.player:<[player]> def.camera:<[camera]> def.world:<[world]> save:camera_spawn
+        - define camera_ent <entry[camera_spawn].created_queue.determination.first>
+
+      #==Animator
       - repeat <duration[<[length]>].in_ticks.sub[<[timespot]>]> as:tick:
+        #Check if player is in another cutscene if so stop
+        - if <[player].flag[dcutscene_played_scene.uuid]> != <[scene_uuid]>:
+          - stop
         #Tick added by timespot
         - define tick <[tick].add[<[timespot]>]>
         #======== Camera =========
@@ -88,7 +74,7 @@ dcutscene_animation_begin:
           - define cam_data <[camera.<[tick]>]||null>
           - if <[cam_data]> != null && <[cam_count]> < 1:
             - define cam_count 1
-            - run dcutscene_path_move def.cutscene:<[cutscene.name]> def.entity:<[camera_ent]> def.type:camera def.world:<[world]>
+            - run dcutscene_path_move def.cutscene:<[cutscene.name]> def.scene_uuid:<[scene_uuid]> def.entity:<[camera_ent]> def.type:camera def.world:<[world]>
 
         #======= Models =======
         - define model <[models.<[tick]>]||null>
@@ -120,7 +106,7 @@ dcutscene_animation_begin:
                     - if <[skin]> == null:
                       - debug error "Invalid player for skin in dcutscene_animation_begin"
                       - foreach next
-                    - else if !<[skin].is_player> && !<[skin].is_npc>:
+                    - else if !<[skin].is_player||> && !<[skin].is_npc||>:
                       - debug error "Invalid player for skin in dcutscene_animation_begin"
                       - foreach next
                   - define defs <list[<[spawn_loc]>|<[skin]>|<[player]>]>
@@ -131,12 +117,10 @@ dcutscene_animation_begin:
               - run <[script]> def:<[defs]> save:spawned
               - define root <entry[spawned].created_queue.determination.first>
               #Track spawned model
-              #TODO:
-              #- Make sure spawned models get removed when stopping the cutscene
               - flag <[player]> dcutscene_spawned_models.<[model_uuid]>.root:<[root]>
               - flag <[player]> dcutscene_spawned_models.<[model_uuid]>.type:<[type]>
               - definemap path_data tick:<[tick]> uuid:<[model_uuid]>
-              - run dcutscene_path_move def.cutscene:<[cutscene.name]> def.entity:<[root]> def.type:<[type]> def.data:<[path_data]> def.world:<[world]>
+              - run dcutscene_path_move def.cutscene:<[cutscene.name]> def.scene_uuid:<[scene_uuid]> def.entity:<[root]> def.type:<[type]> def.data:<[path_data]> def.world:<[world]>
 
         #===== Regular Animators =====
         - if <[elements]> != null:
@@ -153,14 +137,14 @@ dcutscene_animation_begin:
             - foreach <[fake_blocks]> as:object_id:
               - define b_data <[elements.fake_object.fake_block.<[tick]>.<[object_id]>]||null>
               - if <[b_data]> != null:
-                - run dcutscene_fake_block_animator def.loc:<[b_data.loc]> def.object:<[b_data.block]> def.duration:<[b_data.duration]> def.proc:<[b_data.procedure.script]> def.defs:<[b_data.procedure.defs]> def.world:<[world]>
+                - run dcutscene_fake_block_animator def.loc:<[b_data.loc]> def.data:<[b_data]> def.world:<[world]>
           #=Fake Schem Check
           - define fake_schems <[elements.fake_object.fake_schem.<[tick]>.fake_schems]||null>
           - if <[fake_schems]> != null:
             - foreach <[fake_schems]> as:object_id:
               - define s_data <[elements.fake_object.fake_schem.<[tick]>.<[object_id]>]||null>
               - if <[s_data]> != null:
-                - run dcutscene_fake_schem_animator def.loc:<[s_data.loc]> def.schem:<[s_data.schem]> def.duration:<[s_data.duration]> def.noair:<[s_data.noair]> def.waitable:<[s_data.waitable]> def.angle:<[s_data.angle]> def.world:<[world]>
+                - run dcutscene_fake_schem_animator def.loc:<[s_data.loc]> def.data:<[s_data]> def.world:<[world]>
           #=Particle Check
           - define particles <[elements.particle.<[tick]>.particle_list]||null>
           - if <[particles]> != null:
@@ -184,7 +168,7 @@ dcutscene_animation_begin:
           #=Title check
           - define title <[elements.title.<[tick]>]||null>
           - if <[title]> != null:
-            - title title:<[title.title].parse_color> subtitle:<[title.subtitle].parse_color> fade_in:<[title.duration.fade_in]> stay:<[title.duration.stay]> fade_out:<[title.duration.fade_out]> targets:<[player]>
+            - title title:<[title.title].parse_color> subtitle:<[title.subtitle].parse_color> fade_in:<[title.fade_in]> stay:<[title.stay]> fade_out:<[title.fade_out]> targets:<[player]>
           #=Command check
           - define commands <[elements.command.<[tick]>.command_list]||null>
           - if <[commands]> != null:
@@ -198,15 +182,15 @@ dcutscene_animation_begin:
             - foreach <[messages]> as:uuid:
               - define message <[elements.message.<[tick]>.<[uuid]>.message].parsed||null>
               - if <[message]> != null:
-                - narrate <[message].parse_color>
+                - narrate <[message].parse_color||<[message]>>
           #=Time check
           - define time <[elements.time.<[tick]>]||null>
           - if <[time]> != null:
             - run dcutscene_time_animator def.t_data:<[time]>
           #=Weather check
-          - define weather <[elements.weather.<[tick]>]||null>
-          - if <[weather]> != null:
-            - run dcutscene_weather_animator def.w_data:<[weather]>
+          - define weather_data <[elements.weather.<[tick]>]||null>
+          - if <[weather_data]> != null:
+            - weather player <[weather_data.weather]> reset:<[weather_data.duration]>
 
         #===== Stop Check ======
         - if <[stop_point]> != null:
@@ -215,8 +199,39 @@ dcutscene_animation_begin:
             - stop
         - flag <[player]> dcutscene_timespot:<[tick]>
         - wait 1t
+      ########
     - else:
       - debug error "Cutscene could not be found."
+
+#Camera Spawner
+dcutscene_camera_spawn:
+    type: task
+    debug: false
+    definitions: player|camera|world
+    script:
+    #Chunks must be loaded so we teleport the player here
+    - define first <[camera].keys.first>
+    - define first_loc <location[<[camera.<[first]>.location]>]||null>
+    - if <[first_loc]> != null:
+      - teleport <[player]> <[first_loc].with_world[<[world]>]>
+    - run dcutscene_bars
+    - wait <duration[<script[dcutscenes_config].data_key[config].get[cutscene_chunk_load_delay]>].in_ticks||10.sub[1]>t
+    - cast INVISIBILITY d:10000000000000s <[player]> hide_particles no_ambient no_icon
+    - define uuid <util.random_uuid>
+    - spawn dcutscene_camera_entity <[player].location.below[0.15]> save:<[uuid]>
+    - define camera_ent <entry[<[uuid]>].spawned_entity>
+    - adjust <[player]> spectate:<[camera_ent]>
+    - adjust <[camera_ent]> tracking_range:256
+    - flag <[player]> dcutscene_camera:<[camera_ent]>
+    #Used as mount
+    - define m_uuid <util.random_uuid>
+    - spawn dcutscene_camera_entity <[player].location> save:<[m_uuid]>
+    - define camera_mount <entry[<[m_uuid]>].spawned_entity>
+    - adjust <[camera_mount]> tracking_range:256
+    - mount <[player]>|<[camera_mount]>
+    - flag <[player]> dcutscene_mount:<[camera_mount]>
+    - determine <[camera_ent]>
+    - wait 1t
 
 ##Animator Tasks ########
 dcutscene_run_task_animator_task:
@@ -248,7 +263,6 @@ dcutscene_run_task_animator_task:
     - else:
       - debug error "Could not run the task in dcutscene_run_task_animator_task"
 
-#Plays a sound
 dcutscene_animator_sound_play:
     type: task
     debug: false
@@ -265,45 +279,44 @@ dcutscene_animator_sound_play:
     - else:
       - playsound <[sound_to]> sound:<[s_data.sound]> volume:<[s_data.volume]||1.0> pitch:<[s_data.pitch]||1.0> custom
 
-#Fakes a block
 dcutscene_fake_block_animator:
     type: task
     debug: false
-    definitions: loc|object|duration|proc|defs|world
+    definitions: loc|data|world
     script:
     - define loc <location[<[loc]>].with_world[<[world]||<player.world>>]||null>
     - if <[loc]> == null:
       - debug error "Invalid location or could not find location in dcutscene_fake_object_animator"
       - stop
-    - define object <material[<[object]>]||null>
-    - if <[object]> == null:
+    - define material <material[<[data.block]>]||null>
+    - if <[material]> == null:
       - debug error "Invalid material for dcutscene_fake_object_animator"
       - stop
-    - define proc <[proc]||none>
-    - define defs <[defs]||none>
+    - define proc <[data.procedure.script]||none>
+    - define defs <[data.procedure.defs]||none>
     - if <[proc]> != none && <[defs]> != none:
       - define loc <[loc].proc[<[proc]>].context[<[defs].parsed>]>
     - else if <[proc]> != none:
       - define loc <[loc].proc[<[proc]>]>
-    - showfake <[object]> <[loc]> players:<player> duration:<[duration]>
+    - showfake <[material]> <[loc]> players:<player> duration:<[data.duration]>
 
-#Fake pastes a schematic for a duration
 dcutscene_fake_schem_animator:
     type: task
     debug: false
-    definitions: loc|schem|duration|noair|waitable|angle|world
+    definitions: loc|data|world
     script:
     - define loc <location[<[loc]>].with_world[<[world]||<player.world>>]||null>
     - if <[loc]> == null:
       - debug error "Invalid location for dcutscene_fake_schem_animator"
     - else:
+      - define schem <[data.schem]>
       - if !<schematic[<[schem]>].exists>:
         - debug error "Invalid schematic <[schem]> in dcutscene_fake_schem_animator is it loaded?"
         - stop
-      - define noair <[noair]||true>
-      - define waitable <[waitable]||false>
-      - define duration <[duration]||10s>
-      - choose <[angle]||forward>:
+      - define noair <[data.noair]||true>
+      - define waitable <[data.waitable]||false>
+      - define duration <[data.duration]||10s>
+      - choose <[data.angle]||forward>:
         - case forward:
           - define angle 0
         - case backward:
@@ -396,257 +409,6 @@ dcutscene_time_animator:
         - case false:
           - time player <[t_data.time]> reset:<[t_data.duration]>
 
-dcutscene_weather_animator:
-    type: task
-    debug: false
-    definitions: w_data
-    script:
-    - weather player <[w_data.weather]> reset:<[w_data.duration]>
-
-#========= Path movement for camera, models, and entities ========
-dcutscene_path_move:
-    type: task
-    debug: false
-    definitions: cutscene|entity|type|data|world
-    script:
-    - define cutscene <server.flag[dcutscenes.<[cutscene]>]||null>
-    - if <[cutscene]> != null:
-      - define world <[world]||<player.world>>
-      - define type <[type]||null>
-      - if <[type]> != null:
-        - choose <[type]>:
-          #TODO:
-          #- If move is on false move the player to the next location based on the time and keep camera chunk loaded
-          #======================= Camera Path Move ===========================
-          - case camera:
-            - define mount <player.flag[dcutscene_mount]>
-            - define keyframes <[cutscene.keyframes.camera]>
-            #before
-            - foreach <[keyframes]> key:c_id as:keyframe:
-              - if !<[c_id].is_integer>:
-                - foreach next
-              - define interpolation <[keyframe.interpolation]>
-              - define time_1 <[keyframe.tick]>
-              - define loc_1 <location[<[keyframe.location]>]||null>
-              - if <[loc_1]> == null:
-                - foreach next
-              #Reset
-              - adjust <[loc_1].chunk> load
-              - teleport <[mount]> <[loc_1]>
-              - mount <player>|<[mount]>
-              #Constants
-              - define interp_look <[keyframe.interpolate_look]||true>
-              - define move <[keyframe.move]>
-              - define eye_loc <[keyframe.eye_loc.location]>
-              - define eye_loc_bool <[keyframe.eye_loc.boolean]||false>
-              - define invert <[keyframe.invert]||false>
-              - define rotate_mul <[keyframe.rotate_mul]||1.0>
-              #After
-              - foreach <[keyframes]> key:2_id as:2_keyframe:
-                - define compare <[2_keyframe.tick].is_more_than[<[time_1]>]>
-                - if <[compare].is_truthy>:
-                  - define time_2 <[2_keyframe.tick]>
-                  - define loc_2 <location[<[2_keyframe.location]>]||null>
-                  - define eye_loc_2 <location[<[2_keyframe.eye_loc.location]>]||null>
-                  - foreach stop
-              - define loc_2 <[loc_2]||null>
-              - if <[loc_2]> == null:
-                - foreach next
-              #After Extra
-              - foreach <[keyframes]> key:a_e_id as:a_e_keyframe:
-                - define compare <[a_e_keyframe.tick].is_more_than[<[time_2]>]>
-                - if <[compare].is_truthy>:
-                  - define loc_2_after <[a_e_keyframe.location]||<[loc_2]>>
-                  - foreach stop
-              - define loc_2_after <[loc_2_after]||<[loc_2]>>
-              - define time <[time_2].sub[<[time_1]>]>
-              - if <[interpolation]> == smooth:
-                #Before Extra
-                - define list <list>
-                - foreach <[keyframes]> key:b_e_id as:b_e_keyframe:
-                  - define compare <[b_e_keyframe.tick].is_less_than[<[time_1]>]>
-                  - if <[compare].is_truthy>:
-                    - define list:->:<[b_e_keyframe]>
-                - if <[list].is_empty>:
-                  - define list:->:<[keyframe]>
-                - define loc_1_prev <[list].last.get[location]||<[loc_1]>>
-              #Animation
-              - repeat <[time]>:
-                - if <[entity].is_spawned>:
-                  - define time_index <[value]>
-                  - define time_percent <[time_index].div[<[time]>]>
-                  #Move true
-                  - if <[move].equals[true]>:
-                    - if <[time_index]> < <[time]>:
-                      #Path Lerp
-                      - choose <[interpolation]>:
-                        #Linear Interpolation
-                        - case linear:
-                          - define data <[loc_2].as_location.sub[<[loc_1]>].mul[<[time_percent]>].add[<[loc_1]>]>
-                        #Catmullrom Interpolation
-                        - case smooth:
-                          - define p0 <[loc_1_prev].as_location>
-                          - define p1 <[loc_1].as_location>
-                          - define p2 <[loc_2].as_location>
-                          - define p3 <[loc_2_after].as_location>
-                          #Catmullrom calc
-                          - define data <proc[dcutscene_catmullrom_proc].context[<[p0]>|<[p1]>|<[p2]>|<[p3]>|<[time_percent]>]>
-                      #Interp Look True
-                      - if <[interp_look].is_truthy>:
-                        - if <[time_index]> < <[time]>:
-                          #Eye location interpolation multiplier
-                          - define interp_mul <[time_percent].mul[<[rotate_mul]>]>
-                          - if <[interp_mul]> > 1:
-                            - define interp_mul 1.0
-                          - define yaw <[eye_loc_2].yaw.sub[<[eye_loc].yaw>].mul[<[interp_mul]>].add[<[eye_loc].yaw>]>
-                          - define pitch <[eye_loc_2].pitch.sub[<[eye_loc].pitch>].mul[<[interp_mul]>].add[<[eye_loc].pitch>]>
-                        - else:
-                          - define yaw <[eye_loc_2].yaw>
-                          - define pitch <[eye_loc_2].pitch>
-                      #Interp Look False
-                      - else:
-                        #Location 1 yaw and pitch
-                        - define yaw <[eye_loc].yaw>
-                        - define pitch <[eye_loc].pitch>
-                    - else:
-                      - define data <[loc_2]>
-                      - define yaw <[eye_loc_2].yaw>
-                      - define pitch <[eye_loc_2].pitch>
-                    - define mount_loc <[data]>
-                  #Move false
-                  - else:
-                    - chunkload <[entity].location.chunk> duration:10t
-                    - define data <[loc_1]>
-                    - if <[time_index]> < <[time]>:
-                      - if <[interp_look].is_truthy>:
-                        #Eye location interpolation multiplier
-                        - define interp_mul <[time_percent].mul[<[rotate_mul]>]>
-                        - if <[interp_mul]> > 1:
-                          - define interp_mul 1.0
-                        - define yaw <[eye_loc_2].yaw.sub[<[eye_loc].yaw>].mul[<[interp_mul]>].add[<[eye_loc].yaw>]>
-                        - define pitch <[eye_loc_2].pitch.sub[<[eye_loc].pitch>].mul[<[interp_mul]>].add[<[eye_loc].pitch>]>
-                      - else:
-                        - define yaw <[eye_loc].yaw>
-                        - define pitch <[eye_loc].pitch>
-                        - define mount_loc <[loc_2]>
-                    - else:
-                      - define yaw <[eye_loc_2].yaw>
-                      - define pitch <[eye_loc_2].pitch>
-                      - define data <[loc_2]>
-                    - define mount_loc <[loc_2].as_location.sub[<[loc_1]>].mul[<[time_percent]>].add[<[loc_1]>]>
-                  #If a look location has been set
-                  - if <[eye_loc_bool].is_truthy>:
-                    - look <player> <[eye_loc].with_world[<[world]>]> duration:1t
-                    - define yaw <player.location.yaw>
-                    - define pitch <player.location.pitch>
-                  #Mount
-                  - teleport <[mount]> <[mount_loc].with_yaw[<[eye_loc].yaw>].below[1].with_world[<[world]>]>
-                  #Camera
-                  - if <[invert].is_truthy>:
-                    - teleport <[entity]> <[data].with_yaw[<[yaw]>].rotate_yaw[180].with_pitch[<[pitch].add[180]>].with_world[<[world]>]>
-                  - else:
-                    - teleport <[entity]> <[data].with_yaw[<[yaw]>].with_pitch[<[pitch]>].with_world[<[world]>]>
-                - else:
-                  - stop
-                - wait 1t
-
-          #====================== Model Path Move =======================
-          - case player_model:
-            - define keyframes <[cutscene.keyframes.models.<[data.tick]>.<[data.uuid]>.path]>
-            - foreach <[keyframes]> key:tick_id as:keyframe:
-              - if !<[tick_id].is_integer>:
-                - foreach next
-              - define interpolation <[keyframe.interpolation]>
-              - define time_1 <[tick_id]>
-              - define move <[keyframe.move]>
-              - define loc_1 <[keyframe.location]>
-              - define rotate <[keyframe.rotate]>
-              - define ray_trace <[keyframe.ray_trace]>
-              - define animation <[keyframe.animation]>
-              - define skin <[keyframe.skin]||none>
-              - define root <[keyframe.root]||none>
-              #Model Animation
-              - if <[animation]> != false:
-                - run pmodels_animate def:<[entity]>|<[animation]>
-              #Skin
-              - if <[skin]> != none && <[root]> != none:
-                - if <[skin]> == player:
-                  - define skin <player>
-                - else:
-                  - define skin <[skin].parsed||<[skin]>>
-                - run pmodels_change_skin def:<[skin]>|<[entity]>
-              #After
-              - foreach <[keyframes]> key:aft_tick_id as:aft_keyframe:
-                - define compare <[aft_tick_id].is_more_than[<[time_1]>]>
-                - if <[compare].is_truthy>:
-                  - define time_2 <[aft_tick_id]>
-                  - define loc_2 <[aft_keyframe.location]||<[loc_1]>>
-                  - foreach stop
-              - define loc_2 <[loc_2]||<[loc_1]>>
-              - define time_2 <[time_2]||null>
-              #Time
-              - define time <[time_2].sub[<[time_1]>]||null>
-              - if <[time]> == null:
-                - teleport <[entity].with_world[<[world]>]> <[loc_2].with_yaw[<[loc_2].yaw>]>
-                - foreach next
-              #After extra
-              - foreach <[keyframes]> key:aft_e_tick_id as:aft_e_keyframe:
-                - define compare <[aft_e_tick_id].is_more_than[<[time_2]>]>
-                - if <[compare].is_truthy>:
-                  - define loc_2_after <[aft_e_keyframe.location]||<[loc_2]>>
-                  - foreach stop
-              - define loc_2_after <[loc_2_after]||<[loc_2]>>
-              - if <[interpolation]> == smooth:
-                #Before Extra
-                - define list <list>
-                - foreach <[keyframes]> key:b_e_id as:b_e_keyframe:
-                  - define compare <[b_e_id].is_less_than[<[time_1]>]>
-                  - if <[compare].is_truthy>:
-                    - define list:->:<[b_e_keyframe]>
-                - if <[list].is_empty>:
-                  - define list:->:<[keyframe]>
-                - define loc_1_prev <[list].last.get[location]||<[loc_1]>>
-              #Animation
-              - repeat <[time]>:
-                - if <[entity].is_spawned>:
-                  - chunkload <[entity].location.with_world[<[world]>].chunk> duration:1t
-                  - define time_index <[value]>
-                  - define time_percent <[time_index].div[<[time]>]>
-                  - if <[move].equals[true]>:
-                    - if <[time_index]> < <[time]>:
-                      - choose <[interpolation]>:
-                        - case linear:
-                          #Linear Interpolation calc
-                          - define data <[loc_2].as_location.sub[<[loc_1]>].mul[<[time_percent]>].add[<[loc_1]>]>
-                        - case smooth:
-                          - define p0 <[loc_1_prev].as_location>
-                          - define p1 <[loc_1].as_location>
-                          - define p2 <[loc_2].as_location>
-                          - define p3 <[loc_2_after].as_location>
-                          #Catmullrom calc
-                          - define data <proc[dcutscene_catmullrom_proc].context[<[p0]>|<[p1]>|<[p2]>|<[p3]>|<[time_percent]>]>
-                      #Ray Trace
-                      - if <[ray_trace.direction]> != false:
-                        - choose <[ray_trace.direction]||floor>:
-                          - case floor:
-                            - define ray <[data].above[0.5].with_pitch[90].ray_trace[range=384;fluids=<[ray_trace.liquid]||false>;nonsolids=<[ray_trace.passable]||false>]||null>
-                            - if <[ray]> != null:
-                              - define data <[ray].above[0.5]>
-                          - case ceiling:
-                            - define ray <[data].above[0.5].with_pitch[-90].ray_trace[range=384;fluids=<[ray_trace.liquid]||false>;nonsolids=<[ray_trace.passable]||false>]||null>
-                            - if <[ray]> != null:
-                              - define data <[ray]>
-                      - teleport <[entity]> <[data].with_yaw[<[loc_2].yaw>].with_world[<[world]>]>
-                    - else:
-                      - teleport <[entity]> <[loc_2].with_world[<[world]>]>
-                  - else:
-                    - teleport <[entity]> <[loc_1].with_world[<[world]>]>
-                  - wait 1t
-              - adjust <[loc_2].with_world[<[world]>].chunk> load
-              - teleport <[entity]> <[loc_2].with_yaw[<[loc_2].yaw>].with_world[<[world]>]>
-              - run pmodels_reset_model_position def:<[entity]>
-
-#====== Cutscene Stop =======
 dcutscene_animation_stop:
     type: task
     debug: false
@@ -666,12 +428,291 @@ dcutscene_animation_stop:
         - choose <[model.type]>:
           - case player_model:
             - run pmodels_remove_model def:<[model.root]>
+    - flag <[player]> dcutscene_played_scene:!
     - flag <[player]> dcutscene_camera:!
     - flag <[player]> dcutscene_mount:!
     - flag <[player]> dcutscene_spawned_models:!
     - flag <[player]> dcutscene_timespot:!
 
+#========= Path movement for camera, models, and entities ========
+#This moves the camera or models across the designated path
+dcutscene_path_move:
+    type: task
+    debug: false
+    definitions: cutscene|scene_uuid|entity|type|data|world
+    script:
+    - define cutscene <server.flag[dcutscenes.<[cutscene]>]||null>
+    - if <[cutscene]> != null:
+      - define world <[world]||<player.world>>
+      - define type <[type]||null>
+      - define scene_uuid <[scene_uuid]||null>
+      - if <[type]> != null:
+        - choose <[type]>:
+          #TODO:
+          #- If move is on false move the player to the next location based on the time and keep camera chunk loaded
+          #======================= Camera Path Move ===========================
+          - case camera:
+            - define mount <player.flag[dcutscene_mount]>
+            - define keyframes <[cutscene.keyframes.camera]>
+            #before
+            - foreach <[keyframes]> key:c_id as:keyframe:
+              - if !<[c_id].is_integer>:
+                - foreach next
+              - if <player.vehicle||null> != <[mount]>:
+                - mount <player>|<[mount]>
+              #=Recording animator
+              - define rec <[keyframe.recording]||false>
+              #Inverted camera
+              - define invert <[keyframe.invert]||false>
+              - if <[rec.bool]||false.is_truthy>:
+                #Length
+                - repeat <[rec.length]> as:t:
+                  - define r <[rec.frames.<[t]>]>
+                  - define p <[r.p]>
+                  - define l <location[<[r.l]>].with_yaw[<[r.y]>].with_world[<[world]>]>
+                  - if <[invert].is_truthy>:
+                    - teleport <[entity]> <[l].below[0.15].rotate_yaw[180].with_pitch[<[p].add[180]>]>
+                  - else:
+                    - teleport <[entity]> <[l].below[0.15].with_pitch[<[p]>]>
+                  - teleport <[mount]> <[l].below[0.15]>
+                  - wait 1t
+              #=Default
+              - else:
+                - define interpolation <[keyframe.interpolation]>
+                - define time_1 <[keyframe.tick]>
+                - define loc_1 <location[<[keyframe.location]>]||null>
+                - if <[loc_1]> == null:
+                  - foreach next
+                - teleport <[mount]> <[loc_1]>
+                #Constants
+                - define interp_look <[keyframe.interpolate_look]||true>
+                - define move <[keyframe.move]>
+                - define eye_loc <[keyframe.eye_loc.location]>
+                - define eye_loc_bool <[keyframe.eye_loc.boolean]||false>
+                - define rotate_mul <[keyframe.rotate_mul]||1.0>
+                #After
+                - foreach <[keyframes]> key:2_id as:2_keyframe:
+                  - define compare <[2_keyframe.tick].is_more_than[<[time_1]>]>
+                  - if <[compare].is_truthy>:
+                    - define time_2 <[2_keyframe.tick]>
+                    - define loc_2 <location[<[2_keyframe.location]>]||null>
+                    - define eye_loc_2 <location[<[2_keyframe.eye_loc.location]>]||null>
+                    - foreach stop
+                - define loc_2 <[loc_2]||null>
+                - if <[loc_2]> == null:
+                  - foreach next
+                #After Extra
+                - foreach <[keyframes]> key:a_e_id as:a_e_keyframe:
+                  - define compare <[a_e_keyframe.tick].is_more_than[<[time_2]>]>
+                  - if <[compare].is_truthy>:
+                    - define loc_2_after <[a_e_keyframe.location]||<[loc_2]>>
+                    - foreach stop
+                - define loc_2_after <[loc_2_after]||<[loc_2]>>
+                - define time <[time_2].sub[<[time_1]>]>
+                - if <[interpolation]> == smooth:
+                  #Before Extra
+                  - define list <list>
+                  - foreach <[keyframes]> key:b_e_id as:b_e_keyframe:
+                    - define compare <[b_e_keyframe.tick].is_less_than[<[time_1]>]>
+                    - if <[compare].is_truthy>:
+                      - define list:->:<[b_e_keyframe]>
+                  - if <[list].is_empty>:
+                    - define list:->:<[keyframe]>
+                  - define loc_1_prev <[list].last.get[location]||<[loc_1]>>
+                #Animation
+                #TODO:
+                #- Rework this
+                - repeat <[time]>:
+                  - if <player.flag[dcutscene_played_scene.uuid]||null> != <[scene_uuid]>:
+                    - stop
+                  - if <[entity].is_spawned>:
+                    - define time_index <[value]>
+                    - define time_percent <[time_index].div[<[time]>]>
+                    #Move true
+                    - if <[move].is_truthy>:
+                      - if <[time_index]> < <[time]>:
+                        - choose <[interpolation]>:
+                          #Linear Interpolation
+                          - case linear:
+                            - define data <[loc_2].as_location.sub[<[loc_1]>].mul[<[time_percent]>].add[<[loc_1]>]>
+                          #Catmullrom Interpolation
+                          - case smooth:
+                            - define p0 <[loc_1_prev].as_location>
+                            - define p1 <[loc_1].as_location>
+                            - define p2 <[loc_2].as_location>
+                            - define p3 <[loc_2_after].as_location>
+                            #Catmullrom calc
+                            - define data <proc[dcutscene_catmullrom_proc].context[<[p0]>|<[p1]>|<[p2]>|<[p3]>|<[time_percent]>]>
+                        #Interp Look True
+                        - if <[interp_look].is_truthy>:
+                          - if <[time_index]> < <[time]>:
+                            #Eye location interpolation multiplier
+                            - define interp_mul <[time_percent].mul[<[rotate_mul]>]>
+                            - if <[interp_mul]> > 1:
+                              - define interp_mul 1.0
+                            - define yaw <[eye_loc_2].yaw.sub[<[eye_loc].yaw>].mul[<[interp_mul]>].add[<[eye_loc].yaw>]>
+                            - define pitch <[eye_loc_2].pitch.sub[<[eye_loc].pitch>].mul[<[interp_mul]>].add[<[eye_loc].pitch>]>
+                          - else:
+                            - define yaw <[eye_loc_2].yaw>
+                            - define pitch <[eye_loc_2].pitch>
+                        #Interp Look False
+                        - else:
+                          #Location 1 yaw and pitch
+                          - define yaw <[eye_loc].yaw>
+                          - define pitch <[eye_loc].pitch>
+                      - else:
+                        - define data <[loc_2]>
+                        - define yaw <[eye_loc_2].yaw>
+                        - define pitch <[eye_loc_2].pitch>
+                      - define mount_loc <[data]>
+                    #Move false
+                    - else:
+                      - define data <[loc_1]>
+                      - if <[time_index]> < <[time]>:
+                        - if <[interp_look].is_truthy>:
+                          #Eye location interpolation multiplier
+                          - define interp_mul <[time_percent].mul[<[rotate_mul]>]>
+                          - if <[interp_mul]> > 1:
+                            - define interp_mul 1.0
+                          - define yaw <[eye_loc_2].yaw.sub[<[eye_loc].yaw>].mul[<[interp_mul]>].add[<[eye_loc].yaw>]>
+                          - define pitch <[eye_loc_2].pitch.sub[<[eye_loc].pitch>].mul[<[interp_mul]>].add[<[eye_loc].pitch>]>
+                        - else:
+                          - define yaw <[eye_loc].yaw>
+                          - define pitch <[eye_loc].pitch>
+                          - define mount_loc <[loc_2]>
+                      - else:
+                        - define yaw <[eye_loc_2].yaw>
+                        - define pitch <[eye_loc_2].pitch>
+                        - define data <[loc_2]>
+                      - define mount_loc <[loc_2].as_location.sub[<[loc_1]>].mul[<[time_percent]>].add[<[loc_1]>]>
+                    #If a look location has been set
+                    - if <[eye_loc_bool].is_truthy>:
+                      - define look_loc <[entity].eye_location.face[<[eye_loc].with_world[<[world]>]>]>
+                      - define yaw <[look_loc].yaw>
+                      - define pitch <[look_loc].pitch>
+                    #Mount
+                    - teleport <[mount]> <[mount_loc].with_yaw[<[eye_loc].yaw>].below[1].with_world[<[world]>]>
+                    #Camera
+                    - if <[invert].is_truthy>:
+                      - teleport <[entity]> <[data].below[0.15].with_yaw[<[yaw]>].rotate_yaw[180].with_pitch[<[pitch].add[180]>].with_world[<[world]>]>
+                    - else:
+                      - teleport <[entity]> <[data].below[0.15].with_yaw[<[yaw]>].with_pitch[<[pitch]>].with_world[<[world]>]>
+                  - else:
+                    - stop
+                  - wait 1t
+
+          #====================== Model Path Move =======================
+          #Player Model
+          - case player_model:
+            - define keyframes <[cutscene.keyframes.models.<[data.tick]>.<[data.uuid]>.path]>
+            - foreach <[keyframes]> key:tick_id as:keyframe:
+              - if !<[tick_id].is_integer>:
+                - foreach next
+              - run pmodels_reset_model_position def:<[entity]>
+              - define interpolation <[keyframe.interpolation]>
+              - define time_1 <[tick_id]>
+              - define move <[keyframe.move]>
+              - define loc_1 <[keyframe.location]>
+              - define rotate_interp <[keyframe.rotate_interp]>
+              - define rotate_mul <[keyframe.rotate_mul]>
+              - define ray_trace <[keyframe.ray_trace]>
+              - define animation <[keyframe.animation]>
+              - define skin <[keyframe.skin]||none>
+              #Model Animation
+              - if <[animation]> != false && <[animation]> != stop:
+                - run pmodels_animate def:<[entity]>|<[animation]>
+              - else if <[animation]> == stop:
+                - run pmodels_end_animation def:<[entity]>
+              #Skin
+              - if <[skin]> != none && <[loop_index]> != 1:
+                - if <[skin]> == player:
+                  - define skin <player>
+                - else:
+                  - define skin <[skin].parsed||<[skin]>>
+                - run pmodels_change_skin def:<[skin]>|<[entity]>
+              #After
+              - foreach <[keyframes]> key:aft_tick_id as:aft_keyframe:
+                - define compare <[aft_tick_id].is_more_than[<[time_1]>]>
+                - if <[compare].is_truthy>:
+                  - define time_2 <[aft_tick_id]>
+                  - define loc_2 <[aft_keyframe.location]||<[loc_1]>>
+                  - foreach stop
+              - define loc_2 <[loc_2]||<[loc_1]>>
+              - define time_2 <[time_2]||null>
+              #Time
+              - define time <[time_2].sub[<[time_1]>]||null>
+              - if <[time]> == null:
+                - teleport <[entity].with_world[<[world]>]> <[loc_2].with_yaw[<[loc_2].yaw>]>
+                - foreach next
+              - if <[interpolation]> == smooth:
+                #Before Extra
+                - define list <list>
+                - foreach <[keyframes]> key:b_e_id as:b_e_keyframe:
+                  - define compare <[b_e_id].is_less_than[<[time_1]>]>
+                  - if <[compare].is_truthy>:
+                    - define list:->:<[b_e_keyframe]>
+                - if <[list].is_empty>:
+                  - define list:->:<[keyframe]>
+                - define loc_1_prev <[list].last.get[location]||<[loc_1]>>
+                #After extra
+                - foreach <[keyframes]> key:aft_e_tick_id as:aft_e_keyframe:
+                  - define compare <[aft_e_tick_id].is_more_than[<[time_2]>]>
+                  - if <[compare].is_truthy>:
+                    - define loc_2_after <[aft_e_keyframe.location]||<[loc_2]>>
+                    - foreach stop
+                - define loc_2_after <[loc_2_after]||<[loc_2]>>
+              #Animation
+              - repeat <[time]>:
+                - if <player.flag[dcutscene_played_scene.uuid]||null> != <[scene_uuid]>:
+                  - stop
+                - if <[entity].is_spawned>:
+                  - chunkload <[entity].location.with_world[<[world]>].chunk> duration:1t
+                  - define time_index <[value]>
+                  - define time_percent <[time_index].div[<[time]>]>
+                  - if <[move].equals[true]>:
+                    - if <[time_index]> < <[time]>:
+                      #Rotation Interpolation
+                      - if <[rotate_interp].is_truthy>:
+                        - define interp_mul <[time_percent].mul[<[rotate_mul]>]>
+                        - if <[interp_mul]> > 1:
+                          - define interp_mul 1.0
+                        - define yaw <[loc_2].yaw.sub[<[loc_1].yaw>].mul[<[interp_mul]>].add[<[loc_1].yaw>]>
+                      - else:
+                        - define yaw <[loc_2].yaw>
+                      #Path Interpolation
+                      - choose <[interpolation]>:
+                        - case linear:
+                          #Linear Interpolation calc
+                          - define data <[loc_2].as_location.sub[<[loc_1]>].mul[<[time_percent]>].add[<[loc_1]>]>
+                        - case smooth:
+                          - define p0 <[loc_1_prev].as_location>
+                          - define p1 <[loc_1].as_location>
+                          - define p2 <[loc_2].as_location>
+                          - define p3 <[loc_2_after].as_location>
+                          #Catmullrom calc
+                          - define data <proc[dcutscene_catmullrom_proc].context[<[p0]>|<[p1]>|<[p2]>|<[p3]>|<[time_percent]>]>
+                      #Ray Trace
+                      - if <[ray_trace.direction]> != false:
+                        - choose <[ray_trace.direction]||floor>:
+                          - case floor:
+                            - define ray <[data].above[0.5].with_pitch[90].ray_trace[range=384;fluids=<[ray_trace.liquid]||false>;nonsolids=<[ray_trace.passable]||false>]||null>
+                            - if <[ray]> != null:
+                              - define data <[ray]>
+                          - case ceiling:
+                            - define ray <[data].above[0.5].with_pitch[-90].ray_trace[range=384;fluids=<[ray_trace.liquid]||false>;nonsolids=<[ray_trace.passable]||false>]||null>
+                            - if <[ray]> != null:
+                              - define data <[ray]>
+                      - teleport <[entity]> <[data].with_pitch[0].with_yaw[<[yaw]>].with_world[<[world]>]>
+                    - else:
+                      - teleport <[entity]> <[loc_2].with_world[<[world]>]>
+                  - else:
+                    - teleport <[entity]> <[loc_1].with_world[<[world]>]>
+                  - wait 1t
+              - adjust <[loc_2].with_world[<[world]>].chunk> load
+              - teleport <[entity]> <[loc_2].with_yaw[<[loc_2].yaw>].with_world[<[world]>]>
+
 #======= Cutscene Path Shower Interval =======
+#Interval for path shower
 dcutscene_path_show_interval:
     type: task
     debug: false
@@ -711,6 +752,7 @@ dcutscene_path_show_interval:
 #- Implement ray tracing floor or ceiling hit detection for models
 #- Implement ability to show part of the path when changing path locations
 #========== Cutscene Path Shower ===========
+#Shows the path of the camera or model path
 dcutscene_path_show:
     type: task
     debug: false
@@ -779,7 +821,7 @@ dcutscene_path_show:
             - define time <[time_2].sub[<[time_1]>]>
             - define path <proc[dcutscene_path_creator].context[<player>|<[loc_1]>|<[loc_2]>|smooth|<[time]>|<[loc_1_prev]>|<[loc_2_after]>]||null>
             - if <[path]> != null:
-              #reason for not using points between here is it was very performance heavy but this still gets the job done on demonstrating the spline curve
+              #Reason for not using points between here is it was very performance heavy but this still gets the job done on demonstrating the spline curve
               - foreach <[path]> as:point:
                 - if <player.location.facing[<[point]>].degrees[60]> && <player.location.distance[<[point]>]> <= <[dist].mul[2.5]>:
                   - playeffect effect:block_marker special_data:<material[<script[dcutscenes_config].data_key[config].get[cutscene_path_material]>]||<material[barrier]>> at:<[point]> offset:0,0,0 visibility:<[dist]> targets:<player>
@@ -946,6 +988,43 @@ dcutscene_catmullrom_proc:
     - define b2 <[a2].mul[<[t3].sub[<[t]>].div[<[t3].sub[<[t1]>]>]>].add[<[a3].mul[<[t].sub[<[t1]>].div[<[t3].sub[<[t1]>]>]>]>]>
     # FVector C  = ( t2-t )/( t2-t1 )*B1 + ( t-t1 )/( t2-t1 )*B2;
     - determine <[b1].mul[<[t2].sub[<[t]>].div[<[t2].sub[<[t1]>]>]>].add[<[b2].mul[<[t].sub[<[t1]>].div[<[t2].sub[<[t1]>]>]>]>]>
+
+# Procedure script by Max^
+#This allows for more control of the interpolation curves.
+#Tension can be used to tighten up the curvature at the known points
+#The bias is used to twist the curve about the known points.
+#Based on http://www.paulbourke.net/miscellaneous/interpolation/
+#TODO:
+#- Implement this as an option for animators that use the path system
+dcutscene_hermite_proc:
+    type: procedure
+    debug: false
+    definitions: y0|y1|y2|y3|mu|tension|bias
+    script:
+    #1 - tension
+    - define tension <element[1].sub[<[tension]>]>
+    #mu2 = mu * mu;
+    - define mu2 <[mu].mul[<[mu]>]>
+    #mu3 = mu2 * mu;
+    - define mu3 <[mu2].mul[<[mu]>]>
+    #m0 = (y1-y0)*(1+bias)*(1-tension)/2;
+    - define m0 <[y1].sub[<[y0]>].mul[<element[1].add[<[bias]>]>].mul[<[tension]>].div[2]>
+    #m0 += (y2-y1)*(1-bias)*(1-tension)/2;
+    - define m0 <[y2].sub[<[y1]>].mul[<element[1].sub[<[bias]>]>].mul[<[tension]>].div[2].add[<[m0]>]>
+    #m1 = (y2-y1)*(1+bias)*(1-tension)/2;
+    - define m1 <[y2].sub[<[y1]>].mul[<element[1].add[<[bias]>]>].mul[<[tension]>].div[2]>
+    #m1 += (y3-y2)*(1-bias)*(1-tension)/2;
+    - define m1 <[y3].sub[<[y2]>].mul[<element[1].sub[<[bias]>]>].mul[<[tension]>].div[2].add[<[m1]>]>
+    #a0 = 2*mu3 - 3*mu2 + 1;
+    - define a0 <element[2].mul[<[mu3]>].sub[<element[3].mul[<[mu2]>]>].add[<element[1]>]>
+    #a1 = mu3 - 2*mu2 + mu;
+    - define a1 <[mu3].sub[<element[2].mul[<[mu2]>]>].add[<[mu]>]>
+    #a2 = mu3 - mu2;
+    - define a2 <[mu3].sub[<[mu2]>]>
+    #a3 = -2*mu3 + 3*mu2;
+    - define a3 <element[-2].mul[<[mu3]>].add[<element[3]>].mul[<[mu2]>]>
+    #return(a0*y1+a1*m0+a2*m1+a3*y2);
+    - determine <[a0].mul[<[y1]>].add[<[a1]>].mul[<[m0]>].add[<[a2]>].mul[<[m1]>].add[<[a3]>].mul[<[y2]>]>
 
 dcutscene_bars:
     type: task
