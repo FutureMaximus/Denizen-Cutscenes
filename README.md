@@ -1,6 +1,9 @@
 # Denizen Cutscenes
 
 
+TODO:
+- Create Wiki
+
 **What is Denizen Cutscenes?**
 
 Denizen Cutscenes is a very powerful cutscene tool with many features. The goal is to allow as much creative freedom as possible while at the same time making it simple to create cutscenes.
