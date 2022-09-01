@@ -22,419 +22,6 @@
 
 #=============Keyframe Modifiers ===============
 
-#======== Location Tool =========
-#A utility tool used for getting exact locations
-
-#Event Handler for the location tool
-dcutscene_location_tool_events:
-    type: world
-    debug: false
-    events:
-      on player quits:
-      - if <player.has_flag[dcutscene_location_editor]>:
-        - define data <player.flag[dcutscene_location_editor]>
-        - define root_ent <[data.root_ent]>
-        - if <[root_ent].is_spawned>:
-          - define root_type <[data.root_type]>
-          - choose <[root_type]>:
-            - case player_model:
-              - if <[root_ent].is_spawned>:
-                - run pmodels_remove_model def:<[root_ent]>
-            - case model:
-              - if <[root_ent].is_spawned>:
-                - run dmodels_delete def:<[root_ent]>
-        - run dcutscene_location_tool_return_inv
-      after player clicks dcutscene_location_tool_item in dcutscene_inventory_location_tool:
-      - run dcutscene_location_toolset_inv
-      after player clicks dcutscene_location_tool_ray_trace_item in dcutscene_inventory_location_tool:
-      - run dcutscene_location_raytrace_inv
-      after player right clicks block with:dcutscene_loc_ray_trace:
-      - ratelimit <player> 2t
-      - if <player.has_flag[cutscene_modify]>:
-        - if <player.has_flag[dcutscene_location_editor]>:
-          - define data <player.flag[dcutscene_location_editor]>
-          - define root_ent <[data.root_ent]>
-          - if <[root_ent].is_spawned>:
-            - choose <[data.root_type]>:
-              - case player_model:
-                - run pmodels_end_animation def:<[root_ent]>
-              - case model:
-                - run dmodels_end_animation def:<[root_ent]>
-          - run dcutscene_location_ray_trace_update
-      after player right clicks entity with:dcutscene_loc_ray_trace:
-      - ratelimit <player> 2t
-      - if <player.has_flag[cutscene_modify]>:
-        - if <player.has_flag[dcutscene_location_editor]>:
-          - define data <player.flag[dcutscene_location_editor]>
-          - define root_ent <[data.root_ent]>
-          - if <[root_ent].is_spawned>:
-            - choose <[data.root_type]>:
-              - case player_model:
-                - run pmodels_end_animation def:<[root_ent]>
-              - case model:
-                - run dmodels_end_animation def:<[root_ent]>
-          - run dcutscene_location_ray_trace_update
-      after player right clicks block with:dcutscene_loc_ray_trace_dist_add:
-      - run dcutscene_location_edit_ray_trace_add_dist
-      after player right clicks entity with:dcutscene_loc_ray_trace_dist_add:
-      - run dcutscene_location_edit_ray_trace_add_dist
-      after player right clicks block with:dcutscene_loc_ray_trace_dist_sub:
-      - run dcutscene_location_edit_ray_trace_sub_dist
-      after player right clicks entity with:dcutscene_loc_ray_trace_dist_sub:
-      - run dcutscene_location_edit_ray_trace_sub_dist
-      after player right clicks block with:dcutscene_loc_ray_trace_reverse_model:
-      - run dcutscene_location_edit_ray_trace_rotate_model
-      after player right clicks entity with:dcutscene_loc_ray_trace_reverse_model:
-      - run dcutscene_location_edit_ray_trace_rotate_model
-      after player right clicks block with:dcutscene_loc_ray_trace_nonsolids:
-      - run dcutscene_location_edit_ray_trace_nonsolids
-      after player right clicks entity with:dcutscene_loc_ray_trace_nonsolids:
-      - run dcutscene_location_edit_ray_trace_nonsolids
-      after player right clicks block with:dcutscene_loc_ray_trace_water:
-      - run dcutscene_location_edit_ray_trace_water
-      after player right clicks entity with:dcutscene_loc_ray_trace_water:
-      - run dcutscene_location_edit_ray_trace_water
-      on player right clicks block with:dcutscene_loc_forward:
-      - if <player.has_flag[cutscene_modify]>:
-        - define offset <player.flag[dcutscene_location_editor.offset]||null>
-        - if <[offset]> != null:
-          - define offset_mul <player.flag[dcutscene_location_editor.offset_mul]||0>
-          - define offset.z <[offset.z].add[1].mul[<[offset_mul]>]>
-          - run dcutscene_location_button_change def:<[offset]>
-      on player right clicks block with:dcutscene_loc_backward:
-      - if <player.has_flag[cutscene_modify]>:
-        - define offset <player.flag[dcutscene_location_editor.offset]||null>
-        - if <[offset]> != null:
-          - define offset_mul <player.flag[dcutscene_location_editor.offset_mul]||0>
-          - define offset.z <[offset.z].add[1].mul[<[offset_mul]>]>
-          - run dcutscene_location_button_change def:<[offset]>
-      on player right clicks block with:dcutscene_loc_up:
-      - if <player.has_flag[cutscene_modify]>:
-        - define offset <player.flag[dcutscene_location_editor.offset]||null>
-        - if <[offset]> != null:
-          - define offset_mul <player.flag[dcutscene_location_editor.offset_mul]||0>
-          - define offset.y <[offset.y].add[1].mul[<[offset_mul]>]>
-          - run dcutscene_location_button_change def:<[offset]>
-      on player right clicks block with:dcutscene_loc_down:
-      - if <player.has_flag[cutscene_modify]>:
-        - define offset <player.flag[dcutscene_location_editor.offset]||null>
-        - if <[offset]> != null:
-          - define offset_mul <player.flag[dcutscene_location_editor.offset_mul]||0>
-          - define offset.y <[offset.y].sub[1].mul[<[offset_mul]>]>
-          - run dcutscene_location_button_change def:<[offset]>
-      on player right clicks block with:dcutscene_loc_right:
-      - if <player.has_flag[cutscene_modify]>:
-        - define offset <player.flag[dcutscene_location_editor.offset]||null>
-        - if <[offset]> != null:
-          - define offset_mul <player.flag[dcutscene_location_editor.offset_mul]||0>
-          - define offset.x <[offset.x].sub[1].mul[<[offset_mul]>]>
-          - run dcutscene_location_button_change def:<[offset]>
-      on player right clicks block with:dcutscene_loc_left:
-      - if <player.has_flag[cutscene_modify]>:
-        - define offset <player.flag[dcutscene_location_editor.offset]||null>
-        - if <[offset]> != null:
-          - define offset_mul <player.flag[dcutscene_location_editor.offset_mul]||0>
-          - define offset.x <[offset.x].add[1].mul[<[offset_mul]>]>
-          - run dcutscene_location_button_change def:<[offset]>
-      on player right clicks block with:dcutscene_loc_mul_add:
-      - if <player.has_flag[cutscene_modify]>:
-        - define data <player.flag[dcutscene_location_editor]||null>
-        - if <[data]> != null:
-          - define mul_inc <[data.offset_mul].add[0.5]>
-          - if <[mul_inc]> < 10.0:
-            - flag <player> dcutscene_location_editor.offset_mul:<[mul_inc]>
-            - actionbar "<red><bold>Offset Multiplier + <[mul_inc]>"
-          - else:
-            - flag <player> dcutscene_location_editor.offset_mul:10.0
-            - define mul_inc 10.0
-            - actionbar "<red><bold>Offset Multiplier Maximum <[mul_inc]>"
-      on player right clicks block with:dcutscene_loc_mul_sub:
-      - if <player.has_flag[cutscene_modify]>:
-        - define data <player.flag[dcutscene_location_editor]||null>
-        - if <[data]> != null:
-          - define mul_inc <[data.offset_mul].sub[0.5]>
-          - if <[mul_inc]> >= 0:
-            - flag <player> dcutscene_location_editor.offset_mul:<[mul_inc]>
-            - actionbar "<blue><bold>Offset Multiplier - <[mul_inc]>"
-          - else:
-            - flag <player> dcutscene_location_editor.offset_mul:0.0
-            - define mul_inc 0.0
-            - actionbar "<blue><bold>Offset Multiplier Minimum <[mul_inc]>"
-      on player right clicks block with:dcutscene_loc_use_yaw:
-      - if <player.has_flag[cutscene_modify]>:
-        - define data <player.flag[dcutscene_location_editor]||null>
-        - if <[data]> != null:
-          - define use_yaw <[data.use_yaw]>
-          - choose <[use_yaw]>:
-            - case true:
-              - define use_yaw false
-            - case false:
-              - define use_yaw true
-          - flag <player> dcutscene_location_editor.use_yaw:<[use_yaw]>
-          - inventory set d:<player.inventory> o:dcutscene_loc_use_yaw slot:9
-
-#Task for changing the location based on the location button tool
-dcutscene_location_button_change:
-    type: task
-    debug: false
-    definitions: offset
-    script:
-    - define data <player.flag[dcutscene_location_editor]||null>
-    - define use_yaw <[data.use_yaw]>
-    - if <[use_yaw].equals[false]>:
-      - define loc <[data.location].with_pitch[0].relative[<[offset.x]>,<[offset.y]>,<[offset.z]>]>
-    - else:
-      - define loc <[data.location].with_yaw[<player.location.yaw>].with_pitch[0].relative[<[offset.x]>,<[offset.y]>,<[offset.z]>]>
-    - define root <[data.root_ent]||null>
-    - if <[root]> != null:
-      - teleport <[root]> <[loc]>
-      - run pmodels_reset_model_position def:<[root]>
-    - flag <player> dcutscene_location_editor.location:<[loc]>
-
-#Updates the ray tracer location tool
-dcutscene_location_ray_trace_update:
-    type: task
-    debug: false
-    script:
-    - define data <player.flag[dcutscene_location_editor]||null>
-    - if <[data]> != null:
-      - define ray_trace_bool <[data.ray_trace_bool]>
-      - choose <[ray_trace_bool]>:
-        - case true:
-          - define ray_trace_bool false
-          - actionbar "<red><bold>Ray Trace Off"
-        - case false:
-          - define ray_trace_bool true
-      - flag <player> dcutscene_location_editor.ray_trace_bool:<[ray_trace_bool]>
-      - if <[ray_trace_bool].is_truthy>:
-        - actionbar "<gold><bold>Ray Trace On"
-        - while <player.flag[dcutscene_location_editor.ray_trace_bool].equals[true]>:
-          - run dcutscene_location_edit_ray_trace def:<player.flag[dcutscene_location_editor.ray_trace_range]||5>
-          - wait 1t
-
-#Ray traces the location based on the player's cursor
-dcutscene_location_edit_ray_trace:
-    type: task
-    debug: false
-    definitions: max_range
-    script:
-    - define data <player.flag[dcutscene_location_editor]||null>
-    - if <[data]> != null:
-      - define nonsolid <[data.ray_trace_passable]>
-      - define water <[data.ray_trace_water]>
-      - define ray_trace <player.eye_location.ray_trace[range=<[max_range]>;default=air;fluids=<[water]>;nonsolids=<[nonsolid]>]||null>
-      - if <[ray_trace]> != null:
-        - define root <[data.root_ent]||null>
-        - if <[root]> != null:
-          #Rotate Model
-          - choose <player.flag[dcutscene_location_editor.reverse_model]>:
-            - case true:
-              - define yaw <player.location.rotate_yaw[180].yaw>
-            - case false:
-              - define yaw <player.location.yaw>
-          #If model cannot be moved in certain conditions
-          - define root_type <[data.root_type]>
-          #Special attribute like model, entity, or player skin
-          - define attribute <player.flag[dcutscene_location_editor.attribute]>
-          #Check if root model is not spawned and chunk is not loaded
-          - if !<[root].is_spawned> || !<[root].location.chunk.is_loaded>:
-            - choose <[root_type]>:
-              - case player_model:
-                - define skin <[attribute]>
-                - run pmodels_spawn_model def:<player.location>|<[skin].parsed>|<player> save:spawned
-                - define root <entry[spawned].created_queue.determination.first>
-                - flag <player> dcutscene_location_editor.root_ent:<[root]>
-              - case model:
-                - define model <[attribute]>
-                - run dmodels_spawn_model def:<[model]>|<player.location>|256|<player> save:spawned
-                - define root <entry[spawned].created_queue.determination.first>
-                - flag <player> dcutscene_location_editor.root_ent:<[root]>
-          #Fallback to check if distance is greater than view_distance or the world does not equal the player's world
-          - else if <[root].location.distance[<player.location>].horizontal||0> > <player.world.view_distance.mul[14]> || <[root].location.world> != <player.location.world>:
-            - choose <[root_type]>:
-              - case player_model:
-                - define skin <[attribute]>
-                - run pmodels_spawn_model def:<player.location>|<[skin].parsed>|<player> save:spawned
-                - define root <entry[spawned].created_queue.determination.first>
-                - flag <player> dcutscene_location_editor.root_ent:<[root]>
-              - case model:
-                - define model <[attribute]>
-                - run dmodels_spawn_model def:<[model]>|<player.location>|256|<player> save:spawned
-                - define root <entry[spawned].created_queue.determination.first>
-                - flag <player> dcutscene_location_editor.root_ent:<[root]>
-          - define ray_loc <[ray_trace].with_yaw[<[yaw]>]>
-          - teleport <[root]> <[ray_loc]>
-          - flag <player> dcutscene_location_editor.location:<[ray_loc]>
-          - choose <[root_type]>:
-            - case player_model:
-              - run pmodels_reset_model_position def:<[root]>
-            - case model:
-              - run dmodels_reset_model_position def:<[root]>
-        - else if <[root]> == null:
-          - flag <player> dcutscene_location_editor.location:<[ray_trace]>
-          - define tick_data <player.flag[dcutscene_save_data.data]||null>
-          - if <[tick_data]> != null:
-            - ratelimit <player> <script[dcutscene_config].data_key[config].get[cutscene_semi_path_update_interval]||0.5s>
-            - run dcutscene_semi_path_show def:<[ray_trace]>|<[data.root_type]>|<[tick_data.tick]>|<[tick_data.uuid]>
-        - else:
-          - flag <player> dcutscene_location_editor.location:<[root].location>
-          - define tick_data <player.flag[dcutscene_save_data.data]||null>
-          - if <[tick_data.uuid]||null> != null:
-            - ratelimit <player> <script[dcutscene_config].data_key[config].get[cutscene_semi_path_update_interval]||0.5s>
-            - run dcutscene_semi_path_show def:<[ray_trace]>|<[data.root_type]>|<[tick_data.tick]>|<player.flag[dcutscene_tick_modify.tick]||<player.flag[dcutscene_tick_modify]>>|<[tick_data.uuid]>
-
-#Increases the distance of the ray trace tool
-dcutscene_location_edit_ray_trace_add_dist:
-    type: task
-    debug: false
-    script:
-    - if <player.has_flag[cutscene_modify]>:
-      - define range <player.flag[dcutscene_location_editor.ray_trace_range]>
-      - define config_range <script[dcutscenes_config].data_key[config].get[cutscene_loc_tool_ray_dist]||5>
-      - if <[range]> < <[config_range]>:
-        - define range <[range].add[0.2]>
-        - flag <player> dcutscene_location_editor.ray_trace_range:<[range]>
-      - else if <[range]> > <[config_range]>:
-        - define range <[config_range]>
-        - flag <player> dcutscene_location_editor.ray_trace_range:<[range]>
-      - actionbar <red><bold><[range]>
-      - run dcutscene_location_edit_ray_trace def:<[range]>
-
-#Decreases the distance of the ray trace tool
-dcutscene_location_edit_ray_trace_sub_dist:
-    type: task
-    debug: false
-    script:
-    - if <player.has_flag[cutscene_modify]>:
-      - define range <player.flag[dcutscene_location_editor.ray_trace_range]>
-      - if <[range]> > 0:
-        - define range <[range].sub[0.2]>
-        - flag <player> dcutscene_location_editor.ray_trace_range:<[range]>
-      - else if <[range]> < 0:
-        - define range 0.2
-        - flag <player> dcutscene_location_editor.ray_trace_range:<[range]>
-      - actionbar <blue><bold><[range]>
-      - run dcutscene_location_edit_ray_trace def:<[range]>
-
-#Determine if the ray trace tool will ignore passable blocks
-dcutscene_location_edit_ray_trace_nonsolids:
-    type: task
-    debug: false
-    script:
-    - if <player.has_flag[cutscene_modify]>:
-      - define data <player.flag[dcutscene_location_editor]||null>
-      - if <[data]> != null:
-        - choose <[data.ray_trace_passable]>:
-          - case true:
-            - define nonsolid false
-          - case false:
-            - define nonsolid true
-        - flag <player> dcutscene_location_editor.ray_trace_passable:<[nonsolid]>
-        - inventory set d:<player.inventory> o:dcutscene_loc_ray_trace_nonsolids slot:4
-
-#Determine if the ray trace tool will ignore fluids
-dcutscene_location_edit_ray_trace_water:
-    type: task
-    debug: false
-    script:
-    - if <player.has_flag[cutscene_modify]>:
-      - define data <player.flag[dcutscene_location_editor]||null>
-      - if <[data]> != null:
-        - choose <[data.ray_trace_water]>:
-          - case true:
-            - define water false
-          - case false:
-            - define water true
-        - flag <player> dcutscene_location_editor.ray_trace_water:<[water]>
-        - inventory set d:<player.inventory> o:dcutscene_loc_ray_trace_water slot:5
-
-#Rotates the model 180 degrees
-dcutscene_location_edit_ray_trace_rotate_model:
-    type: task
-    debug: false
-    script:
-    - if <player.has_flag[cutscene_modify]>:
-      - define data <player.flag[dcutscene_location_editor]||null>
-      - if <[data]> != null:
-        - define reverse_model <[data.reverse_model]>
-        - choose <[reverse_model]>:
-          - case true:
-            - define reverse_model false
-          - case false:
-            - define reverse_model true
-        - flag <player> dcutscene_location_editor.reverse_model:<[reverse_model]>
-        - inventory set d:<player.inventory> o:dcutscene_loc_ray_trace_reverse_model slot:6
-
-#Sets up the player with the data for the location tool
-dcutscene_location_tool_give_data:
-    type: task
-    debug: false
-    definitions: loc|root_ent|yaw|type|attribute
-    script:
-    - define loc <location[<[loc]>]||null>
-    - if <[loc]> == null:
-      - debug error "Must specify location for location tool"
-      - stop
-    - define attribute <[attribute]||null>
-    - definemap offset x:0.0 y:0.0 z:0.0
-    - if <[yaw].exists>:
-      - define yaw <[yaw]>
-    - else:
-      - define yaw 0
-    #TODO:
-    #- Implement data for other location tool
-    #- definemap editor_data offset:<[offset]> offset_mul:1 yaw:<[yaw]> location:<[loc]> use_yaw:true
-    - definemap editor_data ray_trace_bool:false ray_trace_solids:false ray_trace_passable:false ray_trace_water:true reverse_model:false
-    - define editor_data.ray_trace_range <script[dcutscenes_config].data_key[config].get[cutscene_loc_tool_ray_dist]||5>
-    - flag <player> dcutscene_location_editor:<[editor_data]>
-    - if <entity[<[root_ent]>]||null> != null:
-      - flag <player> dcutscene_location_editor.root_ent:<[root_ent]>
-      - flag <player> dcutscene_location_editor.location:<[root_ent].location>
-    - if <[type]||null> != null:
-      - flag <player> dcutscene_location_editor.root_type:<[type]>
-    - if <[attribute]||null> != null:
-      - flag <player> dcutscene_location_editor.attribute:<[attribute]>
-    - flag <player> dcutscene_location_editor.inv:<player.inventory.map_slots>
-
-#Location Button Tool Inventory
-dcutscene_location_toolset_inv:
-    type: task
-    debug: false
-    script:
-    - define inv <player.inventory>
-    - inventory set d:<[inv]> o:dcutscene_loc_forward slot:1
-    - inventory set d:<[inv]> o:dcutscene_loc_backward slot:2
-    - inventory set d:<[inv]> o:dcutscene_loc_up slot:3
-    - inventory set d:<[inv]> o:dcutscene_loc_down slot:4
-    - inventory set d:<[inv]> o:dcutscene_loc_left slot:5
-    - inventory set d:<[inv]> o:dcutscene_loc_right slot:6
-    - inventory set d:<[inv]> o:dcutscene_loc_mul_sub slot:7
-    - inventory set d:<[inv]> o:dcutscene_loc_mul_add slot:8
-    - inventory set d:<[inv]> o:dcutscene_loc_use_yaw slot:9
-    - inventory close
-
-dcutscene_location_tool_return_inv:
-    type: task
-    debug: false
-    script:
-    - inventory swap d:<player.inventory> o:<player.flag[dcutscene_location_editor.inv]>
-
-#Ray Trace Tool Inventory
-dcutscene_location_raytrace_inv:
-    type: task
-    debug: false
-    script:
-    - define inv <player.inventory>
-    - inventory set d:<[inv]> o:dcutscene_loc_ray_trace slot:1
-    - inventory set d:<[inv]> o:dcutscene_loc_ray_trace_dist_add slot:2
-    - inventory set d:<[inv]> o:dcutscene_loc_ray_trace_dist_sub slot:3
-    - inventory set d:<[inv]> o:dcutscene_loc_ray_trace_nonsolids slot:4
-    - inventory set d:<[inv]> o:dcutscene_loc_ray_trace_water slot:5
-    - inventory set d:<[inv]> o:dcutscene_loc_ray_trace_reverse_model slot:6
-    - inventory close
-    - adjust <player> item_slot:1
-#############################################################################
-
 #======== Stop Cutscene Modifier ========
 dcutscene_stop_scene_keyframe:
     type: task
@@ -499,10 +86,9 @@ dcutscene_cam_keyframe_edit:
             - narrate "<[msg_prefix]> <gray><[text]>"
           - else:
             - flag <player> cutscene_modify:create_cam expire:120s
-            - spawn dcutscene_camera_entity <player.location> save:camera
-            - define camera <entry[camera].spawned_entity>
+            - fakespawn dcutscene_camera_entity[equipment=[helmet=<item[dcutscene_camera_item]>]] <player.location> players:<player> d:10s save:camera
+            - define camera <entry[camera].faked_entity>
             - flag <player> dcutscene_camera:<[camera]>
-            - fakeequip <[camera]> head:<item[dcutscene_camera_item]>
             - define text "Go to the location you'd like this camera to be at and chat <green>confirm<gray>."
             - narrate "<[msg_prefix]> <gray><[text]>"
             - adjust <player> gamemode:spectator
@@ -518,7 +104,6 @@ dcutscene_cam_keyframe_edit:
           #data input
           - definemap eye_loc location:<[ray]> boolean:false
           - definemap cam_keyframe location:<player.location> rotate_mul:1.0 interpolation:linear move:true eye_loc:<[eye_loc]> tick:<[tick]> recording:false
-          #Reason we're storing the tick is so the sort task has something to sort the map with
           - look <[camera]> <[ray]> duration:2t
           - adjust <[camera]> armor_pose:[head=<player.location.pitch.to_radians>,0.0,0.0]
           #=-Debugger
@@ -550,17 +135,14 @@ dcutscene_cam_keyframe_edit:
 
         #========= Edit the camera keyframe modifier =========
         - case edit:
-          - if <[arg]> != null:
-            - define inv <player.open_inventory>
             - define modify_loc <item[dcutscene_camera_loc_modify]>
             - choose <[arg]>:
               #Preparation for new location in present camera keyframe
               - case new_location:
                 - flag <player> cutscene_modify:create_present_cam expire:120s
-                - spawn dcutscene_camera_entity <player.location> save:camera
-                - define camera <entry[camera].spawned_entity>
+                - fakespawn dcutscene_camera_entity[equipment=[helmet=<item[dcutscene_camera_item]>]] <player.location> players:<player> d:10s save:camera
+                - define camera <entry[camera].faked_entity>
                 - flag <player> dcutscene_camera:<[camera]>
-                - fakeequip <[camera]> head:<item[dcutscene_camera_item]>
                 - define text "Go to the location you'd like this camera to be at and chat <green>confirm<gray>."
                 - narrate "<[msg_prefix]> <gray><[text]>"
                 - adjust <player> gamemode:spectator
@@ -766,8 +348,8 @@ dcutscene_cam_keyframe_edit:
                   - define key_time <[keyframe_check.tick]>
                   - define text "There is a camera animator at tick <green><[key_time]>t<gray>."
                   - define calc_time <[key_time].sub[<[tick]>]>t
-                  - clickable dcutscene_cam_keyframe_edit usages:1 def:edit|record_camera_begin|default save:default
-                  - clickable dcutscene_cam_keyframe_edit usages:1 def:edit|record_camera_duration_chat save:own
+                  - clickable dcutscene_cam_keyframe_edit def:edit|record_camera_begin|default usages:1 save:default
+                  - clickable dcutscene_cam_keyframe_edit def:edit|record_camera_duration_chat usages:1 save:own
                   - define prefix <[msg_prefix]>
                   - define click_default "<element[<green><bold>Use duration <[calc_time]>].on_hover[<[prefix]> <gray>Use the duration calculated.].type[SHOW_TEXT].on_click[<entry[default].command>]>"
                   - define click_own "<element[<aqua><bold>Use my own].on_hover[<[prefix]> <gray>Chat your own duration (Must be less than duration <[calc_time]>).].type[SHOW_TEXT].on_click[<entry[own].command>]>"
@@ -970,8 +552,6 @@ dcutscene_cam_keyframe_edit:
                 - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
                 - inventory open d:dcutscene_inventory_sub_keyframe
                 - ~run dcutscene_sub_keyframe_modify def:<player.flag[dcutscene_sub_keyframe_back_data]>
-          - else:
-            - debug error "Could not determine argument for edit option in dcutscene_cam_keyframe_edit"
 ############################
 
 #========== Models and Entity Modifiers ============
@@ -1108,7 +688,7 @@ dcutscene_model_keyframe_edit:
                     - flag <player> dcutscene_save_data.root:<[root]>
                     - flag <player> dcutscene_save_data.model:<[arg_2]>
                     - run dcutscene_location_tool_give_data def:<player.location>|<[root]>|<[root].location.yaw>|model|<[model]>
-                    - define text "After choosing your location for this model click <green>Confirm Location <gray>in the location GUI or chat <green>confirm <gray>. To re-open the location GUI do /dcutscene location."
+                    - define text "After choosing your location for this model click <green>Confirm Location <gray>in the location GUI or chat <green>confirm<gray>. To re-open the location GUI do /dcutscene location."
                     - narrate "<[msg_prefix]> <gray><[text]>"
                     - inventory open d:dcutscene_inventory_location_tool
                   - else:
@@ -1173,7 +753,7 @@ dcutscene_model_keyframe_edit:
                         - if <player.has_flag[dcutscene_location_editor]>:
                           - define loc_data <player.flag[dcutscene_location_editor]>
                           - run dcutscene_model_remove def:<[loc_data.root_type]>|<[loc_data.root_ent]>
-                        - define text "After choosing your location for this model click <green>Confirm Location <gray>in the location GUI or chat <green>confirm <gray>. To re-open the location GUI do /dcutscene location."
+                        - define text "After choosing your location for this model click <green>Confirm Location <gray>in the location GUI or chat <green>confirm<gray>. To re-open the location GUI do /dcutscene location."
                         - narrate "<[msg_prefix]> <gray><[text]>"
                         - flag <player> dcutscene_save_data.data:<[root_save]>
                         - define model <[root_data.model]>
@@ -1317,7 +897,7 @@ dcutscene_model_keyframe_edit:
                   - define model <[model_data.<[tick]>.<[uuid]>.model]>
                 - else:
                   - define model <[model_data.<[root_save.tick]>.<[root_save.uuid]>.model]>
-                - define text "After choosing your location for this model click <green>Confirm Location <gray>in the location GUI or chat <green>confirm <gray>. To re-open the location GUI do /dcutscene location."
+                - define text "After choosing your location for this model click <green>Confirm Location <gray>in the location GUI or chat <green>confirm<gray>. To re-open the location GUI do /dcutscene location."
                 - narrate "<[msg_prefix]> <gray><[text]>"
                 - flag <player> cutscene_modify:set_new_model_location
                 - flag <player> dcutscene_save_data.data:<[root_save]>
@@ -1468,7 +1048,7 @@ dcutscene_model_keyframe_edit:
                 - flag <player> cutscene_modify:set_model_animation
                 - flag <player> dcutscene_save_data.type:model
                 - flag <player> dcutscene_save_data.model:<[model]>
-                - define text "To set the animation use the command <green>/dcutscene animate my_animation <gray>to prevent an animation from playing put <red>false<gray> to stop an animation from playing put <red>stop<gray>."
+                - define text "To set the animation use the command /dcutscene animate <green>my_animation <gray>to prevent an animation from playing put <red>false<gray> to stop an animation from playing put <red>stop<gray>."
                 - narrate "<[msg_prefix]> <gray><[text]>"
                 - inventory close
 
@@ -1649,85 +1229,10 @@ dcutscene_model_keyframe_edit:
               - case move_to:
                 - define tick <player.flag[dcutscene_tick_modify]>
                 - define move_data <player.flag[dcutscene_animator_change]>
-                - define model_data <[data.keyframes.models]>
-                - define root_data <[model_data.<[move_data.tick]>.<[move_data.uuid]>.root]||none>
-                #Condition Checks
-                #= Non-root model (sub-frame)
-                - if <[root_data]> != none:
-                  - define root_tick <[root_data.tick]>
-                  #If the tick is less than the root tick stop and tell the user
-                  - if <[tick]> <= <[root_tick]>:
-                    - define text "The tick must be greater than the root data tick <green><[root_tick]>t <gray>."
-                    - narrate "<[msg_prefix]> <gray><[text]>"
-                    - stop
-                  #-Root Update
-                  #Data for new tick in path
-                  - define path_tick <[model_data.<[root_data.tick]>.<[root_data.uuid]>.path.<[move_data.tick]>].deep_with[tick].as[<[tick]>]>
-                  #Remove old ticks in path for root data
-                  - define model_data.<[root_data.tick]>.<[root_data.uuid]>.path <[model_data.<[root_data.tick]>.<[root_data.uuid]>.path].deep_exclude[<[move_data.tick]>]>
-                  #Update the path for root model
-                  - define model_data.<[root_data.tick]>.<[root_data.uuid]>.path.<[tick]>:<[path_tick]>
-                  #Update sub frames
-                  - define model_data.<[root_data.tick]>.<[root_data.uuid]>.sub_frames <[model_data.<[root_data.tick]>.<[root_data.uuid]>.sub_frames].deep_exclude[<[move_data.tick]>]>
-                  - define model_data.<[root_data.tick]>.<[root_data.uuid]>.sub_frames.<[tick]>:<[move_data.uuid]>
-                  #-Model Update
-                  #Remove (non-root) model from tick
-                  - define model_data.<[move_data.tick]> <[model_data.<[move_data.tick]>].deep_exclude[<[move_data.uuid]>]>
-                  #Remove from the model list
-                  - define model_data.<[move_data.tick]>.model_list:<-:<[move_data.uuid]>
-                  - if <[model_data.<[move_data.tick]>.model_list].is_empty>:
-                    - define model_data <[model_data].deep_exclude[<[move_data.tick]>]>
-                  #Set new data
-                  - define model_data.<[tick]>.<[move_data.uuid]>:<[move_data.data]>
-                  - define model_data.<[tick]>.model_list:->:<[move_data.uuid]>
-                #= Root Model
-                - else:
-                  #If root model is already at tick stop
-                  - if <[move_data.tick]> == <[tick]>:
-                    - define text "There is already a root data tick there."
-                    - narrate "<[msg_prefix]> <gray><[text]>"
-                    - stop
-                  - define path <[model_data.<[move_data.tick]>.<[move_data.uuid]>.path]||<list>>
-                  #If the model is a root model ensure it does not exceed the path ticks if available
-                  - if !<[path].is_empty> && <[path].keys.first> != <[move_data.tick]>:
-                    - define path_keys <[path].keys>
-                    - foreach <[path_keys]> as:key:
-                      - if <[key]> > <[tick]>:
-                        - define first <[key]>
-                        - foreach stop
-                    - if <[tick]> > <[first]>:
-                      - define text "A root data tick cannot exceed sub frames."
-                      - narrate "<[msg_prefix]> <gray><[text]>"
-                      - stop
-                  #Update Sub Frames
-                  - foreach <[model_data.<[move_data.tick]>.<[move_data.uuid]>.sub_frames]> key:sub_tick as:sub_uuid:
-                    - define model_data.<[sub_tick]>.<[sub_uuid]>.root.tick:<[tick]>
-                  #Update Root Data
-                  - define model_data.<[move_data.tick]> <[model_data.<[move_data.tick]>].deep_exclude[<[move_data.uuid]>]>
-                  - define model_data.<[move_data.tick]>.model_list:<-:<[move_data.uuid]>
-                  - if <[model_data.<[move_data.tick]>.model_list].is_empty>:
-                    - define model_data <[model_data].deep_exclude[<[move_data.tick]>]>
-                  #Set new data
-                  - define model_data.<[tick]>.<[move_data.uuid]>:<[move_data.data]>
-                  - define model_data.<[tick]>.model_list:->:<[move_data.uuid]>
-                  #Data for new tick in path
-                  - define path_tick <[model_data.<[tick]>.<[move_data.uuid]>.path.<[move_data.tick]>].deep_with[tick].as[<[tick]>]>
-                  - define model_data.<[tick]>.<[move_data.uuid]>.path.<[tick]>:<[path_tick]>
-                  #Remove old ticks in path for root data
-                  - define model_data.<[tick]>.<[move_data.uuid]>.path <[model_data.<[tick]>.<[move_data.uuid]>.path].deep_exclude[<[move_data.tick]>]>
-                #=-Debugger
-                - if <script[dcutscenes_config].data_key[config].get[cutscene_tool_debugger_mode].if_null[false].is_truthy>:
-                  - ~run dcutscene_debugger def:model_move_to|<[model_data]>
-                  - stop
-                #Set New Data
-                - flag server dcutscenes.<[data.name]>.keyframes.models:<[model_data]>
-                - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
-                - flag <player> dcutscene_animator_change:!
-                - ~run dcutscene_sort_data def:<[data.name]>
-                - inventory open d:dcutscene_inventory_sub_keyframe
-                - ~run dcutscene_sub_keyframe_modify def:<player.flag[dcutscene_sub_keyframe_back_data]>
-                - define text "Animator <green><[move_data.animator]> <gray>from tick <green><[move_data.tick]>t <gray>has been moved to tick <green><[tick]>t <gray>for scene <green><[data.name]><gray>."
-                - narrate "<[msg_prefix]> <gray><[text]>"
+                - ~run dcutscene_move_model_animator save:result
+                - if <entry[result].created_queue.determination.first> == valid:
+                  - define text "Animator <green><[move_data.animator]> <gray>from tick <green><[move_data.tick]>t <gray>has been moved to tick <green><[tick]>t <gray>for scene <green><[data.name]><gray>."
+                  - narrate "<[msg_prefix]> <gray><[text]>"
 
               #Duplicate prep
               - case duplicate_prep:
@@ -1744,163 +1249,26 @@ dcutscene_model_keyframe_edit:
               - case duplicate:
                 - define tick <player.flag[dcutscene_tick_modify]>
                 - define dup_data <player.flag[dcutscene_animator_change]>
-                - define model_data <[data.keyframes.models]>
-                - define root_data <[model_data.<[dup_data.tick]>.<[dup_data.uuid]>.root]||none>
-                #Condition Checks
-                #= Non-root model (sub-frame)
-                - if <[root_data]> != none:
-                  - define root_tick <[root_data.tick]>
-                  #If the tick is less than the root tick stop and tell the user
-                  - if <[tick]> <= <[root_tick]>:
-                    - define text "The tick must be greater than the root data tick <green><[root_tick]>t <gray>."
-                    - narrate "<[msg_prefix]> <gray><[text]>"
-                    - stop
-                  #-Root Update
-                  #Memory data for new tick in path
-                  - define path_tick <[model_data.<[root_data.tick]>.<[root_data.uuid]>.path.<[dup_data.tick]>].deep_with[tick].as[<[tick]>]>
-                  #Update the path for root model
-                  - define model_data.<[root_data.tick]>.<[root_data.uuid]>.path.<[tick]>:<[path_tick]>
-                  #Update sub frames
-                  - define model_data.<[root_data.tick]>.<[root_data.uuid]>.sub_frames.<[tick]>:<[dup_data.uuid]>
-                  #-Model Update
-                  #Set new data
-                  - define model_data.<[tick]>.<[dup_data.uuid]>:<[dup_data.data]>
-                  - define model_data.<[tick]>.model_list:->:<[dup_data.uuid]>
-                #= Root Model
-                - else:
-                  #If root model is already at tick stop
-                  - if <[dup_data.tick]> == <[tick]>:
-                    - define text "There is already a root data tick there."
-                    - narrate "<[msg_prefix]> <gray><[text]>"
-                    - stop
-                  - define path <[model_data.<[dup_data.tick]>.<[dup_data.uuid]>.path]||<list>>
-                  #If the model is a root model ensure it does not exceed the path ticks if available
-                  - if !<[path].is_empty> && <[path].keys.first> != <[dup_data.tick]>:
-                    - define path_keys <[path].keys>
-                    - foreach <[path_keys]> as:key:
-                      - if <[key]> > <[tick]>:
-                        - define first <[key]>
-                        - foreach stop
-                    - if <[tick]> > <[first]>:
-                      - define text "A root data tick cannot exceed sub frames."
-                      - narrate "<[msg_prefix]> <gray><[text]>"
-                      - stop
-                  - define new_root_data <[model_data.<[dup_data.tick]>.<[dup_data.uuid]>].deep_exclude[sub_frames]>
-                  - define new_root_data.path false
-                  - definemap root_map tick:<[dup_data.tick]> uuid:<[dup_data.uuid]>
-                  - define new_root_data.root:<[root_map]>
-                  - define model_data.<[tick]>.<[dup_data.uuid]>:<[new_root_data]>
-                  - define model_data.<[tick]>.model_list:->:<[dup_data.uuid]>
-                  #Update Root Model
-                  - define new_path_data <[model_data.<[dup_data.tick]>.<[dup_data.uuid]>.path.<[dup_data.tick]>]>
-                  #Root Path Update
-                  - define model_data.<[dup_data.tick]>.<[dup_data.uuid]>.path.<[tick]>:<[new_path_data]>
-                  #Root sub-frames Update
-                  - define model_data.<[dup_data.tick]>.<[dup_data.uuid]>.sub_frames.<[tick]>:<[dup_data.uuid]>
-                #=-Debugger
-                - if <script[dcutscenes_config].data_key[config].get[cutscene_tool_debugger_mode].if_null[false].is_truthy>:
-                  - ~run dcutscene_debugger def:player_model_duplicate|<[model_data]>
-                  - stop
-                #Set New Data
-                - flag server dcutscenes.<[data.name]>.keyframes.models:<[model_data]>
-                - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
-                - flag <player> dcutscene_animator_change:!
-                - ~run dcutscene_sort_data def:<[data.name]>
-                - inventory open d:dcutscene_inventory_sub_keyframe
-                - ~run dcutscene_sub_keyframe_modify def:<player.flag[dcutscene_sub_keyframe_back_data]>
-                - define text "Animator <green><[dup_data.animator].replace[_].with[ ]> <gray>from tick <green><[dup_data.tick]>t <gray>has been duplicated to tick <green><[tick]>t <gray>for scene <green><[data.name]><gray>."
+                - ~run dcutscene_duplicate_model_animator save:result
+                - if <entry[result].created_queue.determination.first> == valid:
+                  - define text "Animator <green><[dup_data.animator]> <gray>from tick <green><[dup_data.tick]>t <gray>has been duplicated to tick <green><[tick]>t <gray>for scene <green><[data.name]><gray>."
+                  - narrate "<[msg_prefix]> <gray><[text]>"
+
+              #Play the cutscene from this tick
+              - case play_from_here:
+                - inventory close
+                - define tick <player.flag[dcutscene_tick_modify.tick]>
+                - run dcutscene_animation_begin def.scene:<[data.name]> def.player:<player> def.timespot:<[tick].sub[1]>t
+                - define text "Playing scene <green><[data.name]> <gray>on tick <green><[tick]>t<gray>."
                 - narrate "<[msg_prefix]> <gray><[text]>"
 
               #Removes model from tick
               - case remove_tick:
-                - define tick_data <player.flag[dcutscene_tick_modify]>
-                - define tick <[tick_data.tick]>
-                - define uuid <[tick_data.uuid]>
-                - define model_data <[data.keyframes.models]>
-                - define root_data <[model_data.<[tick]>.<[uuid]>.root]||none>
-                #If the model has a root data model
-                - if <[root_data]> != none:
-                  #Update the root data model
-                  - define root_update <[model_data.<[root_data.tick]>.<[root_data.uuid]>]>
-                  - define root_update.sub_frames <[root_update.sub_frames].deep_exclude[<[tick]>]>
-                  - define root_update.path <[root_update.path].deep_exclude[<[tick]>]>
-                  #Check if the updated data has empty sub_frames
-                  - if <[root_update.sub_frames].is_empty>:
-                    - define root_update.sub_frames none
-                  #Remove the specified tick player model
-                  - define model_data.<[root_data.tick]>.<[root_data.uuid]> <[root_update]>
-                  - define model_data.<[tick]>.model_list:<-:<[uuid]>
-                  - define model_data.<[tick]> <[model_data.<[tick]>].exclude[<[uuid]>]>
-                  #If the model list is empty remove tick
-                  - if <[model_data.<[tick]>.model_list].is_empty>:
-                    - define model_data <[model_data].deep_exclude[<[tick]>]>
-                  #=-Debugger
-                  - if <script[dcutscenes_config].data_key[config].get[cutscene_tool_debugger_mode].if_null[false].is_truthy>:
-                    - ~run dcutscene_debugger def:model_remove_tick|<[model_data]>
-                    - stop
-                  - define text "Model <green><[data.keyframes.models.<[tick]>.<[uuid]>.id]> <gray>has been removed from tick <green><[tick]>t <gray>in scene <green><[data.name]><gray>."
-                  - narrate "<[msg_prefix]> <gray><[text]>"
-                  - flag server dcutscenes.<[data.name]>.keyframes.models:<[model_data]>
-                  - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
-                  - inventory open d:dcutscene_inventory_sub_keyframe
-                  - ~run dcutscene_sub_keyframe_modify def:<player.flag[dcutscene_sub_keyframe_back_data]>
-                #If the model is a root data model
-                - else:
-                  - inventory close
-                  - clickable dcutscene_model_keyframe_edit def:denizen_model|remove_all save:remove_model
-                  - define prefix <[msg_prefix]>
-                  - define text "This is a starting point model removing this will remove the model from the cutscene proceed? <green><bold><element[Yes].on_hover[<[prefix]> <gray>This will permanently remove this model from this scene.].type[SHOW_TEXT].on_click[<entry[remove_model].command>]>"
-                  - narrate "<[prefix]> <gray><[text]>"
+                - run dcutscene_remove_model_animator_from_tick def.type:model
 
               #Removes model from entire cutscene
               - case remove_all:
-                - define tick_data <player.flag[dcutscene_tick_modify]>
-                - define tick <[tick_data.tick]>
-                - define uuid <[tick_data.uuid]>
-                - define model_data <[data.keyframes.models]>
-                - define root_data <[model_data.<[tick]>.<[uuid]>.root]||none>
-                #=Non root (sub-frame) model
-                - if <[root_data]> != none:
-                  - define sub_frames <[model_data.<[root_data.tick]>.<[root_data.uuid]>.sub_frames]||<list>>
-                  #Remove sub frames
-                  - foreach <[sub_frames]> key:tick_id as:subframe:
-                    - define model_data.<[tick_id]> <[model_data.<[tick_id]>].deep_exclude[<[subframe]>]>
-                    - define model_data.<[tick_id]>.model_list:<-:<[subframe]>
-                    #If the model list is empty remove the tick
-                    - if <[model_data.<[tick_id]>.model_list].is_empty>:
-                      - define model_data <[model_data].deep_exclude[<[tick_id]>]>
-                  #Remove the root
-                  - define model_data.<[root_data.tick]> <[model_data.<[root_data.tick]>].exclude[<[root_data.uuid]>]>
-                  - define model_data.<[root_data.tick]>.model_list:<-:<[root_data.uuid]>
-                  #If the model list is empty remove the tick
-                  - if <[model_data.<[root_data.tick]>.model_list].is_empty>:
-                    - define model_data <[model_data].deep_exclude[<[root_data.tick]>]>
-                #=Root Model
-                - else:
-                  #Remove sub frames
-                  - define sub_frames <[model_data.<[tick]>.<[uuid]>.sub_frames]||<list>>
-                  - foreach <[sub_frames]> key:tick_id as:subframe:
-                    - define model_data.<[tick_id]> <[model_data.<[tick_id]>].deep_exclude[<[subframe]>]>
-                    - define model_data.<[tick_id]>.model_list:<-:<[subframe]>
-                    #If the model list is empty remove the tick
-                    - if <[model_data.<[tick_id]>.model_list].is_empty>:
-                      - define model_data <[model_data].deep_exclude[<[tick_id]>]>
-                  #Remove the root
-                  - define model_data.<[tick]> <[model_data.<[tick]>].deep_exclude[<[uuid]>]>
-                  - define model_data.<[tick]>.model_list:<-:<[uuid]>
-                  #If the model list is empty remove the tick
-                  - if <[model_data.<[tick]>.model_list].is_empty>:
-                    - define model_data <[model_data].deep_exclude[<[tick]>]>
-                #=-Debugger
-                - if <script[dcutscenes_config].data_key[config].get[cutscene_tool_debugger_mode].if_null[false].is_truthy>:
-                  - ~run dcutscene_debugger def:model_remove_all|<[model_data]>
-                  - stop
-                - define text "Model <green><[data.keyframes.models.<[tick]>.<[uuid]>.id]> <gray>has been removed from scene <green><[data.name]><gray>."
-                - narrate "<[msg_prefix]> <gray><[text]>"
-                - flag server dcutscenes.<[data.name]>.keyframes.models:<[model_data]>
-                - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
-                - inventory open d:dcutscene_inventory_sub_keyframe
-                - ~run dcutscene_sub_keyframe_modify def:<player.flag[dcutscene_sub_keyframe_back_data]>
+                - run dcutscene_remove_model_animator_all def.type:model
 
         #======== Denizen Player Models Modifier =========
         - case player_model:
@@ -1999,7 +1367,7 @@ dcutscene_model_keyframe_edit:
                   - flag <player> dcutscene_save_data.root:<[root]>
                   #Give the location tool
                   - run dcutscene_location_tool_give_data def:<player.location>|<[root]>|<[root].location.yaw>|player_model|<[skin]>
-                  - define text "After choosing your location for this player model click <green>Confirm Location <gray>in the location GUI or chat <green>confirm <gray>. To re-open the location GUI do /dcutscene location."
+                  - define text "After choosing your location for this player model click <green>Confirm Location <gray>in the location GUI or chat <green>confirm<gray>. To re-open the location GUI do /dcutscene location."
                   - narrate "<[msg_prefix]> <gray><[text]>"
                   - inventory open d:dcutscene_inventory_location_tool
 
@@ -2052,7 +1420,7 @@ dcutscene_model_keyframe_edit:
                         - if <player.has_flag[dcutscene_location_editor]>:
                           - define loc_data <player.flag[dcutscene_location_editor]>
                           - run dcutscene_model_remove def:<[loc_data.root_type]>|<[loc_data.root_ent]>
-                        - define text "After choosing your location for this player model click <green>Confirm Location <gray>in the location GUI or chat <green>confirm <gray>. To re-open the location GUI do /dcutscene location."
+                        - define text "After choosing your location for this player model click <green>Confirm Location <gray>in the location GUI or chat <green>confirm<gray>. To re-open the location GUI do /dcutscene location."
                         - narrate "<[msg_prefix]> <gray><[text]>"
                         - flag <player> dcutscene_save_data.data:<[root_save]>
                         - define skin <proc[dcutscene_determine_player_model_skin].context[<[data.name]>|<[root_tick]>|<[root_uuid]>]>
@@ -2168,7 +1536,7 @@ dcutscene_model_keyframe_edit:
                     - if <[root_save]> == none:
                       - define root_save.tick <[tick]>
                       - define root_save.uuid <[uuid]>
-                    - define text "After choosing your location for this player model click <green>Confirm Location <gray>in the location GUI or chat <green>confirm <gray>. To re-open the location GUI do /dcutscene location."
+                    - define text "After choosing your location for this player model click <green>Confirm Location <gray>in the location GUI or chat <green>confirm<gray>. To re-open the location GUI do /dcutscene location."
                     - narrate "<[msg_prefix]> <gray><[text]>"
                     - flag <player> cutscene_modify:set_new_player_model_location
                     - flag <player> dcutscene_save_data.data:<[root_save]>
@@ -2215,7 +1583,7 @@ dcutscene_model_keyframe_edit:
                   - case new_animation_prepare:
                     - flag <player> cutscene_modify:set_model_animation
                     - flag <player> dcutscene_save_data.type:player_model
-                    - define text "To set the animation use the command <green>/dcutscene animate my_animation <gray>to prevent an animation from playing put <red>false<gray> to stop an animation from playing put <red>stop<gray>."
+                    - define text "To set the animation use the command /dcutscene animate <green>my_animation <gray>to prevent an animation from playing put <red>false<gray> to stop an animation from playing put <red>stop<gray>."
                     - narrate "<[msg_prefix]> <gray><[text]>"
                     - inventory close
 
@@ -2532,85 +1900,10 @@ dcutscene_model_keyframe_edit:
               - case move_to:
                 - define tick <player.flag[dcutscene_tick_modify]>
                 - define move_data <player.flag[dcutscene_animator_change]>
-                - define model_data <[data.keyframes.models]>
-                - define root_data <[model_data.<[move_data.tick]>.<[move_data.uuid]>.root]||none>
-                #Condition Checks
-                #= Non-root model (sub-frame)
-                - if <[root_data]> != none:
-                  - define root_tick <[root_data.tick]>
-                  #If the tick is less than the root tick stop and tell the user
-                  - if <[tick]> <= <[root_tick]>:
-                    - define text "The tick must be greater than the root data tick <green><[root_tick]>t <gray>."
-                    - narrate "<[msg_prefix]> <gray><[text]>"
-                    - stop
-                  #-Root Update
-                  #Data for new tick in path
-                  - define path_tick <[model_data.<[root_data.tick]>.<[root_data.uuid]>.path.<[move_data.tick]>].deep_with[tick].as[<[tick]>]>
-                  #Remove old ticks in path for root data
-                  - define model_data.<[root_data.tick]>.<[root_data.uuid]>.path <[model_data.<[root_data.tick]>.<[root_data.uuid]>.path].deep_exclude[<[move_data.tick]>]>
-                  #Update the path for root model
-                  - define model_data.<[root_data.tick]>.<[root_data.uuid]>.path.<[tick]>:<[path_tick]>
-                  #Update sub frames
-                  - define model_data.<[root_data.tick]>.<[root_data.uuid]>.sub_frames <[model_data.<[root_data.tick]>.<[root_data.uuid]>.sub_frames].deep_exclude[<[move_data.tick]>]>
-                  - define model_data.<[root_data.tick]>.<[root_data.uuid]>.sub_frames.<[tick]>:<[move_data.uuid]>
-                  #-Model Update
-                  #Remove (non-root) model from tick
-                  - define model_data.<[move_data.tick]> <[model_data.<[move_data.tick]>].deep_exclude[<[move_data.uuid]>]>
-                  #Remove from the model list
-                  - define model_data.<[move_data.tick]>.model_list:<-:<[move_data.uuid]>
-                  - if <[model_data.<[move_data.tick]>.model_list].is_empty>:
-                    - define model_data <[model_data].deep_exclude[<[move_data.tick]>]>
-                  #Set new data
-                  - define model_data.<[tick]>.<[move_data.uuid]>:<[move_data.data]>
-                  - define model_data.<[tick]>.model_list:->:<[move_data.uuid]>
-                #= Root Model
-                - else:
-                  #If root model is already at tick stop
-                  - if <[move_data.tick]> == <[tick]>:
-                    - define text "There is already a root data tick there."
-                    - narrate "<[msg_prefix]> <gray><[text]>"
-                    - stop
-                  - define path <[model_data.<[move_data.tick]>.<[move_data.uuid]>.path]||<list>>
-                  #If the model is a root model ensure it does not exceed the path ticks if available
-                  - if !<[path].is_empty> && <[path].keys.first> != <[move_data.tick]>:
-                    - define path_keys <[path].keys>
-                    - foreach <[path_keys]> as:key:
-                      - if <[key]> > <[tick]>:
-                        - define first <[key]>
-                        - foreach stop
-                    - if <[tick]> > <[first]>:
-                      - define text "A root data tick cannot exceed sub frames."
-                      - narrate "<[msg_prefix]> <gray><[text]>"
-                      - stop
-                  #Update Root Data
-                  - define model_data.<[move_data.tick]> <[model_data.<[move_data.tick]>].deep_exclude[<[move_data.uuid]>]>
-                  - define model_data.<[move_data.tick]>.model_list:<-:<[move_data.uuid]>
-                  - if <[model_data.<[move_data.tick]>.model_list].is_empty>:
-                    - define model_data <[model_data].deep_exclude[<[move_data.tick]>]>
-                  #Update Sub Frames
-                  - foreach <[model_data.<[move_data.tick]>.<[move_data.uuid]>.sub_frames]> key:sub_tick as:sub_uuid:
-                    - define model_data.<[sub_tick]>.<[sub_uuid]>.root.tick:<[tick]>
-                  #Set new data
-                  - define model_data.<[tick]>.<[move_data.uuid]>:<[move_data.data]>
-                  - define model_data.<[tick]>.model_list:->:<[move_data.uuid]>
-                  #Data for new tick in path
-                  - define path_tick <[model_data.<[tick]>.<[move_data.uuid]>.path.<[move_data.tick]>].deep_with[tick].as[<[tick]>]>
-                  - define model_data.<[tick]>.<[move_data.uuid]>.path.<[tick]>:<[path_tick]>
-                  #Remove old ticks in path for root data
-                  - define model_data.<[tick]>.<[move_data.uuid]>.path <[model_data.<[tick]>.<[move_data.uuid]>.path].deep_exclude[<[move_data.tick]>]>
-                #=-Debugger
-                - if <script[dcutscenes_config].data_key[config].get[cutscene_tool_debugger_mode].if_null[false].is_truthy>:
-                  - ~run dcutscene_debugger def:player_model_move_to|<[model_data]>
-                  - stop
-                #Set New Data
-                - flag server dcutscenes.<[data.name]>.keyframes.models:<[model_data]>
-                - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
-                - flag <player> dcutscene_animator_change:!
-                - ~run dcutscene_sort_data def:<[data.name]>
-                - inventory open d:dcutscene_inventory_sub_keyframe
-                - ~run dcutscene_sub_keyframe_modify def:<player.flag[dcutscene_sub_keyframe_back_data]>
-                - define text "Animator <green><[move_data.animator].replace[_].with[ ]> <gray>from tick <green><[move_data.tick]>t <gray>has been moved to tick <green><[tick]>t <gray>for scene <green><[data.name]><gray>."
-                - narrate "<[msg_prefix]> <gray><[text]>"
+                - ~run dcutscene_move_model_animator save:result
+                - if <entry[result].created_queue.determination.first> == valid:
+                  - define text "Animator <green><[move_data.animator].replace[_].with[ ]> <gray>from tick <green><[move_data.tick]>t <gray>has been moved to tick <green><[tick]>t <gray>for scene <green><[data.name]><gray>."
+                  - narrate "<[msg_prefix]> <gray><[text]>"
 
               #Duplicate prep
               - case duplicate_prep:
@@ -2627,72 +1920,10 @@ dcutscene_model_keyframe_edit:
               - case duplicate:
                 - define tick <player.flag[dcutscene_tick_modify]>
                 - define dup_data <player.flag[dcutscene_animator_change]>
-                - define model_data <[data.keyframes.models]>
-                - define root_data <[model_data.<[dup_data.tick]>.<[dup_data.uuid]>.root]||none>
-                #Condition Checks
-                #= Non-root model (sub-frame)
-                - if <[root_data]> != none:
-                  - define root_tick <[root_data.tick]>
-                  #If the tick is less than the root tick stop and tell the user
-                  - if <[tick]> <= <[root_tick]>:
-                    - define text "The tick must be greater than the root data tick <green><[root_tick]>t <gray>."
-                    - narrate "<[msg_prefix]> <gray><[text]>"
-                    - stop
-                  #-Root Update
-                  #Memory data for new tick in path
-                  - define path_tick <[model_data.<[root_data.tick]>.<[root_data.uuid]>.path.<[dup_data.tick]>].deep_with[tick].as[<[tick]>]>
-                  #Update the path for root model
-                  - define model_data.<[root_data.tick]>.<[root_data.uuid]>.path.<[tick]>:<[path_tick]>
-                  #Update sub frames
-                  - define model_data.<[root_data.tick]>.<[root_data.uuid]>.sub_frames.<[tick]>:<[dup_data.uuid]>
-                  #-Model Update
-                  #Set new data
-                  - define model_data.<[tick]>.<[dup_data.uuid]>:<[dup_data.data]>
-                  - define model_data.<[tick]>.model_list:->:<[dup_data.uuid]>
-                #= Root Model
-                - else:
-                  #If root model is already at tick stop
-                  - if <[dup_data.tick]> == <[tick]>:
-                    - define text "There is already a root data tick there."
-                    - narrate "<[msg_prefix]> <gray><[text]>"
-                    - stop
-                  - define path <[model_data.<[dup_data.tick]>.<[dup_data.uuid]>.path]||<list>>
-                  #If the model is a root model ensure it does not exceed the path ticks if available
-                  - if !<[path].is_empty> && <[path].keys.first> != <[dup_data.tick]>:
-                    - define path_keys <[path].keys>
-                    - foreach <[path_keys]> as:key:
-                      - if <[key]> > <[tick]>:
-                        - define first <[key]>
-                        - foreach stop
-                    - if <[tick]> > <[first]>:
-                      - define text "A root data tick cannot exceed sub frames."
-                      - narrate "<[msg_prefix]> <gray><[text]>"
-                      - stop
-                  - define new_root_data <[model_data.<[dup_data.tick]>.<[dup_data.uuid]>].deep_exclude[sub_frames]>
-                  - define new_root_data.path false
-                  - definemap root_map tick:<[dup_data.tick]> uuid:<[dup_data.uuid]>
-                  - define new_root_data.root:<[root_map]>
-                  - define model_data.<[tick]>.<[dup_data.uuid]>:<[new_root_data]>
-                  - define model_data.<[tick]>.model_list:->:<[dup_data.uuid]>
-                  #Update Root Model
-                  - define new_path_data <[model_data.<[dup_data.tick]>.<[dup_data.uuid]>.path.<[dup_data.tick]>]>
-                  #Root Path Update
-                  - define model_data.<[dup_data.tick]>.<[dup_data.uuid]>.path.<[tick]>:<[new_path_data]>
-                  #Root sub-frames Update
-                  - define model_data.<[dup_data.tick]>.<[dup_data.uuid]>.sub_frames.<[tick]>:<[dup_data.uuid]>
-                #=-Debugger
-                - if <script[dcutscenes_config].data_key[config].get[cutscene_tool_debugger_mode].if_null[false].is_truthy>:
-                  - ~run dcutscene_debugger def:model_duplicate|<[model_data]>
-                  - stop
-                #Set New Data
-                - flag server dcutscenes.<[data.name]>.keyframes.models:<[model_data]>
-                - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
-                - flag <player> dcutscene_animator_change:!
-                - ~run dcutscene_sort_data def:<[data.name]>
-                - inventory open d:dcutscene_inventory_sub_keyframe
-                - ~run dcutscene_sub_keyframe_modify def:<player.flag[dcutscene_sub_keyframe_back_data]>
-                - define text "Animator <green><[dup_data.animator]> <gray>from tick <green><[dup_data.tick]>t <gray>has been duplicated to tick <green><[tick]>t <gray>for scene <green><[data.name]><gray>."
-                - narrate "<[msg_prefix]> <gray><[text]>"
+                - ~run dcutscene_duplicate_model_animator save:result
+                - if <entry[result].created_queue.determination.first> == valid:
+                  - define text "Animator <green><[dup_data.animator].replace[_].with[ ]> <gray>from tick <green><[dup_data.tick]>t <gray>has been duplicated to tick <green><[tick]>t <gray>for scene <green><[data.name]><gray>."
+                  - narrate "<[msg_prefix]> <gray><[text]>"
 
               #Play the cutscene from this tick
               - case play_from_here:
@@ -2704,100 +1935,321 @@ dcutscene_model_keyframe_edit:
 
               #Removes model from tick
               - case remove_tick:
-                - define tick_data <player.flag[dcutscene_tick_modify]>
-                - define tick <[tick_data.tick]>
-                - define uuid <[tick_data.uuid]>
-                - define model_data <[data.keyframes.models]>
-                - define root_data <[model_data.<[tick]>.<[uuid]>.root]||none>
-                #If the model has a root data model
-                - if <[root_data]> != none:
-                  #Update the root data model
-                  - define root_update <[model_data.<[root_data.tick]>.<[root_data.uuid]>]>
-                  - define root_update.sub_frames <[root_update.sub_frames].deep_exclude[<[tick]>]>
-                  - define root_update.path <[root_update.path].deep_exclude[<[tick]>]>
-                  #Check if the updated data has empty sub_frames
-                  - if <[root_update.sub_frames].is_empty>:
-                    - define root_update.sub_frames none
-                  #Remove the specified tick player model
-                  - define model_data.<[root_data.tick]>.<[root_data.uuid]> <[root_update]>
-                  - define model_data.<[tick]>.model_list:<-:<[uuid]>
-                  - define model_data.<[tick]> <[model_data.<[tick]>].exclude[<[uuid]>]>
-                  #If the model list is empty remove tick
-                  - if <[model_data.<[tick]>.model_list].is_empty>:
-                    - define model_data <[model_data].deep_exclude[<[tick]>]>
-                  #=-Debugger
-                  - if <script[dcutscenes_config].data_key[config].get[cutscene_tool_debugger_mode].if_null[false].is_truthy>:
-                    - ~run dcutscene_debugger def:player_model_remove_tick|<[model_data]>
-                    - stop
-                  - define text "Player model <green><[data.keyframes.models.<[tick]>.<[uuid]>.id]> <gray>has been removed from tick <green><[tick]>t <gray>in scene <green><[data.name]><gray>."
-                  - narrate "<[msg_prefix]> <gray><[text]>"
-                  - flag server dcutscenes.<[data.name]>.keyframes.models:<[model_data]>
-                  - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
-                  - inventory open d:dcutscene_inventory_sub_keyframe
-                  - ~run dcutscene_sub_keyframe_modify def:<player.flag[dcutscene_sub_keyframe_back_data]>
-                #If the model is a root data model
-                - else:
-                  - inventory close
-                  - clickable dcutscene_model_keyframe_edit def:player_model|remove_all save:remove_model
-                  - define prefix <[msg_prefix]>
-                  - define text "This is a starting point player model removing this will remove the player model from the cutscene proceed? <green><bold><element[Yes].on_hover[<[prefix]> <gray>This will permanently remove this player model from this scene.].type[SHOW_TEXT].on_click[<entry[remove_model].command>]>"
-                  - narrate "<[prefix]> <gray><[text]>"
+                - run dcutscene_remove_model_animator_from_tick def.type:player_model
 
               #Removes model from entire cutscene
               - case remove_all:
-                - define tick_data <player.flag[dcutscene_tick_modify]>
-                - define tick <[tick_data.tick]>
-                - define uuid <[tick_data.uuid]>
-                - define model_data <[data.keyframes.models]>
-                - define root_data <[model_data.<[tick]>.<[uuid]>.root]||none>
-                #=Non root (sub-frame) model
-                - if <[root_data]> != none:
-                  - define sub_frames <[model_data.<[root_data.tick]>.<[root_data.uuid]>.sub_frames]||<list>>
-                  #Remove sub frames
-                  - foreach <[sub_frames]> key:tick_id as:subframe:
-                    - define model_data.<[tick_id]> <[model_data.<[tick_id]>].deep_exclude[<[subframe]>]>
-                    - define model_data.<[tick_id]>.model_list:<-:<[subframe]>
-                    #If the model list is empty remove the tick
-                    - if <[model_data.<[tick_id]>.model_list].is_empty>:
-                      - define model_data <[model_data].deep_exclude[<[tick_id]>]>
-                  #Remove the root
-                  - define model_data.<[root_data.tick]> <[model_data.<[root_data.tick]>].exclude[<[root_data.uuid]>]>
-                  - define model_data.<[root_data.tick]>.model_list:<-:<[root_data.uuid]>
-                  #If the model list is empty remove the tick
-                  - if <[model_data.<[root_data.tick]>.model_list].is_empty>:
-                    - define model_data <[model_data].deep_exclude[<[root_data.tick]>]>
-                #=Root Model
-                - else:
-                  #Remove sub frames
-                  - define sub_frames <[model_data.<[tick]>.<[uuid]>.sub_frames]||<list>>
-                  - foreach <[sub_frames]> key:tick_id as:subframe:
-                    - define model_data.<[tick_id]> <[model_data.<[tick_id]>].deep_exclude[<[subframe]>]>
-                    - define model_data.<[tick_id]>.model_list:<-:<[subframe]>
-                    #If the model list is empty remove the tick
-                    - if <[model_data.<[tick_id]>.model_list].is_empty>:
-                      - define model_data <[model_data].deep_exclude[<[tick_id]>]>
-                  #Remove the root
-                  - define model_data.<[tick]> <[model_data.<[tick]>].deep_exclude[<[uuid]>]>
-                  - define model_data.<[tick]>.model_list:<-:<[uuid]>
-                  #If the model list is empty remove the tick
-                  - if <[model_data.<[tick]>.model_list].is_empty>:
-                    - define model_data <[model_data].deep_exclude[<[tick]>]>
-                #=-Debugger
-                - if <script[dcutscenes_config].data_key[config].get[cutscene_tool_debugger_mode].if_null[false].is_truthy>:
-                  - ~run dcutscene_debugger def:player_model_remove_all|<[model_data]>
-                  - stop
-                - define text "Player model <green><[data.keyframes.models.<[tick]>.<[uuid]>.id]> <gray>has been removed from scene <green><[data.name]><gray>."
-                - narrate "<[msg_prefix]> <gray><[text]>"
-                - flag server dcutscenes.<[data.name]>.keyframes.models:<[model_data]>
-                - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
-                - inventory open d:dcutscene_inventory_sub_keyframe
-                - ~run dcutscene_sub_keyframe_modify def:<player.flag[dcutscene_sub_keyframe_back_data]>
+                - run dcutscene_remove_model_animator_all def.type:player_model
 
-#Used to determine the previous skin in the player model keyframe
+#= Multi operation tasks for model animators
+
+# Move a model animator to a new tick
+dcutscene_move_model_animator:
+    type: task
+    debug: false
+    script:
+    - define msg_prefix <script[dcutscenes_config].data_key[config].get[cutscene_prefix].parse_color||<&color[0,0,255]><bold>DCutscenes>
+    - define data <player.flag[cutscene_data]>
+    - define tick <player.flag[dcutscene_tick_modify]>
+    - define move_data <player.flag[dcutscene_animator_change]>
+    - define model_data <[data.keyframes.models]>
+    - define root_data <[model_data.<[move_data.tick]>.<[move_data.uuid]>.root]||none>
+    #Condition Checks
+    #= Non-root model (sub-frame)
+    - if <[root_data]> != none:
+      - define root_tick <[root_data.tick]>
+      #If the tick is less than the root tick stop and tell the user
+      - if <[tick]> <= <[root_tick]>:
+        - define text "The tick must be greater than the root data tick <green><[root_tick]>t <gray>."
+        - narrate "<[msg_prefix]> <gray><[text]>"
+        - determine passively invalid
+        - stop
+      #-Root Update
+      #Data for new tick in path
+      - define path_tick <[model_data.<[root_data.tick]>.<[root_data.uuid]>.path.<[move_data.tick]>].deep_with[tick].as[<[tick]>]>
+      #Remove old ticks in path for root data
+      - define model_data.<[root_data.tick]>.<[root_data.uuid]>.path <[model_data.<[root_data.tick]>.<[root_data.uuid]>.path].deep_exclude[<[move_data.tick]>]>
+      #Update the path for root model
+      - define model_data.<[root_data.tick]>.<[root_data.uuid]>.path.<[tick]>:<[path_tick]>
+      #Update sub frames
+      - define model_data.<[root_data.tick]>.<[root_data.uuid]>.sub_frames <[model_data.<[root_data.tick]>.<[root_data.uuid]>.sub_frames].deep_exclude[<[move_data.tick]>]>
+      - define model_data.<[root_data.tick]>.<[root_data.uuid]>.sub_frames.<[tick]>:<[move_data.uuid]>
+      #-Model Update
+      #Remove (non-root) model from tick
+      - define model_data.<[move_data.tick]> <[model_data.<[move_data.tick]>].deep_exclude[<[move_data.uuid]>]>
+      #Remove from the model list
+      - define model_data.<[move_data.tick]>.model_list:<-:<[move_data.uuid]>
+      - if <[model_data.<[move_data.tick]>.model_list].is_empty>:
+        - define model_data <[model_data].deep_exclude[<[move_data.tick]>]>
+      #Set new data
+      - define model_data.<[tick]>.<[move_data.uuid]>:<[move_data.data]>
+      - define model_data.<[tick]>.model_list:->:<[move_data.uuid]>
+      - determine passively valid
+    #= Root Model
+    - else:
+      #If root model is already at tick stop
+      - if <[move_data.tick]> == <[tick]>:
+        - define text "There is already a root data tick there."
+        - narrate "<[msg_prefix]> <gray><[text]>"
+        - determine passively invalid
+        - stop
+      - define path <[model_data.<[move_data.tick]>.<[move_data.uuid]>.path]||<map>>
+      #If the model is a root model ensure it does not exceed the path ticks if available
+      - if <[path].any>:
+        - define path_keys <[path].keys||<list>>
+        - foreach <[path_keys]> as:key:
+          - if <[key]> > <[move_data.tick]> && <[key]> != <[move_data.tick]>:
+            - define first <[key]>
+            - foreach stop
+        - if <[first]||null> != null:
+          - if <[tick]> >= <[first]>:
+            - define text "A root data tick cannot exceed sub frames."
+            - narrate "<[msg_prefix]> <gray><[text]>"
+            - determine passively invalid
+            - stop
+      #Update Sub Frames
+      - foreach <[model_data.<[move_data.tick]>.<[move_data.uuid]>.sub_frames]> key:sub_tick as:sub_uuid:
+        - define model_data.<[sub_tick]>.<[sub_uuid]>.root.tick:<[tick]>
+      #Update Root Data
+      - define model_data.<[move_data.tick]> <[model_data.<[move_data.tick]>].deep_exclude[<[move_data.uuid]>]>
+      - define model_data.<[move_data.tick]>.model_list:<-:<[move_data.uuid]>
+      - if <[model_data.<[move_data.tick]>.model_list].is_empty>:
+        - define model_data <[model_data].deep_exclude[<[move_data.tick]>]>
+      #Set new data
+      - define model_data.<[tick]>.<[move_data.uuid]>:<[move_data.data]>
+      - define model_data.<[tick]>.model_list:->:<[move_data.uuid]>
+      #Data for new tick in path
+      - define path_tick <[model_data.<[tick]>.<[move_data.uuid]>.path.<[move_data.tick]>].deep_with[tick].as[<[tick]>]>
+      - define model_data.<[tick]>.<[move_data.uuid]>.path.<[tick]>:<[path_tick]>
+      #Remove old ticks in path for root data
+      - define model_data.<[tick]>.<[move_data.uuid]>.path <[model_data.<[tick]>.<[move_data.uuid]>.path].deep_exclude[<[move_data.tick]>]>
+      - determine passively valid
+    #=-Debugger
+    - if <script[dcutscenes_config].data_key[config].get[cutscene_tool_debugger_mode].if_null[false].is_truthy>:
+      - ~run dcutscene_debugger def:model_move_to|<[model_data]>
+      - stop
+    #Set New Data
+    - flag server dcutscenes.<[data.name]>.keyframes.models:<[model_data]>
+    - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
+    - flag <player> dcutscene_animator_change:!
+    - ~run dcutscene_sort_data def:<[data.name]>
+    - inventory open d:dcutscene_inventory_sub_keyframe
+    - ~run dcutscene_sub_keyframe_modify def:<player.flag[dcutscene_sub_keyframe_back_data]>
+
+# Duplicate a model animator to a new tick
+dcutscene_duplicate_model_animator:
+    type: task
+    debug: false
+    script:
+    - define msg_prefix <script[dcutscenes_config].data_key[config].get[cutscene_prefix].parse_color||<&color[0,0,255]><bold>DCutscenes>
+    - define data <player.flag[cutscene_data]>
+    - define tick <player.flag[dcutscene_tick_modify]>
+    - define dup_data <player.flag[dcutscene_animator_change]>
+    - define dup_tick <[dup_data.tick]>
+    - define dup_uuid <[dup_data.uuid]>
+    - define model_data <[data.keyframes.models]>
+    - define root_data <[model_data.<[dup_data.tick]>.<[dup_data.uuid]>.root]||none>
+    # Validation and data setting
+    #= Non-root model (sub-frame)
+    - if <[root_data]> != none:
+      - define root_tick <[root_data.tick]>
+      - define root_uuid <[root_data.uuid]>
+      #If the tick is less than the root tick stop and tell the creator
+      - if <[tick]> <= <[root_tick]>:
+        - define text "The tick must be greater than the root data tick <green><[root_tick]>t <gray>."
+        - narrate "<[msg_prefix]> <gray><[text]>"
+        - determine passively invalid
+        - stop
+      #Check if there is already a sub frame tick
+      - define path <[model_data.<[root_tick]>.<[root_uuid]>.path]>
+      - define path_keys <[path].keys||<list>>
+      - foreach <[path_keys]> as:key:
+        - if <[key]> == <[tick]>:
+          - define text "There is already a sub frame at that tick."
+          - narrate "<[msg_prefix]> <gray><[text]>"
+          - determine passively invalid
+          - stop
+      #-Root Update
+      #Memory data for new tick in path
+      - define path_tick <[path.<[dup_data.tick]>].deep_with[tick].as[<[tick]>]>
+      #Update the path for root model
+      - define model_data.<[root_tick]>.<[root_uuid]>.path.<[tick]>:<[path_tick]>
+      #Update sub frames
+      - define model_data.<[root_tick]>.<[root_uuid]>.sub_frames.<[tick]>:<[dup_data.uuid]>
+      #-Model Update
+      #Set new data
+      - define model_data.<[tick]>.<[dup_data.uuid]>:<[dup_data.data]>
+      - define model_data.<[tick]>.model_list:->:<[dup_data.uuid]>
+      - determine passively valid
+    #= Root Model
+    - else:
+      #If root model is already at tick stop
+      - if <[dup_data.tick]> == <[tick]>:
+        - define text "There is already a root data tick there."
+        - narrate "<[msg_prefix]> <gray><[text]>"
+        - determine passively invalid
+        - stop
+      #If the model used to be a root model ensure it does not go below the previous root model
+      - else if <[tick]> < <[dup_data.tick]>:
+        - define text "The tick must be greater than the previous root data tick <green><[dup_data.tick]>t<gray>."
+        - narrate "<[msg_prefix]> <gray><[text]>"
+        - determine passively invalid
+        - stop
+      #Check if there is already a sub frame at the tick
+      - else:
+        - define path <[model_data.<[dup_data.tick]>.<[dup_data.uuid]>.path]||<map>>
+        - define path_keys <[path].keys||<list>>
+        - foreach <[path_keys]> as:key:
+          - if <[key]> == <[tick]>:
+            - define text "There is already a sub frame at that tick."
+            - narrate "<[msg_prefix]> <gray><[text]>"
+            - determine passively invalid
+            - stop
+      - define new_root_data <[model_data.<[dup_data.tick]>.<[dup_data.uuid]>].deep_exclude[sub_frames]>
+      - define new_root_data.path false
+      - definemap root_map tick:<[dup_data.tick]> uuid:<[dup_data.uuid]>
+      - define new_root_data.root:<[root_map]>
+      - define model_data.<[tick]>.<[dup_data.uuid]>:<[new_root_data]>
+      - define model_data.<[tick]>.model_list:->:<[dup_data.uuid]>
+      #Update Root Model
+      - define new_path_data <[model_data.<[dup_data.tick]>.<[dup_data.uuid]>.path.<[dup_data.tick]>].with[tick].as[<[tick]>]>
+      #Root Path Update
+      - define model_data.<[dup_data.tick]>.<[dup_data.uuid]>.path.<[tick]>:<[new_path_data]>
+      #Root sub-frames Update
+      - define model_data.<[dup_data.tick]>.<[dup_data.uuid]>.sub_frames.<[tick]>:<[dup_data.uuid]>
+      - determine passively valid
+    #=-Debugger
+    - if <script[dcutscenes_config].data_key[config].get[cutscene_tool_debugger_mode].if_null[false].is_truthy>:
+      - ~run dcutscene_debugger def:model_duplicate|<[model_data]>
+      - stop
+    #Set New Data
+    - flag server dcutscenes.<[data.name]>.keyframes.models:<[model_data]>
+    - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
+    - flag <player> dcutscene_animator_change:!
+    - ~run dcutscene_sort_data def:<[data.name]>
+    - inventory open d:dcutscene_inventory_sub_keyframe
+    - ~run dcutscene_sub_keyframe_modify def:<player.flag[dcutscene_sub_keyframe_back_data]>
+
+# Remove model animator from tick
+dcutscene_remove_model_animator_from_tick:
+    type: task
+    debug: false
+    definitions: type
+    script:
+    - define msg_prefix <script[dcutscenes_config].data_key[config].get[cutscene_prefix].parse_color||<&color[0,0,255]><bold>DCutscenes>
+    - define data <player.flag[cutscene_data]>
+    - define tick_data <player.flag[dcutscene_tick_modify]>
+    - define tick <[tick_data.tick]>
+    - define uuid <[tick_data.uuid]>
+    - define model_data <[data.keyframes.models]>
+    - define root_data <[model_data.<[tick]>.<[uuid]>.root]||none>
+    #If the model has a root data model
+    - if <[root_data]> != none:
+      #Update the root data model
+      - define root_update <[model_data.<[root_data.tick]>.<[root_data.uuid]>]>
+      - define root_update.sub_frames <[root_update.sub_frames].deep_exclude[<[tick]>]>
+      - define root_update.path <[root_update.path].deep_exclude[<[tick]>]>
+      #Check if the updated data has empty sub_frames
+      - if <[root_update.sub_frames].is_empty>:
+        - define root_update.sub_frames none
+      #Remove the specified tick player model
+      - define model_data.<[root_data.tick]>.<[root_data.uuid]> <[root_update]>
+      - define model_data.<[tick]>.model_list:<-:<[uuid]>
+      - define model_data.<[tick]> <[model_data.<[tick]>].exclude[<[uuid]>]>
+      #If the model list is empty remove tick
+      - if <[model_data.<[tick]>.model_list].is_empty>:
+        - define model_data <[model_data].deep_exclude[<[tick]>]>
+      #=-Debugger
+      - if <script[dcutscenes_config].data_key[config].get[cutscene_tool_debugger_mode].if_null[false].is_truthy>:
+        - ~run dcutscene_debugger def:model_remove_tick|<[model_data]>
+        - stop
+      - choose <[type]>:
+        - case model:
+          - define text "Model <green><[data.keyframes.models.<[tick]>.<[uuid]>.id]> <gray>has been removed from tick <green><[tick]>t <gray>in scene <green><[data.name]><gray>."
+        - case player_model:
+          - define text "Player model <green><[data.keyframes.models.<[tick]>.<[uuid]>.id]> <gray>has been removed from tick <green><[tick]>t <gray>in scene <green><[data.name]><gray>."
+      - narrate "<[msg_prefix]> <gray><[text]>"
+      - flag server dcutscenes.<[data.name]>.keyframes.models:<[model_data]>
+      - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
+      - inventory open d:dcutscene_inventory_sub_keyframe
+      - ~run dcutscene_sub_keyframe_modify def:<player.flag[dcutscene_sub_keyframe_back_data]>
+    #If the model is a root data model
+    - else:
+      - inventory close
+      - choose <[type]>:
+        - case model:
+          - clickable dcutscene_model_keyframe_edit def:denizen_model|remove_all usages:1 save:remove_model
+          - define text "This is a starting point model removing this will remove the model from the cutscene proceed? <green><bold><element[Yes].on_hover[<[msg_prefix]> <gray>This will permanently remove this model from this scene.].type[SHOW_TEXT].on_click[<entry[remove_model].command>]>"
+        - case player_model:
+          - clickable dcutscene_model_keyframe_edit def:player_model|remove_all usages:1 save:remove_model
+          - define text "This is a starting point player model removing this will remove the player model from the cutscene proceed? <green><bold><element[Yes].on_hover[<[msg_prefix]> <gray>This will permanently remove this player model from this scene.].type[SHOW_TEXT].on_click[<entry[remove_model].command>]>"
+      - narrate "<[msg_prefix]> <gray><[text]>"
+
+# Used to remove a model animator from the entire cutscene or server flag dcutscenes
+dcutscene_remove_model_animator_all:
+    type: task
+    debug: false
+    definitions: type
+    script:
+    - define msg_prefix <script[dcutscenes_config].data_key[config].get[cutscene_prefix].parse_color||<&color[0,0,255]><bold>DCutscenes>
+    - define data <player.flag[cutscene_data]>
+    - define tick_data <player.flag[dcutscene_tick_modify]>
+    - define tick <[tick_data.tick]>
+    - define uuid <[tick_data.uuid]>
+    - define model_data <[data.keyframes.models]>
+    - define root_data <[model_data.<[tick]>.<[uuid]>.root]||none>
+    #=Non root (sub-frame) model
+    - if <[root_data]> != none:
+      - define sub_frames <[model_data.<[root_data.tick]>.<[root_data.uuid]>.sub_frames]||<list>>
+      #Remove sub frames
+      - foreach <[sub_frames]> key:tick_id as:subframe:
+        - define model_data.<[tick_id]> <[model_data.<[tick_id]>].deep_exclude[<[subframe]>]>
+        - define model_data.<[tick_id]>.model_list:<-:<[subframe]>
+        #If the model list is empty remove the tick
+        - if <[model_data.<[tick_id]>.model_list].is_empty>:
+          - define model_data <[model_data].deep_exclude[<[tick_id]>]>
+      #Remove the root
+      - define model_data.<[root_data.tick]> <[model_data.<[root_data.tick]>].exclude[<[root_data.uuid]>]>
+      - define model_data.<[root_data.tick]>.model_list:<-:<[root_data.uuid]>
+      #If the model list is empty remove the tick
+      - if <[model_data.<[root_data.tick]>.model_list].is_empty>:
+        - define model_data <[model_data].deep_exclude[<[root_data.tick]>]>
+    #=Root Model
+    - else:
+      #Remove sub frames
+      - define sub_frames <[model_data.<[tick]>.<[uuid]>.sub_frames]||<list>>
+      - foreach <[sub_frames]> key:tick_id as:subframe:
+        - define model_data.<[tick_id]> <[model_data.<[tick_id]>].deep_exclude[<[subframe]>]>
+        - define model_data.<[tick_id]>.model_list:<-:<[subframe]>
+        #If the model list is empty remove the tick
+        - if <[model_data.<[tick_id]>.model_list].is_empty>:
+          - define model_data <[model_data].deep_exclude[<[tick_id]>]>
+      #Remove the root
+      - define model_data.<[tick]> <[model_data.<[tick]>].deep_exclude[<[uuid]>]>
+      - define model_data.<[tick]>.model_list:<-:<[uuid]>
+      #If the model list is empty remove the tick
+      - if <[model_data.<[tick]>.model_list].is_empty>:
+        - define model_data <[model_data].deep_exclude[<[tick]>]>
+    #=-Debugger
+    - if <script[dcutscenes_config].data_key[config].get[cutscene_tool_debugger_mode].if_null[false].is_truthy>:
+      - ~run dcutscene_debugger def:model_remove_all|<[model_data]>
+      - stop
+    - choose <[type]>:
+      - case model:
+        - define text "Model <green><[data.keyframes.models.<[tick]>.<[uuid]>.id]> <gray>has been removed from scene <green><[data.name]><gray>."
+      - case player_model:
+        - define text "Player model <green><[data.keyframes.models.<[tick]>.<[uuid]>.id]> <gray>has been removed from scene <green><[data.name]><gray>."
+    - narrate "<[msg_prefix]> <gray><[text]>"
+    - flag server dcutscenes.<[data.name]>.keyframes.models:<[model_data]>
+    - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
+    - inventory open d:dcutscene_inventory_sub_keyframe
+    - ~run dcutscene_sub_keyframe_modify def:<player.flag[dcutscene_sub_keyframe_back_data]>
+
+# Used to determine the previous skin in the player model keyframe
 dcutscene_determine_player_model_skin:
     type: procedure
-    definitions: scene|tick|uuid
     debug: false
+    definitions: scene|tick|uuid
     script:
     - define data <server.flag[dcutscenes.<[scene]>]||null>
     - if <[data]> != null:
@@ -2840,8 +2292,6 @@ dcutscene_determine_player_model_skin:
 #- Set the time for the player TYPE: Once
 #- Set the weather for the player TYPE: Once
 
-#TODO:
-#- Clean up code
 #Modify regular animators in cutscenes (Regular animators are things that play only once and do not use the path system such as the camera)
 #Note that when creating a new animator it cannot use the keyframes definition instead 
 dcutscene_animator_keyframe_edit:

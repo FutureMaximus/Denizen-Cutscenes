@@ -1,68 +1,170 @@
-# Denizen Cutscenes Util
+# Denizen Cutscenes Utility
 # Utility tasks and procedures for Denizen Cutscenes
 
-## Create a new cutscene ############
+#=========== Cutscene Tasks =============
+
+#Create new cutscene from scratch
 dcutscene_new_scene:
     type: task
     debug: true
-    definitions: type|arg
+    definitions: type|scene
     script:
     - define type <[type]||null>
-    #new cutscene name
+    - define msg_prefix <script[dcutscenes_config].data_key[config].get[cutscene_prefix].parse_color||<&color[0,0,255]><bold>DCutscenes>
+    # New cutscene name
     - if <[type]> == null:
-        - flag <player> cutscene_modify:new_name expire:60s
-        - define text "Chat the name of the new cutscene. Chat <red>cancel <gray>to stop."
-        - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+      - flag <player> cutscene_modify:new_name expire:60s
+      - define text "Chat the name of the new cutscene. Chat <red>cancel <gray>to stop."
+      - narrate "<[msg_prefix]> <gray><[text]>"
     - else:
-        - define arg <[arg]||null>
-        - if <[arg].equals[null]>:
-          - stop
-        - define search <server.flag[dcutscenes.<[arg]>]||null>
+      - define scene <[scene]||null>
+      - if <[scene].equals[null]>:
+        - stop
+      - if <server.has_flag[dcutscenes]>:
+        - define search <server.flag[dcutscenes.<[scene]>]||null>
         - if <[search]> != null:
-          - define text "A cutscene with the name <underline><[arg]> <gray>already exists!"
-          - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+          - define text "A cutscene with the name <underline><[scene]> <gray>already exists!"
+          - narrate "<[msg_prefix]> <gray><[text]>"
           - stop
         - flag <player> cutscene_modify:!
-        #default data
-        - define cutscene.name <[arg]>
-        - define cutscene.name_color <blue><bold>
-        - define cutscene.description <empty>
-        - define cutscene.world <list[<player.world.name>]>
-        - define cutscene.item <item[dcutscene_scene_item_default]>
-        - define cutscene.length 0
-        - define cutscene.keyframes <empty>
-        - define cutscene.settings
-        - flag server dcutscenes.<[arg]>:<[cutscene]>
-        - inventory open d:dcutscene_inventory_main
-        - run dcutscene_scene_show
-        - define text "New cutscene <green><[arg]> <gray>has been created."
-        - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+      # Default data creation
+      - define cutscene.name <[scene]>
+      - define l1 "&bA specially crafted cutscene"
+      - define l2 "&bjust for you <player.name>."
+      - define cutscene.description <list[<[l1]>|<[l2]>]>
+      - define cutscene.world <list[<player.world.name>]>
+      - define cutscene.length 0
+      - define cutscene.keyframes <empty>
+      - definemap settings_data bars:true item:<item[dcutscene_scene_item_default]>
+      - define cutscene.settings <[settings_data]>
+      - flag server dcutscenes.<[scene]>:<[cutscene]>
+      - inventory open d:dcutscene_inventory_main
+      - ~run dcutscene_scene_show
+      - define text "New cutscene <green><[scene]> <gray>has been created."
+      - narrate "<[msg_prefix]> <gray><[text]>"
 
-test_task_money:
-    type: task
-    debug: false
-    script:
-    - money give quantity:100000
-    - narrate "You have been given $100000! Balance is now -$100000"
-
+#Removes the scene from the server flag dcutscenes
 dcutscene_remove_scene:
     type: task
     debug: false
     definitions: cutscene
     script:
     - define validate <server.flag[dcutscenes.<[cutscene]>]||null>
-    - if <[validate]> != null:
-      - define new_flag <server.flag[dcutscenes].exclude[<[cutscene]>]>
+    - if <[validate]> == null:
+      - debug error "Invalid cutscene specified in dcutscene_remove_scene"
+    - else:
+      - define msg_prefix <script[dcutscenes_config].data_key[config].get[cutscene_prefix].parse_color||<&color[0,0,255]><bold>DCutscenes>
+      - define new_flag <server.flag[dcutscenes].deep_exclude[<[cutscene]>]>
       - flag server dcutscenes:<[new_flag]>
-      - inventory open d:dcutscene_inventory_main
       - run dcutscene_scene_show
       - define text "Scene <green><[cutscene]> <gray>has been deleted."
-      - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
-    - else:
-      - debug error "Invalid cutscene specified in dcutscene_remove_scene"
+      - narrate "<[msg_prefix]> <gray><[text]>"
 
-##Cutscene Command
+#Change the name of the cutscene
+dcutscene_settings_modify:
+    type: task
+    debug: false
+    definitions: option|arg
+    script:
+    - define msg_prefix <script[dcutscenes_config].data_key[config].get[cutscene_prefix].parse_color||<&color[0,0,255]><bold>DCutscenes>
+    - define data <server.flag[dcutscenes]>
+    - define cutscene <player.flag[cutscene_data]>
+    - choose <[option]>:
+      #Change cutscene name prep
+      - case new_name_prep:
+        - define text "Chat the new name for this cutscene."
+        - narrate "<[msg_prefix]> <gray><[text]>"
+        - flag <player> cutscene_modify:cutscene_new_name expire:2m
+        - inventory close
+      #Change cutscene name
+      - case change_name:
+        - define validate <[data.<[arg]>]||null>
+        - if <[validate]> != null:
+          - define text "There is already a cutscene named <green><[arg]><gray>."
+          - narrate "<[msg_prefix]> <gray><[text]>"
+          - stop
+        - else:
+          - define new_data <[data].deep_exclude[<[cutscene.name]>]>
+          - define new_data.<[arg]>:<[cutscene].deep_with[name].as[<[arg].parse_color.strip_color>]>
+          - flag server dcutscenes:<[new_data]>
+          - flag <player> cutscene_data:<server.flag[dcutscenes.<[arg]>]>
+          - define text "Scene <green><[cutscene.name]> <gray>has been renamed to <green><[arg]>."
+          - narrate "<[msg_prefix]> <gray><[text]>"
+          - ~run dcutscene_scene_show
 
+      #Change cutscene description prep
+      - case change_desc_prep:
+        - define text "Chat the description for this cutscene to go to the next line use a comma '<green>,<gray>' ."
+        - narrate "<[msg_prefix]> <gray><[text]>"
+        - flag <player> cutscene_modify:cutscene_new_desc expire:10m
+        - inventory close
+      #Change cutscene description
+      - case change_desc:
+        - define cutscene.description <[arg].split[,]>
+        - flag server dcutscenes.<[cutscene.name]>:<[cutscene]>
+        - flag <player> cutscene_data:<server.flag[dcutscenes.<[cutscene.name]>]>
+        - define text "Cutscene <green><[cutscene.name]> <gray>description has been modified."
+        - narrate "<[msg_prefix]> <gray><[text]>"
+        - ~run dcutscene_scene_show
+
+      #Determine whether cutscene bars will show or not
+      - case change_bars:
+        - choose <[cutscene.settings.bars].if_null[true]>:
+          - case true:
+            - define cutscene.settings.bars false
+            - define bool false
+          - case false:
+            - define cutscene.settings.bars true
+            - define bool true
+        - flag server dcutscenes.<[cutscene.name]>:<[cutscene]>
+        - flag <player> cutscene_data:<server.flag[dcutscenes.<[cutscene.name]>]>
+        - define l1 "<blue>Cutscene Bars: <gray><[bool]>"
+        - define click "<gray><italic>Click to change cutscene bars"
+        - define lore <list[<empty>|<[l1]>|<empty>|<[click]>]>
+        - inventory adjust d:<player.open_inventory> slot:<[arg]> lore:<[lore]>
+
+      #Change cutscene gui item prep
+      - case change_item_prep:
+        - define text "Chat a valid item tag or chat <green>hand <gray>for the item in your hand."
+        - narrate "<[msg_prefix]> <gray><[text]>"
+        - flag <player> cutscene_modify:cutscene_new_gui_item expire:2m
+        - inventory close
+      #Change cutscene gui item
+      - case change_item:
+        - if <item[<[arg]>]||null> == null && <item[<[arg]>].material.name> == air:
+          - define text "<green><[arg]> <gray>is not a valid item."
+          - narrate "<[msg_prefix]> <gray><[text]>"
+          - stop
+        - adjust <item[<[arg]>]> quantity:1 save:item
+        - define item <entry[item].result>
+        - define cutscene.settings.item <[arg]>
+        - flag server dcutscenes.<[cutscene.name]>:<[cutscene]>
+        - flag <player> cutscene_data:<server.flag[dcutscenes.<[cutscene.name]>]>
+        - define text "Cutscene <green><[cutscene.name].parse_color> <gray>GUI item is now <green><[arg]><gray>."
+        - narrate "<[msg_prefix]> <gray><[text]>"
+        - ~run dcutscene_scene_show
+
+      #Remove cutscene prep
+      - case remove_scene_prep:
+        - clickable dcutscene_settings_modify def:remove_scene|<[cutscene.name]> save:remove_scene
+        - define prefix <[msg_prefix]>
+        - define text "Are you sure you want to remove this cutscene? It is suggested you make a backup using the save button before proceeding. <green><bold><element[Yes].on_hover[<[prefix]> <gray>This will remove this cutscene from the server.].type[SHOW_TEXT].on_click[<entry[remove_scene].command>]>"
+        - narrate "<[prefix]> <gray><[text]>"
+        - inventory close
+      #Remove cutscene
+      - case remove_scene:
+        - define scene <[arg]>
+        - define new_data <[data].deep_exclude[<[scene]>]>
+        - if <[new_data].keys.size||0> == 0:
+          - flag server dcutscenes:!
+        - else:
+          - flag server dcutscenes:<[new_data]>
+        - flag <player> cutscene_data:<server.flag[dcutscenes.<[arg]>]>
+        - define text "Scene <green><[scene].parse_color> <gray>has been removed from the server."
+        - narrate "<[msg_prefix]> <gray><[text]>"
+        - ~run dcutscene_scene_show
+
+#======= Cutscene Command ========
 dcutscene_command:
     type: command
     name: dcutscene
@@ -71,42 +173,18 @@ dcutscene_command:
     - dscene
     description: Cutscene command for DCutscene
     tab completions:
-      1: <list[load|save|open|play|location|animate|sound|material|particle]>
-      2: <proc[dcutscene_data_list].context[<player>]>
-    permission: op.op
+      1: <list[load|save|open|play|location|animate|model|sound|material|particle|stop]>
+      2: <player.proc[dcutscene_data_list]>
+    permission: dcutscene.op
     script:
     - define a_1 <context.args.get[1]||null>
     - define a_2 <context.args.get[2]||null>
+    - define a_3 <context.args.get[3]||null>
     - if <[a_1]> == null || <[a_1]> == open:
       - ~run dcutscene_scene_show
     - else:
+      - define msg_prefix <script[dcutscenes_config].data_key[config].get[cutscene_prefix].parse_color||<&color[0,0,255]><bold>DCutscenes>
       - choose <[a_1]>:
-        #Animate the model the player is modifying.
-        - case animate:
-          - if <player.has_flag[cutscene_modify]> && <[a_2]> != null && <player.flag[cutscene_modify]> != set_model_animation:
-            - define data <player.flag[dcutscene_location_editor]||null>
-            - if <[data]> != null:
-              - define root <[data.root_ent]||null>
-              - if <[root]> == null:
-                - define text "Could not find model to animate"
-                - stop
-              - define type <[data.root_type]||null>
-              - if <[type]> != null:
-                - choose <[type]>:
-                  - case player_model:
-                    - run pmodels_animate def:<[root]>|<[a_2]>
-          - else if <player.has_flag[cutscene_modify]>:
-            - if <player.flag[cutscene_modify]> == set_model_animation:
-              - define type <player.flag[dcutscene_save_data.type]>
-              - choose <[type]>:
-                - case player_model:
-                  #Validate the animation
-                  - define anim_validate <server.flag[pmodels_data.animations_player_model_template_norm.<[a_2]>]||null>
-                  - if <[anim_validate]> == null && <[a_2]> != false:
-                    - define text "Animation <green><[a_2]> <gray>does not seem to exist."
-                    - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
-                    - stop
-                  - run dcutscene_model_keyframe_edit def:player_model|animate|set_animation|<[a_2]>
         #Open the location tool GUI
         - case location:
           - if <player.has_flag[cutscene_modify]>:
@@ -127,7 +205,64 @@ dcutscene_command:
         #Play a cutscene
         - case play:
           - if <[a_2]> != null:
-            - run dcutscene_animation_begin def:<[a_2]>
+            - if <server.flag[dcutscenes.<[a_2]>]||null> != null:
+              - if <[a_3]> == null:
+                - run dcutscene_animation_begin def:<[a_2]>
+              - else if <[a_3]> != null:
+                - if <player[<[a_3]>]||null> != null:
+                  - run dcutscene_animation_begin def.scene:<[a_2]> def.player:<player[<[a_3]>]>
+                - else:
+                  - define text "<green><[a_3]> <gray>is not a valid player."
+                  - narrate "<[msg_prefix]> <gray><[text]>"
+            - else:
+              - define text "Cutscene <red><[a_2]> <gray>does not exist!"
+              - narrate "<[msg_prefix]> <gray><[text]>"
+        #Stop a cutscene from playing
+        - case stop:
+          - run dcutscene_animation_stop def:<player>
+        #Animate the model the player is modifying.
+        - case animate:
+          - if <player.has_flag[cutscene_modify]>:
+            - if <[a_2]> != null:
+              #Animation for fake spawned model the creator is modifying
+              - if <player.flag[cutscene_modify]> != set_model_animation:
+                - define data <player.flag[dcutscene_location_editor]||null>
+                - if <[data]> != null:
+                  - define root <[data.root_ent]||null>
+                  - if <[root]> == null:
+                    - define text "Could not find model to animate"
+                    - stop
+                  - define type <[data.root_type]||null>
+                  - if <[type]> != null:
+                    - choose <[type]>:
+                      - case player_model:
+                        - run pmodels_animate def:<[root]>|<[a_2]>
+                      - case model:
+                        - run dmodels_animate def:<[root]>|<[a_2]>
+              #Set animation for model in keyframe
+              - else if <player.flag[cutscene_modify]> == set_model_animation:
+                - define type <player.flag[dcutscene_save_data.type]>
+                - choose <[type]>:
+                  - case player_model:
+                    #Validate the animation
+                    - if <server.flag[pmodels_data.animations_player_model_template_norm.<[a_2]>]||null> == null && <[a_2]> != false && <[a_2]> != stop:
+                      - define text "Animation <green><[a_2]> <gray>does not seem to exist."
+                      - narrate "<[msg_prefix]> <gray><[text]>"
+                      - stop
+                    - run dcutscene_model_keyframe_edit def:player_model|animate|set_animation|<[a_2]>
+                  - case model:
+                    #Validate the animation
+                    - define model <player.flag[dcutscene_save_data.model]>
+                    - if <server.flag[dmodels_data.animations_<[model]>.<[a_2]>]||null> == null && <[a_2]> != false && <[a_2]> != stop:
+                      - define text "Animation <green><[a_2]> <gray>does not seem to exist for model <green><[model]><gray>."
+                      - narrate "<[msg_prefix]> <gray><[text]>"
+                      - stop
+                    - run dcutscene_model_keyframe_edit def:denizen_model|set_animation|<[a_2]>
+        #Shows list of models
+        - case model:
+          - if <player.has_flag[cutscene_modify]>:
+            - if <[a_2]> != null && <player.flag[cutscene_modify]> == set_model_name:
+              - run dcutscene_model_keyframe_edit def:denizen_model|create_model_name|<[a_2]>
         #Input a new sound
         - case sound:
           - if <player.has_flag[cutscene_modify]>:
@@ -152,7 +287,7 @@ dcutscene_command:
 
 ## Tab Completion Procedures ########
 
-#Tab completion for list of cutscenes
+#Tab completion for list of cutscenes or animator modifiers that utilize data from the server
 dcutscene_data_list:
     type: procedure
     debug: false
@@ -161,6 +296,8 @@ dcutscene_data_list:
     - if <[player].has_flag[cutscene_modify]>:
       - if <[player].has_flag[cutscene_modify_tab]>:
         - choose <[player].flag[cutscene_modify_tab]>:
+          - case model:
+            - determine <server.flag[dmodels_data].keys.filter[starts_with[model_]].parse[after[model_]].if_null[<empty>]>
           - case sound:
             - determine <server.sound_types>
           - case animate:
@@ -173,22 +310,20 @@ dcutscene_data_list:
             - else:
               - choose <[type]>:
                 - case player_model:
-                  - define anim_list <server.flag[pmodels_data.animations_player_model_template_norm]||null>
-                  - if <[anim_list]> == null:
-                    - determine <empty>
-                  - define anim_tab <empty>
-                  - foreach <[anim_list]> key:anim_name as:anim:
-                    - define anim_tab:->:<[anim_name]>
-                  - determine <[anim_tab]>
+                  - define anim_list <server.flag[pmodels_data.animations_player_model_template_norm]||<map>>
+                  - determine <[anim_list].keys||<empty>>
+                - case model:
+                  - define model <[player].flag[dcutscene_save_data.model]>
+                  - define anim_list <server.flag[dmodels_data.animations_<[model]>]||<map>>
+                  - determine <[anim_list].keys||<empty>>
           - case material:
             - determine <server.material_types.filter[is_block].parse_tag[<material[<[parse_value]>].name>]>
           - case particle:
             - determine <server.particle_types>
+          - default:
+            - determine <empty>
     - else if <server.has_flag[dcutscenes]>:
-      - foreach <server.flag[dcutscenes]> key:c_id as:cutscene:
-        - define list:->:<[c_id]>
-      - determine <[list]>
-############################
+      - determine <server.flag[dcutscenes].keys||<empty>>
 
 ## Data Operations #########
 #Saves a cutscene to a directory
@@ -197,13 +332,13 @@ dcutscene_save_file:
     debug: false
     definitions: cutscene
     script:
-    - if <script[dcutscenes_config].data_key[config].get[cutscene_compress_save_file]||false.is_truthy>:
-      - define indent 0
-    - else:
-      - define indent 4
     - if <server.flag[dcutscenes.<[cutscene.name]>]||null> == null:
       - debug error "Could not find cutscene to save."
     - else:
+      - if <script[dcutscenes_config].data_key[config].get[cutscene_compress_save_file]||false.is_truthy>:
+        - define indent 0
+      - else:
+        - define indent 4
       - define cutscene_data <server.flag[dcutscenes.<[cutscene.name]>]>
       - define c_id <[cutscene_data.name]>
       - ~filewrite path:data/dcutscenes/scenes/<[c_id]>.dcutscene.json data:<[cutscene].to_json[native_types=true;indent=<[indent]>].utf8_encode>
@@ -214,6 +349,7 @@ dcutscene_debugger:
     debug: false
     definitions: file|data
     script:
+    - define msg_prefix <script[dcutscenes_config].data_key[config].get[cutscene_prefix].parse_color||<&color[0,0,255]><bold>DCutscenes>
     - if <[file]> == null:
       - debug error "No file specified."
       - stop
@@ -222,7 +358,7 @@ dcutscene_debugger:
       - stop
     - ~filewrite path:data/dcutscenes/debug/<[file]>.json data:<[data].to_json[native_types=true;indent=4].utf8_encode>
     - define text "Debug information sent to <green>data/dcutscenes/debug/<[file]>.json<gray>."
-    - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+    - narrate "<[msg_prefix]> <gray><[text]>"
 
 #Loading cutscene files
 dcutscene_load_files:
@@ -293,43 +429,43 @@ dcutscene_sort_data:
       #Run Task
       - define run_task <[keyframes.elements.run_task].sort_by_value[get[tick]]||null>
       - if <[run_task]> != null:
-        - define keyframes.run_task <[run_task]>
+        - define keyframes.elements.run_task <[run_task]>
       #Fake Object
       - define fake_object <[keyframes.elements.fake_object].sort_by_value[get[tick]]||null>
       - if <[fake_object]> != null:
-        - define keyframes.fake_object <[fake_object]>
+        - define keyframes.elements.fake_object <[fake_object]>
       #Particle
       - define particle <[keyframes.elements.particle].sort_by_value[get[tick]]||null>
       - if <[particle]> != null:
-        - define keyframes.particle <[particle]>
+        - define keyframes.elements.particle <[particle]>
       #Screeneffect
       - define screeneffect <[keyframes.elements.screeneffect].sort_by_value[get[tick]]||null>
       - if <[screeneffect]> != null:
-        - define keyframes.screeneffect <[screeneffect]>
+        - define keyframes.elements.screeneffect <[screeneffect]>
       #Sound
       - define sound <[keyframes.elements.sound].sort_by_value[get[tick]]||null>
       - if <[sound]> != null:
-        - define keyframes.sound <[sound]>
+        - define keyframes.elements.sound <[sound]>
       #Title
       - define title <[keyframes.elements.title].sort_by_value[get[tick]]||null>
       - if <[title]> != null:
-        - define keyframes.title <[title]>
+        - define keyframes.elements.title <[title]>
       #Command
       - define command <[keyframes.elements.command].sort_by_value[get[tick]]||null>
       - if <[command]> != null:
-        - define keyframes.command <[command]>
+        - define keyframes.elements.command <[command]>
       #Message
       - define message <[keyframes.elements.message].sort_by_value[get[tick]]||null>
       - if <[message]> != null:
-        - define keyframes.message <[message]>
+        - define keyframes.elements.message <[message]>
       #Time
       - define time <[keyframes.elements.time].sort_by_value[get[tick]]||null>
       - if <[time]> != null:
-        - define keyframes.time <[time]>
+        - define keyframes.elements.time <[time]>
       #Weather
       - define weather <[keyframes.elements.weather].sort_by_value[get[tick]]||null>
       - if <[weather]> != null:
-        - define keyframes.weather <[weather]>
+        - define keyframes.elements.weather <[weather]>
       #Scene Length
       - define ticks <proc[dcutscene_animation_length].context[<[cutscene]>]>
       #Total cutscene length
@@ -429,8 +565,6 @@ dcutscene_validate_data:
     script:
     - define data data
 
-##################################################################################
-
 ## Utility Example Procedures ############
 #See wiki for example usages you can use these for animators that allow location procedures
 
@@ -460,7 +594,7 @@ dcutscene_circle_proc:
 dcutscene_cube_proc:
   type: procedure
   debug: false
-  definitions: loc|vec|vec_2
+  definitions: loc|vec|vec_2|axis
   script:
   - define vec <[vec]||10,10,10>
   - define vec_2 <[vec_2]||null>

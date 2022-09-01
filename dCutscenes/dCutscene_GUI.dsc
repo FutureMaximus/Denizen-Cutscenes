@@ -16,13 +16,25 @@ dcutscene_scene_show:
     - define inv <player.open_inventory>
     - if <server.has_flag[dcutscenes]>:
       - foreach <server.flag[dcutscenes]> key:id as:cutscene:
-        - define item <[cutscene.item]>
-        - define name <[cutscene.name]>
-        - define name_col <[cutscene.name_color]>
-        - define desc <[cutscene.desc]>
+        - define desc_color:!
+        - define lore1:!
+        - define lore:!
         - define world <[cutscene.world]>
-        - adjust <[item]> display:<[name_col]><[name]> save:item
+        - define settings <[cutscene.settings]||null>
+        - define name <blue><bold><[cutscene.name].parse_color>
+        - define desc <[cutscene.description]||<list>>
+        - foreach <[desc]> as:d:
+          - define desc_color:->:<[d].parse_color>
+        - define item <item[<[settings.item].if_null[dcutscene_scene_item_default]>]>
+        - adjust <[item]> display:<[name]> save:item
         - define item <entry[item].result>
+        - define lore2 <list[<[desc_color].if_null[<empty>]>]>
+        - if <[lore2].any>:
+          - define lore1:->:<empty>
+          - define lore1:|:<[lore2]>
+          - define lore <[lore1]>
+          - adjust <[item]> lore:<[lore]> save:item
+          - define item <entry[item].result>
         - flag <[item]> cutscene_data:<[id]>
         - inventory set d:<[inv]> o:<[item]> slot:<[loop_index]>
         - define index <[loop_index].add[1]>
@@ -30,14 +42,13 @@ dcutscene_scene_show:
     - else:
       - inventory set d:<[inv]> o:dcutscene_new_scene_item slot:1
 
-#Determine if the keyframe has variables
+# Determine if the keyframe has animators
 dcutscene_keyframe_calculate:
     type: procedure
     debug: false
     definitions: scene_name|timespot
     script:
-    - define data <server.flag[dcutscenes]>
-    - define keyframes <[data.<[scene_name]>.keyframes]>
+    - define keyframes <server.flag[dcutscenes.<[scene_name]>.keyframes]>
     - define tick_max <duration[<[timespot]>s].in_ticks>
     - define tick_min <[tick_max].sub[9]>
     - define tick_map <map>
@@ -51,10 +62,10 @@ dcutscene_keyframe_calculate:
       - define cam_search <[keyframes.camera.<[tick]>]||null>
       - if <[cam_search]> != null:
         - define tick_map.camera.<[tick]> <[cam_search]>
-      #Player Model search
-      - define player_model_search <[keyframes.models.<[tick]>]||null>
-      - if <[player_model_search]> != null:
-        - define tick_map.player_model.<[tick]> <[player_model_search]>
+      #Models search
+      - define model_search <[keyframes.models.<[tick]>]||null>
+      - if <[model_search]> != null:
+        - define tick_map.models.<[tick]> <[model_search]>
       #Run Task Search
       - define task_search <[keyframes.elements.run_task.<[tick]>.run_task_list]||null>
       - if <[task_search]> != null:
@@ -104,7 +115,8 @@ dcutscene_keyframe_calculate:
     - else:
       - determine null
 
-#Main keyframes that contain sub-keyframes to modify
+# Utilized for showing animators within each sub keyframe as lore
+# by gathering the data from the keyframes and then displaying it
 dcutscene_keyframe_modify:
     type: task
     debug: false
@@ -150,7 +162,7 @@ dcutscene_keyframe_modify:
     - repeat <[max]> as:loop_i:
         - define lore_list:!
         - define stop_point null
-        #### Time calculations ###############
+        #======= Time calculations =======
         #page 1 and loop 1
         - if <[loop_i]> == 1 && <[page_index]> == 1:
           - define time <[inc].round_up_to_precision[0.1]>s
@@ -176,8 +188,7 @@ dcutscene_keyframe_modify:
             - if <duration[<[time]>].is_more_than_or_equal_to[60s]>:
               - define time <duration[<[time]>].formatted>
             - define display "<blue><bold>Time <gray><bold><[time]>"
-        #######################################
-        ####Keyframe calculation ##############
+        #======= Keyframe data gathering =======
         - define keyframe_data <[data.name].proc[dcutscene_keyframe_calculate].context[<[timespot]>]>
         - if <[keyframe_data].equals[null]>:
           - define lore_list null
@@ -188,13 +199,24 @@ dcutscene_keyframe_modify:
             - foreach <[camera]> key:tick as:camera:
               - define text "<aqua>Camera on tick <green><[tick]>t <aqua>at location <green><[camera.location].simple>"
               - define lore_list:->:<[text]>
-          #Player Model
-          - define player_model <[keyframe_data.player_model]||null>
-          - if <[player_model]> != null:
-            - foreach <[player_model]> key:tick as:p_model:
-              - foreach <[p_model].exclude[model_list]> key:p_uuid as:p_data:
-                - define text "<aqua>Player Model <green><[p_data.id]> <aqua>on tick <green><[tick]>t"
-                - define lore_list:->:<[text]>
+          #All Model Data
+          - define models <[keyframe_data.models]||null>
+          - if <[models]> != null:
+            #All Models
+            - foreach <[models]> key:tick as:model_data:
+              #Model list in tick
+              - define model_list <[model_data.model_list]>
+              - foreach <[model_list]> as:model_uuid:
+                #Data of model based on uuid within the tick
+                - define uuid_data <[model_data.<[model_uuid]>]>
+                - define id <[uuid_data.id]>
+                - choose <[uuid_data.type]>:
+                  - case model:
+                    - define text "<aqua>Model <green><[id]> <aqua>on tick <green><[tick]>t"
+                    - define lore_list:->:<[text]>
+                  - case player_model:
+                    - define text "<aqua>Player Model <green><[id]> <aqua>on tick <green><[tick]>t"
+                    - define lore_list:->:<[text]>
           #Run Task
           - define run_task <[keyframe_data.run_task]||null>
           - if <[run_task]> != null:
@@ -296,8 +318,7 @@ dcutscene_keyframe_modify:
           - if <[lore_list].size> > <[max_lore_size]>:
             - define lore_list <[lore_list].get[1].to[<[max_lore_size]>]>
             - define lore_list:->:<gray>...
-        #######################################
-        ## Setting information on items #######
+        #======= Setting information on items =======
         - if <[lore_list]> != null && <[stop_point]> == null:
           - define item <item[dcutscene_keyframe_contains]>
         - else if <[stop_point]> != null:
@@ -319,7 +340,6 @@ dcutscene_keyframe_modify:
         - define keyframe.timespot <[timespot]>
         - flag <[item]> keyframe_data:<[keyframe]>
         - inventory set d:<[inv]> o:<[item]> slot:<[loop_i]>
-        ########################################
 
 #Sub keyframe list
 dcutscene_sub_keyframe_modify:
@@ -397,6 +417,7 @@ dcutscene_sub_keyframe_modify:
             #Data to pass through for use of modifying the camera
             - definemap modify_data type:camera tick:<[tick]>
             - flag <[cam_item]> keyframe_opt_modify:<[modify_data]>
+            #-GUI placement calculation for tick row
             - inventory set d:<[inv]> o:<[cam_item]> slot:<[loop_i].add[<[tick_column].mul[<[tick_row]>]>]>
             - define add_item <item[dcutscene_keyframe_tick_add]>
             - flag <[add_item]> keyframe_modify:<[tick]>
@@ -417,76 +438,112 @@ dcutscene_sub_keyframe_modify:
             - if <[tick_row]> > 4:
               - define tick_row:1
             - if <[tick_index]> > <[tick_page]>:
-              - define data <[model_data.<[model_uuid]>]>
-              - define type <[data.type]>
-              - choose <[type]>:
+              - define m_data <[model_data.<[model_uuid]>]>
+              #Root model check
+              - define root_check <[m_data.root]||none>
+              - if <[root_check]> != none:
+                - define root_tick <[m_data.root.tick]>
+                - define root_uuid <[m_data.root.uuid]>
+                - define start_tick <[models.<[root_tick]>.<[root_uuid]>.path].keys.first||null>
+                - define lore_data <[models.<[root_tick]>.<[root_uuid]>.path.<[tick]>]>
+                - define opt_item <item[<[models.<[root_tick]>.<[root_uuid]>.item]||dcutscene_model_keyframe_item>]>
+              - else:
+                - define lore_data <[models.<[tick]>.<[model_uuid]>.path.<[tick]>]>
+                - define opt_item <item[<[models.<[tick]>.<[model_uuid]>.item]||dcutscene_model_keyframe_item>]>
+              - choose <[m_data.type]>:
+                #===== Model =====
+                - case model:
+                  - adjust <[opt_item]> display:<red><bold><[m_data.id]> save:item
+                  - define opt_item <entry[item].result>
+                  - define time_lore "<aqua>Time: <gray><[tick]>t"
+                  - define modify "<gray><italic>Click to modify model"
+                  #Data to lore
+                  - define type_lore "<aqua>Type: <gray><[m_data.type]>"
+                  - define model_lore "<aqua>Model: <gray><[m_data.model].if_null[<[models.<[root_tick]>.<[root_uuid]>.model]>]>"
+                  - define anim_lore "<aqua>Animation: <gray><[lore_data.animation]>"
+                  - define loc_lore "<aqua>Location: <gray><[lore_data.location].simple>"
+                  - define path_interp_lore "<aqua>Path Interpolation: <gray><[lore_data.interpolation]>"
+                  - define rotate_interp "<aqua>Rotate Interpolation: <gray><[lore_Data.rotate_interp]>"
+                  - define rotate_mul "<aqua>Rotate Multiplier: <gray><[lore_data.rotate_mul]||1.0>"
+                  - define ray_dir "<aqua>Ray Trace Direction: <gray><[lore_data.ray_trace.direction]>"
+                  - define move_lore "<aqua>Move: <gray><[lore_data.move]>"
+                  #=Non root model (sub-frame)
+                  - if <[root_check]> != none:
+                    - if <[start_tick]> == null:
+                      - define start_lore <empty>
+                      - define m_lore <list[<empty>|<[type_lore]>|<[model_lore]>|<[time_lore]>|<[anim_lore]>|<[loc_lore]>|<[path_interp_lore]>|<[rotate_interp]>|<[rotate_mul]>|<[ray_dir]>|<[move_lore]>|<empty>|<[modify]>]>
+                    - else:
+                      - define start_lore "<aqua>Starting Frame: <gray><[start_tick]>t"
+                      - define m_lore <list[<empty>|<[type_lore]>|<[model_lore]>|<[time_lore]>|<[anim_lore]>|<[loc_lore]>|<[path_interp_lore]>|<[rotate_interp]>|<[rotate_mul]>|<[ray_dir]>|<[move_lore]>|<[start_lore]>|<empty>|<[modify]>]>
+                  #=Root Model
+                  - else:
+                    #Lore
+                    - define sub_frames "<aqua>Sub Frames: <gray><[m_data.sub_frames].keys.size||0>"
+                    - define m_lore <list[<empty>|<[type_lore]>|<[model_lore]>|<[time_lore]>|<[anim_lore]>|<[loc_lore]>|<[path_interp_lore]>|<[rotate_interp]>|<[rotate_mul]>|<[ray_dir]>|<[move_lore]>|<[sub_frames]>|<empty>|<[modify]>]>
+                  - adjust <[opt_item]> lore:<[m_lore]> save:item
+                  - define opt_item <entry[item].result>
+                  #Data to pass through for use of modifying the modifier
+                  - definemap modify_data type:model tick:<[tick]> uuid:<[model_uuid]>
+                  - flag <[opt_item]> keyframe_opt_modify:<[modify_data]>
+
                 #===== Player Model =====
-                #TODO:
-                #- Shorten this
                 - case player_model:
                   - define opt_item <item[dcutscene_keyframe_player_model]>
-                  - define pmodel_id "<aqua>ID: <gray><[data.id]>"
+                  - adjust <[opt_item]> display:<blue><bold><[m_data.id]> save:item
+                  - define opt_item <entry[item].result>
                   - define time_lore "<aqua>Time: <gray><[tick]>t"
                   - define modify "<gray><italic>Click to modify player model"
-                  #If the model has a root model show the starting point
-                  - if <[data.root]||none> != none:
-                    - define root_tick <[data.root.tick]>
-                    - define root_uuid <[data.root.uuid]>
+                  #Data to lore
+                  - define type_lore "<aqua>Type: <gray><[m_data.type].replace[_].with[ ]>"
+                  - define anim_lore "<aqua>Animation: <gray><[lore_data.animation]>"
+                  - define loc_lore "<aqua>Location: <gray><[lore_data.location].simple>"
+                  - define path_interp_lore "<aqua>Path Interpolation: <gray><[lore_data.interpolation]>"
+                  - define rotate_interp "<aqua>Rotate Interpolation: <gray><[lore_data.rotate_interp]>"
+                  - define rotate_mul "<aqua>Rotate Multiplier: <gray><[lore_data.rotate_mul]||1.0>"
+                  - define ray_dir "<aqua>Ray Trace Direction: <gray><[lore_data.ray_trace.direction]>"
+                  - define move_lore "<aqua>Move: <gray><[lore_data.move]>"
+                  #Skin
+                  - define skin <proc[dcutscene_determine_player_model_skin].context[<[scene_name]>|<[tick]>|<[model_uuid]>]||none>
+                  #=Non root model (sub-frame)
+                  - if <[root_check]> != none:
                     #Lore information
-                    - define start_tick <[models.<[root_tick]>.<[root_uuid]>.path].keys.first||null>
-                    - define lore_data <[models.<[root_tick]>.<[root_uuid]>.path.<[tick]>]>
-                    - define anim_lore "<aqua>Animation: <gray><[lore_data.animation]>"
-                    - define loc_lore "<aqua>Location: <gray><[lore_data.location].simple>"
-                    - define path_interp_lore "<aqua>Path Interpolation: <gray><[lore_data.interpolation]>"
-                    - define rotate_interp "<aqua>Rotate Interpolation: <gray><[lore_data.rotate_interp]>"
-                    - define rotate_mul "<aqua>Rotate Multiplier: <gray><[lore_data.rotate_mul]||1.0>"
-                    - define ray_dir "<aqua>Ray Trace Direction: <gray><[lore_data.ray_trace.direction]>"
-                    - define move_lore "<aqua>Move: <gray><[lore_data.move]>"
-                    - define skin <proc[dcutscene_determine_player_model_skin].context[<[scene_name]>|<[tick]>|<[model_uuid]>]||none>
                     - if <[skin]> == none || <[skin]> == player:
                       - define skin <player>
                     #If the starting point keyframe has a skin update the ones without a skin
                     - adjust <[opt_item]> skull_skin:<[skin].parsed.skull_skin||<player.skull_skin>> save:item
                     - define opt_item <entry[item].result>
                     - define skin_lore "<aqua>Skin: <gray><[skin].parsed.name||<[skin].name>>"
+                    #Lore
                     - if <[start_tick]> == null:
                       - define start_lore <empty>
-                      - define m_lore <list[<empty>|<[pmodel_id]>|<[time_lore]>|<[anim_lore]>|<[skin_lore]>|<[loc_lore]>|<[path_interp_lore]>|<[rotate_interp]>|<[rotate_mul]>|<[ray_dir]>|<[move_lore]>|<empty>|<[modify]>]>
+                      - define m_lore <list[<empty>|<[type_lore]>|<[time_lore]>|<[anim_lore]>|<[skin_lore]>|<[loc_lore]>|<[path_interp_lore]>|<[rotate_interp]>|<[rotate_mul]>|<[ray_dir]>|<[move_lore]>|<empty>|<[modify]>]>
                     - else:
                       - define start_lore "<aqua>Starting Frame: <gray><[start_tick]>t"
-                      - define m_lore <list[<empty>|<[pmodel_id]>|<[time_lore]>|<[anim_lore]>|<[skin_lore]>|<[loc_lore]>|<[path_interp_lore]>|<[rotate_interp]>|<[rotate_mul]>|<[ray_dir]>|<[move_lore]>|<[start_lore]>|<empty>|<[modify]>]>
-
-                  #If the model is a root data model
+                      - define m_lore <list[<empty>|<[type_lore]>|<[time_lore]>|<[anim_lore]>|<[skin_lore]>|<[loc_lore]>|<[path_interp_lore]>|<[rotate_interp]>|<[rotate_mul]>|<[ray_dir]>|<[move_lore]>|<[start_lore]>|<empty>|<[modify]>]>
+                  #=Root Model
                   - else:
-                    #Lore information
-                    - define lore_data <[models.<[tick]>.<[model_uuid]>.path.<[tick]>]>
-                    - define anim_lore "<aqua>Animation: <gray><[lore_data.animation]>"
-                    - define loc_lore "<aqua>Location: <gray><[lore_data.location].simple>"
-                    - define path_interp_lore "<aqua>Path Interpolation: <gray><[lore_data.interpolation]>"
-                    - define rotate_interp "<aqua>Rotate Interpolation: <gray><[lore_data.rotate_interp]>"
-                    - define rotate_mul "<aqua>Rotate Multiplier: <gray><[lore_data.rotate_mul]||1.0>"
-                    - define ray_dir "<aqua>Ray Trace Direction: <gray><[lore_data.ray_trace.direction]>"
-                    - define move_lore "<aqua>Move: <gray><[lore_data.move]>"
-                    - define skin <proc[dcutscene_determine_player_model_skin].context[<[scene_name]>|<[tick]>|<[model_uuid]>]||none>
                     - if <[skin]> == none || <[skin]> == player:
                       - define skin <player>
                     - adjust <[opt_item]> skull_skin:<[skin].parsed.skull_skin||<player.skull_skin>> save:item
                     - define opt_item <entry[item].result>
                     - define skin_lore "<aqua>Skin: <gray><[skin].parsed.name||<[skin].name>>"
-                    - define m_lore <list[<empty>|<[pmodel_id]>|<[time_lore]>|<[anim_lore]>|<[skin_lore]>|<[loc_lore]>|<[path_interp_lore]>|<[rotate_interp]>|<[rotate_mul]>|<[ray_dir]>|<[move_lore]>|<empty>|<[modify]>]>
+                    #Lore
+                    - define sub_frames "<aqua>Sub Frames: <gray><[m_data.sub_frames].keys.size||0>"
+                    - define m_lore <list[<empty>|<[type_lore]>|<[time_lore]>|<[anim_lore]>|<[skin_lore]>|<[loc_lore]>|<[path_interp_lore]>|<[rotate_interp]>|<[rotate_mul]>|<[ray_dir]>|<[move_lore]>|<[sub_frames]>|<empty>|<[modify]>]>
                   - adjust <[opt_item]> lore:<[m_lore]> save:item
                   - define opt_item <entry[item].result>
                   #Data to pass through for use of modifying the modifier
                   - definemap modify_data type:player_model tick:<[tick]> uuid:<[model_uuid]>
                   - flag <[opt_item]> keyframe_opt_modify:<[modify_data]>
-                  #GUI placement calculation for tick row
-                  - if <[tick_index]> <= <[tick_page_max]>:
-                    - inventory set d:<[inv]> o:<[opt_item]> slot:<[loop_i].add[<[tick_column].mul[<[tick_row]>]>]>
-                    - define add_slot <[loop_i].add[<[tick_column].mul[<[tick_row]>]>].add[9]>
-                    - if <[add_slot]> < 46:
-                      - define add_item <item[dcutscene_keyframe_tick_add]>
-                      - flag <[add_item]> keyframe_modify:<[tick]>
-                      - inventory set d:<[inv]> o:<[add_item]> slot:<[add_slot]>
+
+              #-GUI placement calculation for tick row
+              - if <[tick_index]> <= <[tick_page_max]>:
+                - inventory set d:<[inv]> o:<[opt_item]> slot:<[loop_i].add[<[tick_column].mul[<[tick_row]>]>]>
+                - define add_slot <[loop_i].add[<[tick_column].mul[<[tick_row]>]>].add[9]>
+                - if <[add_slot]> < 46:
+                  - define add_item <item[dcutscene_keyframe_tick_add]>
+                  - flag <[add_item]> keyframe_modify:<[tick]>
+                  - inventory set d:<[inv]> o:<[add_item]> slot:<[add_slot]>
             - else:
               - define add_item <item[dcutscene_keyframe_tick_add]>
               - flag <[add_item]> keyframe_modify:<[tick]>
@@ -518,7 +575,7 @@ dcutscene_sub_keyframe_modify:
               #Data to pass through for use of modifying the animator
               - definemap modify_data type:run_task tick:<[tick]> uuid:<[task_id]>
               - flag <[opt_item]> keyframe_opt_modify:<[modify_data]>
-              #GUI placement calculation for tick row
+              #-GUI placement calculation for tick row
               - if <[tick_index]> <= <[tick_page_max]>:
                 - inventory set d:<[inv]> o:<[opt_item]> slot:<[loop_i].add[<[tick_column].mul[<[tick_row]>]>]>
                 - define add_slot <[loop_i].add[<[tick_column].mul[<[tick_row]>]>].add[9]>
@@ -559,7 +616,7 @@ dcutscene_sub_keyframe_modify:
               #Data to pass through for use of modifying the animator
               - definemap modify_data type:fake_schem tick:<[tick]> uuid:<[object_id]>
               - flag <[opt_item]> keyframe_opt_modify:<[modify_data]>
-              #GUI placement calculation for tick row
+              #-GUI placement calculation for tick row
               - if <[tick_index]> <= <[tick_page_max]>:
                 - inventory set d:<[inv]> o:<[opt_item]> slot:<[loop_i].add[<[tick_column].mul[<[tick_row]>]>]>
                 - define add_slot <[loop_i].add[<[tick_column].mul[<[tick_row]>]>].add[9]>
@@ -585,22 +642,22 @@ dcutscene_sub_keyframe_modify:
               - define tick_row:1
             - if <[tick_index]> > <[tick_page]>:
               - define obj_data <[elements.fake_object.fake_block.<[tick]>.<[object_id]>]>
-              - define modify "<gray><italic>Click to modify fake block"
               - define block_mat <[obj_data.block]>
-              - define block_mat_lore "<aqua>Material: <gray><[block_mat].name>"
+              - define l1 "<aqua>Material: <gray><[block_mat].name>"
               - adjust <[opt_item]> material:<material[<[block_mat]>]> save:item
               - define opt_item <entry[item].result>
-              - define block_proc "<aqua>Procedure: <gray><[obj_data.procedure.script]||none>"
-              - define block_proc_defs "<aqua>Procedure Definition: <gray><[obj_data.procedure.defs]||none>"
-              - define block_loc "<aqua>Location: <gray><[obj_data.loc].simple>"
-              - define block_time "<aqua>Duration: <gray><duration[<[obj_data.duration]>].formatted>"
-              - define fake_obj_lore <list[<empty>|<[block_mat_lore]>|<[block_loc]>|<[block_time]>|<[block_proc]>|<[block_proc_defs]>|<empty>|<[modify]>]>
+              - define l2 "<aqua>Location: <gray><[obj_data.loc].simple>"
+              - define l3 "<aqua>Duration: <gray><duration[<[obj_data.duration]>].formatted>"
+              - define l4 "<aqua>Procedure: <gray><[obj_data.procedure.script]||none>"
+              - define l5 "<aqua>Procedure Definition: <gray><[obj_data.procedure.defs]||none>"
+              - define modify "<gray><italic>Click to modify fake block"
+              - define fake_obj_lore <list[<empty>|<[l1]>|<[l2]>|<[l3]>|<[l4]>|<[l5]>|<empty>|<[modify]>]>
               - adjust <[opt_item]> lore:<[fake_obj_lore]> save:item
               - define opt_item <entry[item].result>
               #Data to pass through for use of modifying the animator
               - definemap modify_data type:fake_block tick:<[tick]> uuid:<[object_id]>
               - flag <[opt_item]> keyframe_opt_modify:<[modify_data]>
-              #GUI placement calculation for tick row
+              #-GUI placement calculation for tick row
               - if <[tick_index]> <= <[tick_page_max]>:
                 - inventory set d:<[inv]> o:<[opt_item]> slot:<[loop_i].add[<[tick_column].mul[<[tick_row]>]>]>
                 - define add_slot <[loop_i].add[<[tick_column].mul[<[tick_row]>]>].add[9]>
@@ -644,7 +701,7 @@ dcutscene_sub_keyframe_modify:
               #Data to pass through for use of modifying the animator
               - definemap modify_data type:particle tick:<[tick]> uuid:<[particle_id]>
               - flag <[opt_item]> keyframe_opt_modify:<[modify_data]>
-              #GUI placement calculation for tick row
+              #-GUI placement calculation for tick row
               - if <[tick_index]> <= <[tick_page_max]>:
                 - inventory set d:<[inv]> o:<[opt_item]> slot:<[loop_i].add[<[tick_column].mul[<[tick_row]>]>]>
                 - define add_slot <[loop_i].add[<[tick_column].mul[<[tick_row]>]>].add[9]>
@@ -668,19 +725,19 @@ dcutscene_sub_keyframe_modify:
           - if <[tick_row]> > 4:
             - define tick_row:1
           - if <[tick_index]> > <[tick_page]>:
-            - define fade_in "<aqua>Fade in: <gray><[screeneffect.fade_in].in_seconds||0>s"
-            - define stay "<aqua>Stay: <gray><[screeneffect.stay].in_seconds||0>s"
-            - define fade_out "<aqua>Fade out: <gray><[screeneffect.fade_out].in_seconds||0>s"
-            - define color "<aqua>Color: <gray><[screeneffect.color]||black>"
-            - define effect_time "<aqua>Time: <gray><[tick]>t"
+            - define l1 "<aqua>Fade in: <gray><[screeneffect.fade_in].in_seconds||0>s"
+            - define l2 "<aqua>Stay: <gray><[screeneffect.stay].in_seconds||0>s"
+            - define l3 "<aqua>Fade out: <gray><[screeneffect.fade_out].in_seconds||0>s"
+            - define l4 "<aqua>Color: <gray><[screeneffect.color]||black>"
+            - define l5 "<aqua>Time: <gray><[tick]>t"
             - define modify "<gray><italic>Click to modify screeneffect"
-            - define effect_lore <list[<empty>|<[fade_in]>|<[stay]>|<[fade_out]>|<[color]>|<[effect_time]>|<empty>|<[modify]>]>
+            - define effect_lore <list[<empty>|<[l1]>|<[l2]>|<[l3]>|<[l4]>|<[l5]>|<empty>|<[modify]>]>
             - adjust <[opt_item]> lore:<[effect_lore]> save:item
             - define opt_item <entry[item].result>
             #Data to pass through for use of modifying the animator
             - definemap modify_data type:screeneffect tick:<[tick]>
             - flag <[opt_item]> keyframe_opt_modify:<[modify_data]>
-            #GUI placement calculation for tick row
+            #-GUI placement calculation for tick row
             - if <[tick_index]> <= <[tick_page_max]>:
               - inventory set d:<[inv]> o:<[opt_item]> slot:<[loop_i].add[<[tick_column].mul[<[tick_row]>]>]>
               - define add_slot <[loop_i].add[<[tick_column].mul[<[tick_row]>]>].add[9]>
@@ -708,20 +765,20 @@ dcutscene_sub_keyframe_modify:
               - define tick_row:1
             - if <[tick_index]> > <[tick_page]>:
               - define sound_data <[elements.sound.<[tick]>.<[sound_id]>]>
-              - define sound_name "<aqua>Sound: <gray><[sound_data.sound]>"
-              - define sound_loc "<aqua>Location: <gray><[sound_data.location].simple||false>"
-              - define sound_vol "<aqua>Volume: <gray><[sound_data.volume]>"
-              - define sound_pitch "<aqua>Pitch: <gray><[sound_data.pitch]>"
-              - define sound_custom "<aqua>Custom: <gray><[sound_data.custom]>"
-              - define sound_time "<aqua>Time: <gray><[tick]>t"
+              - define l1 "<aqua>Sound: <gray><[sound_data.sound]>"
+              - define l2 "<aqua>Location: <gray><[sound_data.location].simple||false>"
+              - define l3 "<aqua>Volume: <gray><[sound_data.volume]>"
+              - define l4 "<aqua>Pitch: <gray><[sound_data.pitch]>"
+              - define l5 "<aqua>Custom: <gray><[sound_data.custom]>"
+              - define l6 "<aqua>Time: <gray><[tick]>t"
               - define modify "<gray><italic>Click to modify sound"
-              - define sound_lore <list[<empty>|<[sound_name]>|<[sound_loc]>|<[sound_vol]>|<[sound_pitch]>|<[sound_custom]>|<[sound_time]>|<empty>|<[modify]>]>
+              - define sound_lore <list[<empty>|<[l1]>|<[l2]>|<[l3]>|<[l4]>|<[l5]>|<[l6]>|<empty>|<[modify]>]>
               - adjust <[opt_item]> lore:<[sound_lore]> save:item
               - define opt_item <entry[item].result>
               #Data to pass through for use of modifying the animator
               - definemap modify_data type:sound tick:<[tick]> uuid:<[sound_id]>
               - flag <[opt_item]> keyframe_opt_modify:<[modify_data]>
-              #GUI placement calculation for tick row
+              #-GUI placement calculation for tick row
               - if <[tick_index]> <= <[tick_page_max]>:
                 - inventory set d:<[inv]> o:<[opt_item]> slot:<[loop_i].add[<[tick_column].mul[<[tick_row]>]>]>
                 - define add_slot <[loop_i].add[<[tick_column].mul[<[tick_row]>]>].add[9]>
@@ -757,7 +814,7 @@ dcutscene_sub_keyframe_modify:
             #Data to pass through for use of modifying the animator
             - definemap modify_data type:title tick:<[tick]>
             - flag <[opt_item]> keyframe_opt_modify:<[modify_data]>
-            #GUI placement calculation for tick row
+            #-GUI placement calculation for tick row
             - if <[tick_index]> <= <[tick_page_max]>:
               - inventory set d:<[inv]> o:<[opt_item]> slot:<[loop_i].add[<[tick_column].mul[<[tick_row]>]>]>
               - define add_slot <[loop_i].add[<[tick_column].mul[<[tick_row]>]>].add[9]>
@@ -794,7 +851,7 @@ dcutscene_sub_keyframe_modify:
               #Data to pass through for use of modifying the animator
               - definemap modify_data type:command tick:<[tick]> uuid:<[command_id]>
               - flag <[opt_item]> keyframe_opt_modify:<[modify_data]>
-              #GUI placement calculation for tick row
+              #-GUI placement calculation for tick row
               - if <[tick_index]> <= <[tick_page_max]>:
                 - inventory set d:<[inv]> o:<[opt_item]> slot:<[loop_i].add[<[tick_column].mul[<[tick_row]>]>]>
                 - define add_slot <[loop_i].add[<[tick_column].mul[<[tick_row]>]>].add[9]>
@@ -829,7 +886,7 @@ dcutscene_sub_keyframe_modify:
               #Data to pass through for use of modifying the animator
               - definemap modify_data type:message tick:<[tick]> uuid:<[msg_id]>
               - flag <[opt_item]> keyframe_opt_modify:<[modify_data]>
-              #GUI placement calculation for tick row
+              #-GUI placement calculation for tick row
               - if <[tick_index]> <= <[tick_page_max]>:
                 - inventory set d:<[inv]> o:<[opt_item]> slot:<[loop_i].add[<[tick_column].mul[<[tick_row]>]>]>
                 - define add_slot <[loop_i].add[<[tick_column].mul[<[tick_row]>]>].add[9]>
@@ -865,7 +922,7 @@ dcutscene_sub_keyframe_modify:
             #Data to pass through for use of modifying the animator
             - definemap modify_data type:time tick:<[tick]>
             - flag <[opt_item]> keyframe_opt_modify:<[modify_data]>
-            #GUI placement calculation for tick row
+            #-GUI placement calculation for tick row
             - if <[tick_index]> <= <[tick_page_max]>:
               - inventory set d:<[inv]> o:<[opt_item]> slot:<[loop_i].add[<[tick_column].mul[<[tick_row]>]>]>
               - define add_slot <[loop_i].add[<[tick_column].mul[<[tick_row]>]>].add[9]>
@@ -899,7 +956,7 @@ dcutscene_sub_keyframe_modify:
             #Data to pass through for use of modifying the animator
             - definemap modify_data type:weather tick:<[tick]>
             - flag <[opt_item]> keyframe_opt_modify:<[modify_data]>
-            #GUI placement calculation for tick row
+            #-GUI placement calculation for tick row
             - if <[tick_index]> <= <[tick_page_max]>:
               - inventory set d:<[inv]> o:<[opt_item]> slot:<[loop_i].add[<[tick_column].mul[<[tick_row]>]>]>
               - define add_slot <[loop_i].add[<[tick_column].mul[<[tick_row]>]>].add[9]>
@@ -931,7 +988,7 @@ dcutscene_sub_keyframe_modify:
             #Data to pass through for use of modifying the animator
             - definemap modify_data type:stop_point tick:<[tick]>
             - flag <[opt_item]> keyframe_opt_modify:<[modify_data]>
-            #GUI placement calculation for tick row
+            #-GUI placement calculation for tick row
             - if <[tick_index]> <= <[tick_page_max]>:
               - inventory set d:<[inv]> o:<[opt_item]> slot:<[loop_i].add[<[tick_column].mul[<[tick_row]>]>]>
               - define add_slot <[loop_i].add[<[tick_column].mul[<[tick_row]>]>].add[9]>
@@ -965,13 +1022,16 @@ dcutscene_sub_keyframe_modify:
         #If player is moving or duplicating an animator modify the lore
         - if <player.has_flag[dcutscene_animator_change]>:
           - flag <[item]> change_animator
-          - define data <player.flag[dcutscene_animator_change]>
-          - choose <[data.type]>:
-            - case move:
-              - define modify "<gray><italic>Click to move <green><[data.animator].replace[_].with[ ]> <gray><italic>from tick <green><[data.tick]>t <gray><italic>here"
-            - case duplicate:
-              - define modify "<gray><italic>Click to duplicate <green><[data.animator].replace[_].with[ ]> <gray><italic>from tick <green><[data.tick]>t <gray><italic>here"
-          - define lore <list[<[t_lore]>|<[s_lore]>|<empty>|<[modify]>]>
+          - define anim_data <player.flag[dcutscene_animator_change]>
+          - if <[anim_data.scene]> == <[data.name]>:
+            - choose <[anim_data.type]>:
+              - case move:
+                - define modify "<gray><italic>Click to move <green><[anim_data.animator].replace[_].with[ ]> <gray><italic>from tick <green><[anim_data.tick]>t <gray><italic>here"
+              - case duplicate:
+                - define modify "<gray><italic>Click to duplicate <green><[anim_data.animator].replace[_].with[ ]> <gray><italic>from tick <green><[anim_data.tick]>t <gray><italic>here"
+            - define lore <list[<[t_lore]>|<[s_lore]>|<empty>|<[modify]>]>
+          - else:
+            - define lore <list[<[t_lore]>|<[s_lore]>]>
         - else:
           - define lore <list[<[t_lore]>|<[s_lore]>]>
         - adjust <[item]> lore:<[lore]> save:item
@@ -996,6 +1056,7 @@ dcutscene_inventory_main:
     - [] [] [] [] [] [] [] [] []
     - [] [] [] [] [] [] [] [] [dcutscene_exit]
 
+#Cutscene settings GUI
 dcutscene_inventory_settings:
     type: inventory
     inventory: CHEST
@@ -1004,14 +1065,12 @@ dcutscene_inventory_settings:
     gui: true
     slots:
     - [] [] [] [] [] [] [] [] []
+    - [] [] [dcutscene_change_scene_name] [dcutscene_change_description_item] [dcutscene_change_show_bars] [dcutscene_duplicate_scene] [dcutscene_change_item] [] []
     - [] [] [] [] [] [] [] [] []
     - [] [] [] [] [] [] [] [] []
     - [] [] [] [] [] [] [] [] []
-    - [] [] [] [] [] [] [] [] []
-    - [] [] [] [] [dcutscene_delete_cutscene] [] [] [] [dcutscene_exit]
+    - [dcutscene_back_page] [] [] [] [dcutscene_delete_cutscene] [] [] [] [dcutscene_exit]
 
-#TODO:
-#- Add ability to use cutscene on multiple worlds this allows for the same world but different name
 #Gui for cutscene scene where you can modify settings and keyframes of the scene
 dcutscene_inventory_scene:
     type: inventory
@@ -1126,9 +1185,9 @@ dcutscene_inventory_keyframe_modify_model:
     gui: true
     slots:
     - [] [] [] [] [] [] [] [] []
-    - [] [] [dcutscene_model_change_id] [dcutscene_model_change_location] [dcutscene_model_ray_trace_change] [dcutscene_model_change_move] [dcutscene_model_change_animation] [] []
-    - [] [] [dcutscene_model_interp_method] [dcutscene_model_show_path] [dcutscene_model_interp_rotate_change] [dcutscene_model_interp_rotate_mul] [dcutscene_model_move_to_keyframe] [] []
-    - [] [] [dcutscene_model_duplicate] [dcutscene_model_timespot_play] [dcutscene_model_teleport_loc] [] [] [] []
+    - [] [] [dcutscene_model_change_id] [dcutscene_model_change_item] [dcutscene_model_change_location] [dcutscene_model_ray_trace_change] [dcutscene_model_change_move] [] []
+    - [] [] [dcutscene_model_change_animation] [dcutscene_model_interp_method] [dcutscene_model_show_path] [dcutscene_model_interp_rotate_change] [dcutscene_model_interp_rotate_mul] [] []
+    - [] [] [dcutscene_model_move_to_keyframe] [dcutscene_model_duplicate] [dcutscene_model_timespot_play] [dcutscene_model_teleport_loc] [] [] []
     - [] [] [] [] [] [] [] [] []
     - [dcutscene_back_page] [] [] [dcutscene_remove_model_tick] [] [dcutscene_remove_model] [] [] [dcutscene_exit]
 
@@ -1147,6 +1206,21 @@ dcutscene_inventory_keyframe_modify_player_model:
     - [] [] [] [] [] [] [] [] []
     - [dcutscene_back_page] [] [] [dcutscene_remove_player_model_tick] [] [dcutscene_remove_player_model] [] [] [dcutscene_exit]
 
+#Ray Trace modification for Denizen Models.
+dcutscene_inventory_keyframe_ray_trace_model:
+    type: inventory
+    inventory: CHEST
+    title: <&color[<script[dcutscenes_config].data_key[config].get[cutscene_title_color]>]><script[dcutscenes_config].data_key[config].get[cutscene_title]>
+    size: 54
+    gui: true
+    slots:
+    - [] [] [] [] [] [] [] [] []
+    - [] [] [] [] [] [] [] [] []
+    - [] [] [] [dcutscene_model_ray_trace_determine] [dcutscene_model_ray_trace_liquid] [dcutscene_model_ray_trace_passable] [] [] []
+    - [] [] [] [] [] [] [] [] []
+    - [] [] [] [] [] [] [] [] []
+    - [dcutscene_back_page] [] [] [] [] [] [] [] [dcutscene_exit]
+
 #Ray Trace modification for the player model.
 dcutscene_inventory_keyframe_ray_trace_player_model:
     type: inventory
@@ -1156,8 +1230,8 @@ dcutscene_inventory_keyframe_ray_trace_player_model:
     gui: true
     slots:
     - [] [] [] [] [] [] [] [] []
-    - [] [] [] [dcutscene_player_model_ray_trace_determine] [dcutscene_player_model_ray_trace_liquid] [dcutscene_player_model_ray_trace_passable] [] [] []
     - [] [] [] [] [] [] [] [] []
+    - [] [] [] [dcutscene_player_model_ray_trace_determine] [dcutscene_player_model_ray_trace_liquid] [dcutscene_player_model_ray_trace_passable] [] [] []
     - [] [] [] [] [] [] [] [] []
     - [] [] [] [] [] [] [] [] []
     - [dcutscene_back_page] [] [] [] [] [] [] [] [dcutscene_exit]

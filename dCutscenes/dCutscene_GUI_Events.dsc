@@ -6,7 +6,7 @@
 dcutscene_events:
     type: world
     #TODO: Set this to false
-    debug: true
+    debug: false
     events:
         on player quits:
         - if <player.has_flag[cutscene_modify]>:
@@ -19,6 +19,8 @@ dcutscene_events:
             - choose <[type]>:
               - case player_model:
                 - run pmodels_remove_model def:<[root]>
+              - case model:
+                - run dmodels_delete def:<[root]>
               - default:
                 - remove <[root]>
           - flag <player> dcutscene_save_data:!
@@ -29,8 +31,9 @@ dcutscene_events:
         - ratelimit <player> 2s
         - define cutscene <player.flag[cutscene_data]>
         - ~run dcutscene_save_file def:<[cutscene]>
-        - define text "Cutscene <green><[cutscene.name]> <gray>has been saved to <green>Denizen/data/dcutscenes/scenes<gray>."
-        - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+        - define msg_prefix <script[dcutscenes_config].data_key[config].get[cutscene_prefix].parse_color||<&color[0,0,255]><bold>DCutscenes>
+        - define text "Cutscene <green><[cutscene.name].parse_color> <gray>has been saved to <green>Denizen/data/dcutscenes/scenes<gray>."
+        - narrate "<[msg_prefix]> <gray><[text]>"
         after player clicks dcutscene_play_cutscene_item in dcutscene_inventory_scene:
         - define cutscene <player.flag[cutscene_data.name]>
         - if <server.flag[dcutscenes.<[cutscene]>]||null> != null:
@@ -40,8 +43,27 @@ dcutscene_events:
           - debug error "Could not play scene <[cutscene]>."
 
         ##Settings #############
+        #Settings page
+        after player clicks dcutscene_settings in dcutscene_inventory_scene:
+        - inventory open d:dcutscene_inventory_settings
+        #Change cutscene name
+        after player clicks dcutscene_change_scene_name in dcutscene_inventory_settings:
+        - run dcutscene_settings_modify def:new_name_prep
+        #Change cutscene description
+        after player clicks dcutscene_change_description_item in dcutscene_inventory_settings:
+        - run dcutscene_settings_modify def:change_desc_prep
+        #Change cutscene bar bool
+        after player clicks dcutscene_change_show_bars in dcutscene_inventory_settings:
+        - run dcutscene_settings_modify def:change_bars|<context.slot>
+        #Change cutscene GUI item
+        after player clicks dcutscene_change_item in dcutscene_inventory_settings:
+        - run dcutscene_settings_modify def:change_item_prep
+        #Remove cutscene from server flag
+        after player clicks dcutscene_delete_cutscene in dcutscene_inventory_settings:
+        - run dcutscene_settings_modify def:remove_scene_prep
 
         ##Misc #################
+        #Exit page
         after player clicks dcutscene_exit in inventory:
         - inventory close
 
@@ -82,8 +104,10 @@ dcutscene_events:
             - flag <player> cutscene_modify_tab:material
         - else if <[list].contains[particle]>:
             - flag <player> cutscene_modify_tab:particle
+        - else if <[list].contains[model]>:
+            - flag <player> cutscene_modify_tab:model
 
-        #Chat input for dcutscene gui elements
+        #Chat input for dcutscene gui animators
         ##Chat Input ################
         on player chats flagged:cutscene_modify:
         - define msg <context.message>
@@ -95,23 +119,23 @@ dcutscene_events:
             - adjust <player> gamemode:creative
           - stop
         - choose <player.flag[cutscene_modify]>:
-          #Show camera path in cutscene
-          - case camera_path:
-            - if <[msg]> == stop:
-              - flag <player> cutscene_modify:!
-          #Show player model path in cutscene
-          - case player_model_path:
-            - if <[msg]> == stop:
-              - flag <player> cutscene_modify:!
-          #New cutscene name
+          ##Cutscene
+          #New cutscene
           - case new_name:
             - run dcutscene_new_scene def.type:name def.scene:<[msg]>
-          #Modify name for present cutscene
-          - case name:
-            - define name
+          #Change name for cutscene
+          - case cutscene_new_name:
+            - run dcutscene_settings_modify def:change_name|<[msg]>
           #Modify description for present cutscene
-          - case desc:
-            - define desc
+          - case cutscene_new_desc:
+            - run dcutscene_settings_modify def:change_desc|<[msg]>
+          #Change cutscene GUI item
+          - case cutscene_new_gui_item:
+            - if <[msg]> == hand:
+              - define item <player.item_in_hand>
+            - else:
+              - define item <[msg]>
+            - run dcutscene_settings_modify def:<[item]>
 
           ##Camera
           #Create new camera modifier
@@ -140,47 +164,43 @@ dcutscene_events:
           #Set duration for camera recorder
           - case camera_recorder_duration:
             - run dcutscene_cam_keyframe_edit def:edit|record_camera_begin|own|<[msg]>
+          #Show camera path in cutscene
+          - case camera_path:
+            - if <[msg]> == stop:
+              - flag <player> cutscene_modify:!
 
-          ##Sound
-          #Input new volume for sound modifier
-          - case sound_volume:
-            - run dcutscene_animator_keyframe_edit def:sound|set_volume|<[msg]>
-          #Input new pitch for sound modifier
-          - case sound_pitch:
-            - run dcutscene_animator_keyframe_edit def:sound|set_pitch|<[msg]>
-          #Input new sound location
-          - case sound_location:
+          ##Denizen models
+          #Create new denizen model
+          - case new_model_id:
+            - run dcutscene_model_keyframe_edit def:denizen_model|create_id|<[msg]>
+          #Set the newly created model into the dcutscene data including the location specified
+          - case new_model_location:
             - if <[msg]> == confirm:
-              - run dcutscene_animator_keyframe_edit def:sound|set_location|<player.location>
-            - else if <[msg]> == false:
-              - run dcutscene_animator_keyframe_edit def:sound|set_location|false
+              - run dcutscene_model_keyframe_edit def:denizen_model|location_set_and_create_model|<player.flag[dcutscene_location_editor.location]>
+          #Put new model keyframe point based on previous model
+          - case new_model_keyframe_point:
+            - if <[msg]> == confirm:
+              - run dcutscene_model_keyframe_edit def:denizen_model|create_present|new_keyframe_set|<player.flag[dcutscene_location_editor.location]>
+          #Change model ID
+          - case change_model_id:
+            - run dcutscene_model_keyframe_edit def:denizen_model|change_id|<[msg]>
+          #Change model item
+          - case change_model_item:
+            - if <[msg]> == hand:
+              - run dcutscene_model_keyframe_edit def:denizen_model|change_model_item|<player.item_in_hand>
             - else:
-              - run dcutscene_animator_keyframe_edit def:sound|set_location|<[msg]>
-
-          ##Screeneffect
-          #Create new screeneffect modifier
-          - case screeneffect:
-            - run dcutscene_animator_keyframe_edit def:screeneffect|create|<[msg]>
-          #Set new time
-          - case screeneffect_time:
-            - run dcutscene_animator_keyframe_edit def:screeneffect|set_time|<[msg]>
-          #Set new color
-          - case screeneffect_color:
-            - run dcutscene_animator_keyframe_edit def:screeneffect|set_color|<[msg]>
-
-          ##Run Task
-          #Create new run task modifier
-          - case run_task:
-            - run dcutscene_animator_keyframe_edit def:run_task|create|<[msg]>
-          #Change run task modifier script
-          - case run_task_change:
-            - run dcutscene_animator_keyframe_edit def:run_task|change_task|<[msg]>
-          #Set definitions for run task
-          - case run_task_def_set:
-            - run dcutscene_animator_keyframe_edit def:run_task|set_task_definition|<[msg]>
-          #Set delay for run task
-          - case run_task_delay:
-            - run dcutscene_animator_keyframe_edit def:run_task|change_delay|<[msg]>
+              - run dcutscene_model_keyframe_edit def:denizen_model|change_model_item|<[msg]>
+          #Change model location
+          - case set_new_model_location:
+            - if <[msg]> == confirm:
+              - run dcutscene_model_keyframe_edit def:denizen_model|change_location|<player.flag[dcutscene_location_editor.location]>
+          #Stop model path from being shown
+          - case model_path:
+            - if <[msg]> == stop:
+              - flag <player> cutscene_modify:!
+          #Set rotation multiplier for model
+          - case model_change_rotate_mul:
+            - run dcutscene_model_keyframe_edit def:denizen_model|change_rotate_mul|<[msg]>
 
           ##Player model
           #Create new player model id
@@ -207,6 +227,35 @@ dcutscene_events:
           #Sets a new skin for the player model
           - case player_model_change_skin:
             - run dcutscene_model_keyframe_edit def:player_model|change_skin|set_new_skin|<[msg]>
+          #Stop player model path from being shown
+          - case player_model_path:
+            - if <[msg]> == stop:
+              - flag <player> cutscene_modify:!
+
+          ##Screeneffect
+          #Create new screeneffect modifier
+          - case screeneffect:
+            - run dcutscene_animator_keyframe_edit def:screeneffect|create|<[msg]>
+          #Set new time
+          - case screeneffect_time:
+            - run dcutscene_animator_keyframe_edit def:screeneffect|set_time|<[msg]>
+          #Set new color
+          - case screeneffect_color:
+            - run dcutscene_animator_keyframe_edit def:screeneffect|set_color|<[msg]>
+
+          ##Run Task
+          #Create new run task modifier
+          - case run_task:
+            - run dcutscene_animator_keyframe_edit def:run_task|create|<[msg]>
+          #Change run task modifier script
+          - case run_task_change:
+            - run dcutscene_animator_keyframe_edit def:run_task|change_task|<[msg]>
+          #Set definitions for run task
+          - case run_task_def_set:
+            - run dcutscene_animator_keyframe_edit def:run_task|set_task_definition|<[msg]>
+          #Set delay for run task
+          - case run_task_delay:
+            - run dcutscene_animator_keyframe_edit def:run_task|change_delay|<[msg]>
 
           ##Fake block
           #New fake block location
@@ -304,6 +353,22 @@ dcutscene_events:
           - case change_message:
             - run dcutscene_animator_keyframe_edit def:message|change_message|<[msg]>
 
+          ##Sound
+          #Input new volume for sound modifier
+          - case sound_volume:
+            - run dcutscene_animator_keyframe_edit def:sound|set_volume|<[msg]>
+          #Input new pitch for sound modifier
+          - case sound_pitch:
+            - run dcutscene_animator_keyframe_edit def:sound|set_pitch|<[msg]>
+          #Input new sound location
+          - case sound_location:
+            - if <[msg]> == confirm:
+              - run dcutscene_animator_keyframe_edit def:sound|set_location|<player.location>
+            - else if <[msg]> == false:
+              - run dcutscene_animator_keyframe_edit def:sound|set_location|false
+            - else:
+              - run dcutscene_animator_keyframe_edit def:sound|set_location|<[msg]>
+
           ##Time
           #New time
           - case new_time:
@@ -351,6 +416,10 @@ dcutscene_events:
             - case camera:
               - flag <player> dcutscene_tick_modify:<[i].flag[keyframe_opt_modify.tick]>
               - inventory open d:dcutscene_inventory_keyframe_modify_camera
+            #Model type
+            - case model:
+              - flag <player> dcutscene_tick_modify:<[i].flag[keyframe_opt_modify]>
+              - inventory open d:dcutscene_inventory_keyframe_modify_model
             #Player Model type
             - case player_model:
               - flag <player> dcutscene_tick_modify:<[i].flag[keyframe_opt_modify]>
@@ -408,95 +477,108 @@ dcutscene_events:
         - else if <[i].has_flag[change_animator]>:
           - if <player.has_flag[dcutscene_animator_change]>:
             - flag <player> dcutscene_tick_modify:<[i].flag[keyframe_tick]>
+            #TODO:
+            #- Implement ability to move animators to another cutscene
             - define data <player.flag[dcutscene_animator_change]>
+            - define cutscene_data <player.flag[cutscene_data]>
+            - if <[data.scene]> != <[cutscene_data.name]>:
+              - stop
+            - define type <[data.type]>
             - choose <[data.animator]>:
               #Camera
               - case camera:
-                - choose <[data.type]>:
+                - choose <[type]>:
                   - case move:
                     - run dcutscene_cam_keyframe_edit def:edit|move_camera
                   - case duplicate:
                     - run dcutscene_cam_keyframe_edit def:edit|duplicate_camera
+              #Denizen Model
+              - case model:
+                - choose <[type]>:
+                  - case move:
+                    - run dcutscene_model_keyframe_edit def:denizen_model|move_to
+                  - case duplicate:
+                    - run dcutscene_model_keyframe_edit def:denizen_model|duplicate
               #Player Model
               - case player_model:
-                - choose <[data.type]>:
+                - choose <[type]>:
                   - case move:
                     - run dcutscene_model_keyframe_edit def:player_model|move_to
                   - case duplicate:
                     - run dcutscene_model_keyframe_edit def:player_model|duplicate
               #Run Task
               - case run_task:
-                - choose <[data.type]>:
+                - choose <[type]>:
                   - case move:
                     - run dcutscene_animator_keyframe_edit def:run_task|move_to
                   - case duplicate:
                     - run dcutscene_animator_keyframe_edit def:run_task|duplicate
               #Screeneffect
               - case screeneffect:
-                - choose <[data.type]>:
+                - choose <[type]>:
                   - case move:
                     - run dcutscene_animator_keyframe_edit def:screeneffect|move_to
                   - case duplicate:
                     - run dcutscene_animator_keyframe_edit def:screeneffect|duplicate
               #Sound
               - case sound:
-                - choose <[data.type]>:
+                - choose <[type]>:
                   - case move:
                     - run dcutscene_animator_keyframe_edit def:sound|move_to
                   - case duplicate:
                     - run dcutscene_animator_keyframe_edit def:sound|duplicate
               #Fake Block
               - case fake_block:
-                - choose <[data.type]>:
+                - choose <[type]>:
                   - case move:
                     - run dcutscene_animator_keyframe_edit def:fake_object|move_to_fake_block
                   - case duplicate:
                     - run dcutscene_animator_keyframe_edit def:fake_object|duplicate_fake_block
               #Fake Schem
               - case fake_schem:
-                - choose <[data.type]>:
+                - choose <[type]>:
                   - case move:
                     - run dcutscene_animator_keyframe_edit def:fake_object|move_to_fake_schem
                   - case duplicate:
                     - run dcutscene_animator_keyframe_edit def:fake_object|duplicate_fake_schem
               #Particle
               - case particle:
-                - choose <[data.type]>:
+                - choose <[type]>:
                   - case move:
                     - run dcutscene_animator_keyframe_edit def:particle|move_to
                   - case duplicate:
                     - run dcutscene_animator_keyframe_edit def:particle|duplicate
               #Title
               - case title:
-                - choose <[data.type]>:
+                - choose <[type]>:
                   - case move:
                     - run dcutscene_animator_keyframe_edit def:title|move_to
                   - case duplicate:
                     - run dcutscene_animator_keyframe_edit def:title|duplicate
               #Command
               - case command:
-                - choose <[data.type]>:
+                - choose <[type]>:
                   - case move:
                     - run dcutscene_animator_keyframe_edit def:command|move_to
                   - case duplicate:
                     - run dcutscene_animator_keyframe_edit def:command|duplicate
               #Message
               - case message:
-                - choose <[data.type]>:
+                - choose <[type]>:
                   - case move:
                     - run dcutscene_animator_keyframe_edit def:message|move_to
                   - case duplicate:
                     - run dcutscene_animator_keyframe_edit def:message|duplicate
               #Time
               - case time:
-                - choose <[data.type]>:
+                - choose <[type]>:
                   - case move:
                     - run dcutscene_animator_keyframe_edit def:time|move_to
                   - case duplicate:
                     - run dcutscene_animator_keyframe_edit def:time|duplicate
               #Weather
               - case weather:
-                - choose <[data.type]>:
+                - choose <[type]>:
                   - case move:
                     - run dcutscene_animator_keyframe_edit def:weather|move_to
                   - case duplicate:
@@ -511,8 +593,10 @@ dcutscene_events:
           - choose <[data.type]>:
             - case player_model:
               - run dcutscene_model_keyframe_edit def:player_model|create_present|new_keyframe_prepare|<[data]>
+            - case model:
+              - run dcutscene_model_keyframe_edit def:denizen_model|create_present|new_keyframe_prepare|<[data]>
 
-        #=Sub Keyframe scroll up and down
+        #=Sub keyframe scroll up and down
         #Scroll up
         on player clicks dcutscene_scroll_up in dcutscene_inventory_sub_keyframe:
         - if !<player.has_flag[sub_keyframe_tick_page]>:
@@ -533,7 +617,6 @@ dcutscene_events:
         - ~run dcutscene_sub_keyframe_modify def:<player.flag[dcutscene_sub_keyframe_back_data]>
 
         #========= Option GUI events ===========
-
         ##Camera #####
         #Add a new camera
         after player clicks dcutscene_add_cam in dcutscene_inventory_keyframe_modify:
@@ -604,8 +687,75 @@ dcutscene_events:
           - case set_new_player_model_location:
             - run dcutscene_model_keyframe_edit def:player_model|location|set_location|<player.flag[dcutscene_location_editor.location]>
 
-        ## Player Model ####
+        ## Denizen Models ####
         #New model
+        after player clicks dcutscene_add_model in dcutscene_inventory_keyframe_modify:
+        - run dcutscene_model_keyframe_edit def:denizen_model|new
+        #Change ID
+        after player clicks dcutscene_model_change_id in dcutscene_inventory_keyframe_modify_model:
+        - run dcutscene_model_keyframe_edit def:denizen_model|change_id_prep
+        #Move to a new keyframe
+        after player clicks dcutscene_model_move_to_keyframe in dcutscene_inventory_keyframe_modify_model:
+        - run dcutscene_model_keyframe_edit def:denizen_model|move_to_prep
+        #Duplicate
+        after player clicks dcutscene_model_duplicate in dcutscene_inventory_keyframe_modify_model:
+        - run dcutscene_model_keyframe_edit def:denizen_model|duplicate_prep
+        #Change model GUI item
+        after player clicks dcutscene_model_change_item in dcutscene_inventory_keyframe_modify_model:
+        - run dcutscene_model_keyframe_edit def:denizen_model|change_model_item_prep
+        #Change model location
+        after player clicks dcutscene_model_change_location in dcutscene_inventory_keyframe_modify_model:
+        - run dcutscene_model_keyframe_edit def:denizen_model|change_location_prep
+        #Ray Trace GUI
+        after player clicks dcutscene_model_ray_trace_change in dcutscene_inventory_keyframe_modify_model:
+        - inventory open d:dcutscene_inventory_keyframe_ray_trace_model
+        #Change ray trace direction
+        after player clicks dcutscene_model_ray_trace_determine in dcutscene_inventory_keyframe_ray_trace_model:
+        - run dcutscene_model_keyframe_edit def:denizen_model|ray_trace|ray_trace_direction|<context.slot>
+        #Change ray trace liquid
+        after player clicks dcutscene_model_ray_trace_liquid in dcutscene_inventory_keyframe_ray_trace_model:
+        - run dcutscene_model_keyframe_edit def:denizen_model|ray_trace|ray_trace_liquid|<context.slot>
+        #Change ray trace passable
+        after player clicks dcutscene_model_ray_trace_passable in dcutscene_inventory_keyframe_ray_trace_model:
+        - run dcutscene_model_keyframe_edit def:denizen_model|ray_trace|ray_trace_passable|<context.slot>
+        #Change move
+        after player clicks dcutscene_model_change_move in dcutscene_inventory_keyframe_modify_model:
+        - run dcutscene_model_keyframe_edit def:denizen_model|set_move|<context.slot>
+        #Change animation
+        after player clicks dcutscene_model_change_animation in dcutscene_inventory_keyframe_modify_model:
+        - run dcutscene_model_keyframe_edit def:denizen_model|new_animation_prepare
+        #Change path interpolation method
+        after player clicks dcutscene_model_interp_method in dcutscene_inventory_keyframe_modify_model:
+        - run dcutscene_model_keyframe_edit def:denizen_model|change_path_interp|<context.slot>
+        #Path shower
+        after player clicks dcutscene_model_show_path in dcutscene_inventory_keyframe_modify_model:
+        - run dcutscene_path_show_interval def:model|<player.flag[dcutscene_tick_modify.tick]>|<player.flag[dcutscene_tick_modify.uuid]>
+        - inventory close
+        #Change path rotation interpolation
+        after player clicks dcutscene_model_interp_rotate_change in dcutscene_inventory_keyframe_modify_model:
+        - run dcutscene_model_keyframe_edit def:denizen_model|change_rotate_interp|<context.slot>
+        #Change path rotation multiplier
+        after player clicks dcutscene_model_interp_rotate_mul in dcutscene_inventory_keyframe_modify_model:
+        - run dcutscene_model_keyframe_edit def:denizen_model|change_rotate_mul_prep
+        #Teleport to model location
+        after player clicks dcutscene_model_teleport_loc in dcutscene_inventory_keyframe_modify_model:
+        - run dcutscene_model_keyframe_edit def:denizen_model|teleport_to
+        #Play from this tick
+        after player clicks dcutscene_model_timespot_play in dcutscene_inventory_keyframe_modify_model:
+        - run dcutscene_model_keyframe_edit def:denizen_model|play_from_here
+        #Remove from tick
+        after player clicks dcutscene_remove_model_tick in dcutscene_inventory_keyframe_modify_model:
+        - run dcutscene_model_keyframe_edit def:denizen_model|remove_tick
+        #Remove from cutscene
+        after player clicks dcutscene_remove_model in dcutscene_inventory_keyframe_modify_model:
+        - inventory close
+        - clickable dcutscene_model_keyframe_edit def:denizen_model|remove_all usages:1 save:remove_model
+        - define prefix <element[DCutscenes].color_gradient[from=blue;to=aqua].bold>
+        - define text "Are you sure you want to remove this model? <green><bold><element[Yes].on_hover[<[prefix]> <gray>This will permanently remove this model from this scene.].type[SHOW_TEXT].on_click[<entry[remove_model].command>]>"
+        - narrate "<[prefix]> <gray><[text]>"
+
+        ## Player Model ####
+        #New player model
         after player clicks dcutscene_add_player_model in dcutscene_inventory_keyframe_modify:
         - run dcutscene_model_keyframe_edit def:player_model|new
         #Set animation
@@ -617,9 +767,6 @@ dcutscene_events:
         #Change location
         after player clicks dcutscene_player_model_change_location in dcutscene_inventory_keyframe_modify_player_model:
         - run dcutscene_model_keyframe_edit def:player_model|location|new_location_prepare
-        #Ray Trace GUI
-        after player clicks dcutscene_player_model_ray_trace_change in dcutscene_inventory_keyframe_modify_player_model:
-        - inventory open d:dcutscene_inventory_keyframe_ray_trace_player_model
         #Move to a new keyframe
         after player clicks dcutscene_player_model_move_to_keyframe in dcutscene_inventory_keyframe_modify_player_model:
         - run dcutscene_model_keyframe_edit def:player_model|move_to_prep
@@ -632,6 +779,9 @@ dcutscene_events:
         #Change path interpolation method
         after player clicks dcutscene_player_model_interp_method in dcutscene_inventory_keyframe_modify_player_model:
         - run dcutscene_model_keyframe_edit def:player_model|change_path_interp|<context.slot>
+        #Ray Trace GUI
+        after player clicks dcutscene_player_model_ray_trace_change in dcutscene_inventory_keyframe_modify_player_model:
+        - inventory open d:dcutscene_inventory_keyframe_ray_trace_player_model
         #Change ray trace direction
         after player clicks dcutscene_player_model_ray_trace_determine in dcutscene_inventory_keyframe_ray_trace_player_model:
         - run dcutscene_model_keyframe_edit def:player_model|ray_trace|ray_trace_direction|<context.slot>
@@ -649,7 +799,7 @@ dcutscene_events:
         - run dcutscene_model_keyframe_edit def:player_model|change_rotate_interp|<context.slot>
         #Change path rotation multiplier
         after player clicks dcutscene_player_model_interp_rotate_mul in dcutscene_inventory_keyframe_modify_player_model:
-        - run dcutscene_model_keyframe_edit def:player_model|change_rotate_mul_prep|<context.slot>
+        - run dcutscene_model_keyframe_edit def:player_model|change_rotate_mul_prep
         #Teleport to player model location
         after player clicks dcutscene_player_model_teleport_loc in dcutscene_inventory_keyframe_modify_player_model:
         - run dcutscene_model_keyframe_edit def:player_model|teleport_to
@@ -666,7 +816,7 @@ dcutscene_events:
         #Remove from cutscene
         after player clicks dcutscene_remove_player_model in dcutscene_inventory_keyframe_modify_player_model:
         - inventory close
-        - clickable dcutscene_model_keyframe_edit def:player_model|remove_all save:remove_model
+        - clickable dcutscene_model_keyframe_edit def:player_model|remove_all usages:1 save:remove_model
         - define prefix <element[DCutscenes].color_gradient[from=blue;to=aqua].bold>
         - define text "Are you sure you want to remove this player model? <green><bold><element[Yes].on_hover[<[prefix]> <gray>This will permanently remove this player model from this scene.].type[SHOW_TEXT].on_click[<entry[remove_model].command>]>"
         - narrate "<[prefix]> <gray><[text]>"
@@ -1034,8 +1184,15 @@ dcutscene_events:
         #Scene GUI
         after player clicks dcutscene_back_page in dcutscene_inventory_scene:
         - ~run dcutscene_scene_show
+        #Settings page
+        after player clicks dcutscene_back_page in dcutscene_inventory_settings:
+        - inventory open d:dcutscene_inventory_scene
         #Camera
         after player clicks dcutscene_back_page in dcutscene_inventory_keyframe_modify_camera:
+        - inventory open d:dcutscene_inventory_sub_keyframe
+        - ~run dcutscene_sub_keyframe_modify def:<player.flag[dcutscene_sub_keyframe_back_data]>
+        #Model
+        after player clicks dcutscene_back_page in dcutscene_inventory_keyframe_modify_model:
         - inventory open d:dcutscene_inventory_sub_keyframe
         - ~run dcutscene_sub_keyframe_modify def:<player.flag[dcutscene_sub_keyframe_back_data]>
         #Player Model
@@ -1061,6 +1218,9 @@ dcutscene_events:
         #Model list gui
         after player clicks dcutscene_back_page in dcutscene_inventory_keyframe_model_list:
         - inventory open d:dcutscene_inventory_keyframe_modify
+        #Ray trace model GUI
+        after player clicks dcutscene_back_page in dcutscene_inventory_keyframe_ray_trace_model:
+        - inventory open d:dcutscene_inventory_keyframe_modify_model
         #Ray trace player model GUI
         after player clicks dcutscene_back_page in dcutscene_inventory_keyframe_ray_trace_player_model:
         - inventory open d:dcutscene_inventory_keyframe_modify_player_model

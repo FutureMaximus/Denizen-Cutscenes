@@ -109,14 +109,71 @@ dcutscene_back_page:
     material: blue_wool
     display name: <blue><bold>Back
 
+###### Settings #########
 #Settings button
 dcutscene_settings:
     type: item
     material: gray_wool
     display name: <dark_gray><bold>Settings
     lore:
+    - <empty>
     - <gray>Change the settings of this cutscene.
 
+dcutscene_change_scene_name:
+    type: item
+    material: name_tag
+    display name: <green><bold>Change Scene Name
+    lore:
+    - <empty>
+    - <gray><italic>Click to change scene name
+
+dcutscene_change_description_item:
+    type: item
+    material: book
+    display name: <aqua><bold>Change Description
+    lore:
+    - <empty>
+    - <gray><italic>Click to change description
+
+dcutscene_change_show_bars:
+    type: item
+    material: black_wool
+    display name: <blue><bold>Show Cutscene Bars
+    lore:
+    - <empty>
+    - <gray>Determine whether the cutscene bars
+    - <gray>should be shown or not.
+    - <empty>
+    - <gray><italic>Click to change cutscene bars
+
+dcutscene_duplicate_scene:
+    type: item
+    material: shulker_shell
+    display name: <dark_blue><bold>Duplicate Cutscene
+    lore:
+    - <empty>
+    - <gray><italic>Click to duplicate this cutscene
+
+dcutscene_change_item:
+    type: item
+    material: green_wool
+    display name: <green><bold>Change GUI Item
+    lore:
+    - <empty>
+    - <gray><italic>Click to change GUI item
+
+dcutscene_delete_cutscene:
+    type: item
+    material: paper
+    display name: <red><bold>Delete Cutscene
+    lore:
+    - <empty>
+    - <gray>This will delete the cutscene entirely
+    - <gray>from the server. It is recommended you make
+    - <gray>a backup using the save file button.
+    - <empty>
+    - <gray><italic>Click to delete this cutscene
+###### Cutscene GUI Items ########
 #Modify keyframes button
 dcutscene_keyframes_list:
     type: item
@@ -134,7 +191,7 @@ dcutscene_scene_item_default:
     type: item
     material: green_wool
 
-##Location Tool Items
+##Location Tool Items ##########
 dcutscene_location_tool_item:
     type: item
     material: ender_chest
@@ -152,7 +209,7 @@ dcutscene_location_tool_confirm_location:
 
 dcutscene_location_tool_ray_trace_item:
     type: item
-    material: observer
+    material: spectral_arrow
     display name: <gold><bold>Ray Trace Location
     lore:
     - <empty>
@@ -209,7 +266,7 @@ dcutscene_loc_use_yaw:
 
 dcutscene_loc_ray_trace:
     type: item
-    material: observer
+    material: spectral_arrow
     display name: <gold><bold>Ray Trace
 
 dcutscene_loc_ray_trace_dist_add:
@@ -239,10 +296,10 @@ dcutscene_loc_ray_trace_water:
 
 dcutscene_loc_ray_trace_reverse_model:
     type: item
-    material: piston
+    material: recovery_compass
     display name: <aqua><bold>Reverse Model <gray><player.flag[dcutscene_location_editor.reverse_model]>
 
-#Option Items
+#======== Option Items ===========
 ##Camera
 dcutscene_add_cam:
     type: item
@@ -256,7 +313,7 @@ dcutscene_add_cam:
 
 dcutscene_camera_path_show:
     type: item
-    material: paper
+    material: <script[dcutscenes_config].data_key[config].get[cutscene_path_material]||barrier>
     display name: <dark_aqua><bold>Camera Path
     lore:
     - <gray>Shows the camera's path in the cutscene
@@ -275,14 +332,6 @@ dcutscene_camera_loc_modify:
     lore:
     - <empty>
     - <gray><italic>Click to change location of camera in keyframe
-
-dcutscene_camera_remove_modify:
-    type: item
-    material: paper
-    display name: <red><bold>Remove camera from keyframe
-    lore:
-    - <empty>
-    - <gray><italic>Click to remove camera from keyframe
 
 dcutscene_camera_teleport:
     type: item
@@ -327,7 +376,7 @@ dcutscene_camera_upside_down:
 dcutscene_camera_look_modify:
     type: item
     material: spyglass
-    display name: <green><bold>Set look location
+    display name: <dark_green><bold>Set look location
     lore:
     - <empty>
     - <gray>Set the look location for the
@@ -338,7 +387,7 @@ dcutscene_camera_look_modify:
 
 dcutscene_camera_rotate_modify:
     type: item
-    material: tripwire_hook
+    material: redstone_torch
     display name: <dark_aqua><bold>Rotate Multiplier
     lore:
     - <empty>
@@ -373,95 +422,58 @@ dcutscene_camera_record_player:
     - <gray>for close up precise shots.
     - <empty>
     - <gray><italic>Click to record movement
+
+dcutscene_camera_move_to_keyframe:
+    type: item
+    material: tripwire_hook
+    display name: <green><bold>Move to a keyframe
+    lore:
+    - <empty>
+    - <gray>Move the camera animator
+    - <gray>to a new tick.
+    - <empty>
+    - <gray><italic>Click to move camera animator
+
+dcutscene_camera_duplicate_to_keyframe:
+    type: item
+    material: shulker_shell
+    display name: <blue><bold>Duplicate
+    lore:
+    - <empty>
+    - <gray>Duplicate the camera animator and
+    - <gray>move it to a new tick.
+    - <empty>
+    - <gray><italic>Click to duplicate camera animator
+
+dcutscene_camera_timespot_play:
+    type: item
+    material: loom
+    display name: <gold><bold>Play from here
+    lore:
+    - <empty>
+    - <gray>Play the cutscene from here.
+    - <empty>
+    - <gray><italic>Click to play from here
+
+dcutscene_camera_remove_modify:
+    type: item
+    material: paper
+    display name: <red><bold>Remove camera from keyframe
+    lore:
+    - <empty>
+    - <gray><italic>Click to remove camera from keyframe
 ########
 
-##Sound
-dcutscene_add_sound:
-    type: item
-    material: jukebox
-    display name: <blue><bold>Add Sound
-    lore:
-    - <empty>
-    - <gray>Play a sound to the player.
-
-dcutscene_sound_keyframe:
-    type: item
-    material: jukebox
-    display name: <red><bold>Sound
-
-dcutscene_sound_modify:
-    type: item
-    material: jukebox
-    display name: <blue><bold>Change Sound
-    lore:
-    - <empty>
-    - <gray><italic>Click to change sound
-
-dcutscene_sound_volume_modify:
-    type: item
-    material: repeater
-    display name: <aqua><bold>Change Volume
-    lore:
-    - <empty>
-    - <gray>Volumes greater than 1.0 will be audible from farther away.
-    - <empty>
-    - <gray><italic>Click to change sound volume
-
-dcutscene_sound_pitch_modify:
-    type: item
-    material: lever
-    display name: <dark_blue><bold>Change Pitch
-    lore:
-    - <empty>
-    - <gray><italic>Click to change sound pitch
-
-dcutscene_sound_loc_modify:
-    type: item
-    material: beacon
-    display name: <dark_aqua><bold>Change Location
-    lore:
-    - <empty>
-    - <gray>The sound will play at this location.
-    - <empty>
-    - <gray><italic>Click to change sound location
-
-dcutscene_sound_custom_modify:
-    type: item
-    material: note_block
-    display name: <dark_purple><bold>Custom Sound
-    lore:
-    - <empty>
-    - <gray>If you have a custom sound make sure this is true.
-    - <empty>
-    - <gray><italic>Click to change custom sound
-
-dcutscene_sound_stop_modify:
-    type: item
-    material: paper
-    display name: <red><bold>Stop Sound
-    lore:
-    - <empty>
-    - <gray>Determine what sound or if all sounds will be stopped in this tick.
-    - <empty>
-    - <gray><italic>Click to stop sound
-
-dcutscene_sound_remove_modify:
-    type: item
-    material: paper
-    display name: <red><bold>Remove Sound
-    lore:
-    - <empty>
-    - <gray><italic>Click to remove sound
-######
-
+## Regular Entity ###
 dcutscene_add_entity:
     type: item
     material: zombie_head
     display name: <green><bold>Show entity
     lore:
     - <empty>
-    - <gray>Show an entity to the player and modify it.
+    - <blue><italic><underline>Planned
 
+## Denizen Models ###
 dcutscene_add_model:
     type: item
     material: dragon_head
@@ -470,6 +482,213 @@ dcutscene_add_model:
     - <empty>
     - <gray>Show a model to the player and play animations with it.
     - <blue>Requires DModels
+
+dcutscene_model_keyframe_item:
+    type: item
+    display name: <red><bold>Model
+    material: dragon_head
+
+dcutscene_model_change_id:
+    type: item
+    material: name_tag
+    display name: <green><bold>Change ID
+    lore:
+    - <empty>
+    - <gray><italic>Click to change model ID
+
+dcutscene_model_change_item:
+    type: item
+    material: dragon_head
+    display name: <blue><bold>Change Model Item
+    lore:
+    - <empty>
+    - <gray>Change the item displayed for
+    - <gray>this model in the cutscene GUI.
+    - <empty>
+    - <gray>Click to change displayed item
+
+dcutscene_model_change_location:
+    type: item
+    material: recovery_compass
+    display name: <dark_green><bold>Change location
+    lore:
+    - <empty>
+    - <gray><italic>Click to change model location
+
+dcutscene_model_ray_trace_change:
+    type: item
+    material: spectral_arrow
+    display name: <red><bold>Ray Trace
+    lore:
+    - <empty>
+    - <gray>Determine if the model will be on
+    - <gray>the floor or ceiling during movement
+    - <gray>generally this should be kept
+    - <gray>true unless not needed such as
+    - <gray>a flying model.
+    - <empty>
+    - <gray><italic>Click to change ray trace
+
+dcutscene_model_ray_trace_determine:
+    type: item
+    material: spectral_arrow
+    display name: <red><bold>Ray Trace Direction
+    lore:
+    - <empty>
+    - <gray>Specify whether the path will
+    - <gray>ray trace the floor, ceiling,
+    - <gray>or neither.
+    - <empty>
+    - <gray><italic>Click to modify model ray trace
+
+dcutscene_model_ray_trace_liquid:
+    type: item
+    material: water_bucket
+    display name: <blue><bold>Ray Trace Liquid
+    lore:
+    - <empty>
+    - <gray>If true the model will move
+    - <gray>on the surface of liquids.
+    - <gray>If false the ray will
+    - <gray>ignore liquids and go through.
+    - <empty>
+    - <gray><italic>Click to modify ray trace liquid
+
+dcutscene_model_ray_trace_passable:
+    type: item
+    material: grass
+    display name: <green><bold>Ray Trace Passable
+    lore:
+    - <empty>
+    - <gray>If true the model will move
+    - <gray>on passable blocks such as grass.
+    - <gray>If false the ray will ignore
+    - <gray>passable blocks.
+    - <empty>
+    - <gray><italic>Click to modify ray trace passable
+
+dcutscene_model_change_move:
+    type: item
+    material: saddle
+    display name: <blue><bold>Move Model
+    lore:
+    - <empty>
+    - <gray>Determine if the model will move to next keyframe point.
+    - <empty>
+    - <gray><italic>Click to change model move
+
+dcutscene_model_change_animation:
+    type: item
+    material: enchanting_table
+    display name: <dark_blue><bold>Change Animation
+    lore:
+    - <empty>
+    - <gray>Play an animation for the
+    - <gray>model or stop one from playing.
+    - <empty>
+    - <gray><italic>Click to change animation
+
+dcutscene_model_interp_method:
+    type: item
+    material: lead
+    display name: <yellow><bold>Interpolation Method
+    lore:
+    - <empty>
+    - <gray>The interpolation method for the movement
+    - <gray>path of the player model
+    - <gray>Linear: A straight line (Linear Interpolation)
+    - <gray>Smooth: A spline curve (Centripetal Catmullrom Interpolation)
+    - <empty>
+    - <gray><italic>Click to change path interpolation method
+
+dcutscene_model_show_path:
+    type: item
+    material: <script[dcutscenes_config].data_key[config].get[cutscene_path_material]||barrier>
+    display name: <blue><bold>Show Model Path
+    lore:
+    - <empty>
+    - <gray>Shows the model's movement path in the cutscene.
+    - <empty>
+    - <gray><italic>Click to show model path
+
+dcutscene_model_interp_rotate_change:
+    type: item
+    material: compass
+    display name: <dark_purple><bold>Rotate Interpolation
+    lore:
+    - <empty>
+    - <gray>Determine if the model will rotate
+    - <gray>smoothly to the next keyframe point.
+    - <empty>
+    - <gray><italic>Click to change path rotation interpolation
+
+dcutscene_model_interp_rotate_mul:
+    type: item
+    material: redstone_torch
+    display name: <light_purple><bold>Rotate Multiplier
+    lore:
+    - <empty>
+    - <gray>Determine how fast the model
+    - <gray>will rotate to the next keyframe point
+    - <gray>if rotate interpolation is true.
+    - <empty>
+    - <gray><italic>Click to change rotate multiplier
+
+dcutscene_model_move_to_keyframe:
+    type: item
+    material: tripwire_hook
+    display name: <green><bold>Move to a keyframe
+    lore:
+    - <empty>
+    - <gray>Move the model animator
+    - <gray>to a new tick.
+    - <empty>
+    - <gray><italic>Click to move model animator
+
+dcutscene_model_duplicate:
+    type: item
+    material: shulker_shell
+    display name: <blue><bold>Duplicate
+    lore:
+    - <empty>
+    - <gray>Duplicate the model
+    - <gray>animator and move it to a new tick.
+    - <empty>
+    - <gray><italic>Click to duplicate model animator
+
+dcutscene_model_timespot_play:
+    type: item
+    material: loom
+    display name: <gold><bold>Play from here
+    lore:
+    - <empty>
+    - <gray>Play the cutscene from here.
+    - <empty>
+    - <gray><italic>Click to play from here
+
+dcutscene_model_teleport_loc:
+    type: item
+    material: nether_star
+    display name: <aqua><bold>Teleport to location
+    lore:
+    - <empty>
+    - <gray><italic>Click to teleport to model location
+
+dcutscene_remove_model_tick:
+    type: item
+    material: paper
+    display name: <red><bold>Remove from tick
+    lore:
+    - <empty>
+    - <gray><italic>Click to remove model from this tick
+
+dcutscene_remove_model:
+    type: item
+    material: paper
+    display name: <dark_red><bold>Remove Model
+    lore:
+    - <empty>
+    - <gray><italic>Click to remove model from cutscene
 
 ## Player Model ###
 dcutscene_add_player_model:
@@ -499,11 +718,11 @@ dcutscene_player_model_change_id:
 dcutscene_player_model_change_animation:
     type: item
     material: enchanting_table
-    display name: <dark_blue><bold>Play Animation
+    display name: <dark_blue><bold>Animation
     lore:
     - <empty>
     - <gray>Play an animation for the player
-    - <gray>model.
+    - <gray>model or stop one from playing.
     - <empty>
     - <gray><italic>Click to change animation
 
@@ -527,13 +746,13 @@ dcutscene_player_model_change_move:
     display name: <gold><bold>Move Player Model
     lore:
     - <empty>
-    - <gray>Determine if the player model will move to next keyframe point
+    - <gray>Determine if the player model will move to next keyframe point.
     - <empty>
     - <gray><italic>Click to change player model move
 
 dcutscene_player_model_change_location:
     type: item
-    material: tripwire_hook
+    material: recovery_compass
     display name: <green><bold>Change Location
     lore:
     - <empty>
@@ -541,7 +760,7 @@ dcutscene_player_model_change_location:
 
 dcutscene_player_model_ray_trace_change:
     type: item
-    material: observer
+    material: spectral_arrow
     display name: <dark_aqua><bold>Ray Trace
     lore:
     - <empty>
@@ -573,7 +792,7 @@ dcutscene_player_model_teleport_loc:
 
 dcutscene_player_model_interp_method:
     type: item
-    material: paper
+    material: lead
     display name: <blue><bold>Path Interpolation Method
     lore:
     - <empty>
@@ -584,15 +803,108 @@ dcutscene_player_model_interp_method:
     - <empty>
     - <gray><italic>Click to change path interpolation method
 
+dcutscene_player_model_interp_rotate_change:
+    type: item
+    material: compass
+    display name: <dark_purple><bold>Rotate Interpolation
+    lore:
+    - <empty>
+    - <gray>Determine if the player model will
+    - <gray>rotate smoothly to the next keyframe point.
+    - <empty>
+    - <gray><italic>Click to change path rotate interpolation
+
+dcutscene_player_model_interp_rotate_mul:
+    type: item
+    material: redstone_torch
+    display name: <light_purple><bold>Rotate Multiplier
+    lore:
+    - <empty>
+    - <gray>Determine how fast the player
+    - <gray>will rotate to the next keyframe point
+    - <gray>if rotate interpolation is true.
+    - <empty>
+    - <gray><italic>Click to change rotate multiplier
+
 dcutscene_player_model_show_path:
     type: item
-    material: paper
+    material: <script[dcutscenes_config].data_key[config].get[cutscene_path_material]||barrier>
     display name: <blue><bold>Show Player Model Path
     lore:
     - <empty>
     - <gray>Shows the player model's movement path in the cutscene.
     - <empty>
     - <gray><italic>Click to show player model path
+
+dcutscene_player_model_ray_trace_determine:
+    type: item
+    material: spectral_arrow
+    display name: <red><bold>Ray Trace Direction
+    lore:
+    - <empty>
+    - <gray>Specify whether the path will
+    - <gray>ray trace the floor, ceiling,
+    - <gray>or neither.
+    - <empty>
+    - <gray><italic>Click to modify player model ray trace
+
+dcutscene_player_model_ray_trace_liquid:
+    type: item
+    material: water_bucket
+    display name: <blue><bold>Ray Trace Liquid
+    lore:
+    - <empty>
+    - <gray>If true the player model will move
+    - <gray>on the surface of liquids.
+    - <gray>If false the ray will
+    - <gray>ignore liquids and go through.
+    - <empty>
+    - <gray><italic>Click to modify ray trace liquid
+
+dcutscene_player_model_ray_trace_passable:
+    type: item
+    material: grass
+    display name: <green><bold>Ray Trace Passable
+    lore:
+    - <empty>
+    - <gray>If true the player model will move
+    - <gray>on passable blocks such as grass.
+    - <gray>If false the ray will ignore
+    - <gray>passable blocks.
+    - <empty>
+    - <gray><italic>Click to modify ray trace passable
+
+dcutscene_player_model_move_to_keyframe:
+    type: item
+    material: tripwire_hook
+    display name: <green><bold>Move to a keyframe
+    lore:
+    - <empty>
+    - <gray>Move the player model animator
+    - <gray>to a new tick.
+    - <empty>
+    - <gray><italic>Click to move player model animator
+
+dcutscene_player_model_duplicate:
+    type: item
+    material: shulker_shell
+    display name: <blue><bold>Duplicate
+    lore:
+    - <empty>
+    - <gray>Duplicate the player model
+    - <gray>animator and move it to a new tick.
+    - <empty>
+    - <gray><italic>Click to duplicate player model animator
+
+dcutscene_player_model_timespot_play:
+    type: item
+    material: loom
+    display name: <gold><bold>Play from here
+    lore:
+    - <empty>
+    - <gray>Play the cutscene from here.
+    - <empty>
+    - <gray><italic>Click to play from here
 
 dcutscene_remove_player_model:
     type: item
@@ -609,44 +921,6 @@ dcutscene_remove_player_model_tick:
     lore:
     - <empty>
     - <gray><italic>Click to remove player model from this tick
-
-dcutscene_player_model_ray_trace_determine:
-    type: item
-    material: observer
-    display name: <red><bold>Ray Trace Direction
-    lore:
-    - <empty>
-    - <gray>Specify whether the path will
-    - <gray>ray trace the floor, ceiling,
-    - <gray>or neither.
-    - <empty>
-    - <gray><italic>Click to modify player model ray trace
-
-dcutscene_player_model_ray_trace_liquid:
-    type: item
-    material: water_bucket
-    display name: <blue><bold>Ray Trace Liquid
-    lore:
-    - <empty>
-    - <gray>If true the model will move
-    - <gray>on the surface of liquids.
-    - <gray>If false the ray will
-    - <gray>ignore liquids and go through.
-    - <empty>
-    - <gray><italic>Click to modify ray trace liquid
-
-dcutscene_player_model_ray_trace_passable:
-    type: item
-    material: grass
-    display name: <green><bold>Ray Trace Passable
-    lore:
-    - <empty>
-    - <gray>If true the model will move
-    - <gray>on passable blocks such as grass.
-    - <gray>If false the ray will ignore
-    - <gray>passable blocks.
-    - <empty>
-    - <gray><italic>Click to modify ray trace passable
 
 ##Run Task ###
 dcutscene_add_run_task:
@@ -706,6 +980,36 @@ dcutscene_run_task_delay_modify:
     - <gray>it runs.
     - <empty>
     - <gray><italic>Click to change run task delay
+
+dcutscene_run_task_move_to_keyframe:
+    type: item
+    material: tripwire_hook
+    display name: <green><bold>Move to a keyframe
+    lore:
+    - <empty>
+    - <gray>Move the run task animator
+    - <gray>to a new tick.
+    - <empty>
+    - <gray><italic>Click to move run task animator
+
+dcutscene_run_task_duplicate:
+    type: item
+    material: shulker_shell
+    display name: <blue><bold>Duplicate
+    lore:
+    - <empty>
+    - <gray>Duplicate the run task animator and
+    - <gray>move it to a new tick.
+
+dcutscene_run_task_timespot_play:
+    type: item
+    material: loom
+    display name: <gold><bold>Play from here
+    lore:
+    - <empty>
+    - <gray>Play the cutscene from here.
+    - <empty>
+    - <gray><italic>Click to play from here
 
 dcutscene_run_task_remove_modify:
     type: item
@@ -807,14 +1111,6 @@ dcutscene_fake_object_block_duration_change:
     - <empty>
     - <gray><italic>Click to set fake block duration
 
-dcutscene_fake_object_block_remove:
-    type: item
-    material: paper
-    display name: <red><bold>Remove Fake Block
-    lore:
-    - <empty>
-    - <gray><italic>Click to remove fake block
-
 dcutscene_fake_object_block_teleport:
     type: item
     material: nether_star
@@ -822,6 +1118,46 @@ dcutscene_fake_object_block_teleport:
     lore:
     - <empty>
     - <gray><italic>Click to teleport to location
+
+dcutscene_fake_block_move_to_keyframe:
+    type: item
+    material: tripwire_hook
+    display name: <green><bold>Move to a keyframe
+    lore:
+    - <empty>
+    - <gray>Move the fake block animator
+    - <gray>to a new tick.
+    - <empty>
+    - <gray><italic>Click to move fake block animator
+
+dcutscene_fake_block_duplicate:
+    type: item
+    material: shulker_shell
+    display name: <blue><bold>Duplicate
+    lore:
+    - <empty>
+    - <gray>Duplicate the fake block animator
+    - <gray>and move it to a tick.
+    - <empty>
+    - <gray><italic>Click to duplicate fake block animator
+
+dcutscene_fake_block_timespot_play:
+    type: item
+    material: loom
+    display name: <gold><bold>Play from here
+    lore:
+    - <empty>
+    - <gray>Play the cutscene from here.
+    - <empty>
+    - <gray><italic>Click to play from here
+
+dcutscene_fake_object_block_remove:
+    type: item
+    material: paper
+    display name: <red><bold>Remove Fake Block
+    lore:
+    - <empty>
+    - <gray><italic>Click to remove fake block
 
 ##Fake Schem
 dcutscene_add_fake_schem:
@@ -944,6 +1280,38 @@ dcutscene_fake_object_schem_teleport:
     - <empty>
     - <gray><italic>Click to teleport to schematic location
 
+dcutscene_fake_schem_move_to:
+    type: item
+    material: tripwire_hook
+    display name: <green><bold>Move to a keyframe
+    lore:
+    - <empty>
+    - <gray>Move the fake schematic animator
+    - <gray>to a new tick.
+    - <empty>
+    - <gray><italic>Click to move fake schematic animator
+
+dcutscene_fake_schem_duplicate:
+    type: item
+    material: shulker_shell
+    display name: <blue><bold>Duplicate
+    lore:
+    - <empty>
+    - <gray>Duplicate the fake schematic animator
+    - <gray>and move it to a new tick.
+    - <empty>
+    - <gray><italic>Click to move fake schematic animator
+
+dcutscene_fake_schem_timespot_play:
+    type: item
+    material: loom
+    display name: <gold><bold>Play from here
+    lore:
+    - <empty>
+    - <gray>Play the cutscene from here.
+    - <empty>
+    - <gray><italic>Click to play from here
+
 dcutscene_fake_object_schem_remove:
     type: item
     material: paper
@@ -986,6 +1354,38 @@ dcutscene_screeneffect_color_modify:
     - <empty>
     - <gray><italic>Click to change screeneffect color
 
+dcutscene_screeneffect_move_to_keyframe:
+    type: item
+    material: tripwire_hook
+    display name: <green><bold>Move to a keyframe
+    lore:
+    - <empty>
+    - <gray>Move the screeneffect animator
+    - <gray>to a new tick.
+    - <empty>
+    - <gray><italic>Click to move screeneffect animator
+
+dcutscene_screeneffect_duplicate:
+    type: item
+    material: shulker_shell
+    display name: <blue><bold>Duplicate
+    lore:
+    - <empty>
+    - <gray>Duplicate the screeneffect animator
+    - <gray>and move it to a new tick.
+    - <empty>
+    - <gray><italic>Click to duplicate screeneffect animator
+
+dcutscene_screeneffect_timespot_play:
+    type: item
+    material: loom
+    display name: <gold><bold>Play from here
+    lore:
+    - <empty>
+    - <gray>Play the cutscene from here.
+    - <empty>
+    - <gray><italic>Click to play from here
+
 dcutscene_screeneffect_remove_modify:
     type: item
     material: paper
@@ -1008,14 +1408,6 @@ dcutscene_particle_keyframe:
     type: item
     material: heart_of_the_sea
     display name: <green><bold>Particle
-
-dcutscene_particle_remove:
-    type: item
-    material: paper
-    display name: <red><bold>Remove Particle
-    lore:
-    - <empty>
-    - <gray><italic>Click to remove particle
 
 dcutscene_particle_modify:
     type: item
@@ -1134,6 +1526,46 @@ dcutscene_particle_teleport_to:
     - <empty>
     - <gray><italic>Click to teleport to particle location
 
+dcutscene_particle_move_to_keyframe:
+    type: item
+    material: tripwire_hook
+    display name: <green><bold>Move to keyframe
+    lore:
+    - <empty>
+    - <gray>Move the particle animator
+    - <gray>to a new tick.
+    - <empty>
+    - <gray><italic>Click to move particle animator
+
+dcutscene_particle_duplicate:
+    type: item
+    material: shulker_shell
+    display name: <blue><bold>Duplicate
+    lore:
+    - <empty>
+    - <gray>Duplicate the particle animator
+    - <gray>and move it to a new tick.
+    - <empty>
+    - <gray><italic>Click to duration particle animator
+
+dcutscene_particle_timespot_play:
+    type: item
+    material: loom
+    display name: <gold><bold>Play from here
+    lore:
+    - <empty>
+    - <gray>Play the cutscene from here.
+    - <empty>
+    - <gray><italic>Click to play from here
+
+dcutscene_particle_remove:
+    type: item
+    material: paper
+    display name: <red><bold>Remove Particle
+    lore:
+    - <empty>
+    - <gray><italic>Click to remove particle
+
 ##################
 
 ##Title ###
@@ -1175,6 +1607,38 @@ dcutscene_title_duration_modify:
     - <gray>Set the fade in, stay, and fade out duration.
     - <empty>
     - <gray><italic>Click to set title duration
+
+dcutscene_title_move_to_keyframe:
+    type: item
+    material: tripwire_hook
+    display name: <green><bold>Move to a keyframe
+    lore:
+    - <empty>
+    - <gray>Move the title animator
+    - <gray>to a new tick.
+    - <empty>
+    - <gray><italic>Click to move title animator
+
+dcutscene_title_duplicate:
+    type: item
+    material: shulker_shell
+    display name: <blue><bold>Duplicate
+    lore:
+    - <empty>
+    - <gray>Duplicate the title animator
+    - <gray>and move it to a new tick.
+    - <empty>
+    - <gray><italic>Click to duplicate title animator
+
+dcutscene_title_timespot_play:
+    type: item
+    material: loom
+    display name: <gold><bold>Play from here
+    lore:
+    - <empty>
+    - <gray>Play the cutscene from here.
+    - <empty>
+    - <gray><italic>Click to play from here
 
 dcutscene_title_remove_modify:
     type: item
@@ -1231,6 +1695,38 @@ dcutscene_command_silent_modify:
     - <empty>
     - <gray><italic>Click to set silent command
 
+dcutscene_command_move_to_keyframe:
+    type: item
+    material: tripwire_hook
+    display name: <green><bold>Move to a keyframe
+    lore:
+    - <empty>
+    - <gray>Move the command animator
+    - <gray>to a new keyframe.
+    - <empty>
+    - <gray><italic>Click to move command animator
+
+dcutscene_command_duplicate:
+    type: item
+    material: shulker_shell
+    display name: <blue><bold>Duplicate
+    lore:
+    - <empty>
+    - <gray>Duplicate the command animator
+    - <gray>and move it to a new tick.
+    - <empty>
+    - <gray><italic>Click to duplicate command animator
+
+dcutscene_command_timespot_play:
+    type: item
+    material: loom
+    display name: <gold><bold>Play from here
+    lore:
+    - <empty>
+    - <gray>Play the cutscene from here.
+    - <empty>
+    - <gray><italic>Click to play from here
+
 dcutscene_command_remove_modify:
     type: item
     material: paper
@@ -1263,6 +1759,38 @@ dcutscene_message_modify:
     - <empty>
     - <gray><italic>Click to set message
 
+dcutscene_message_move_to_keyframe:
+    type: item
+    material: tripwire_hook
+    display name: <green><bold>Move to a keyframe
+    lore:
+    - <empty>
+    - <gray>Move the message animator
+    - <gray>to a new tick.
+    - <empty>
+    - <gray><italic>Click to move message animator
+
+dcutscene_message_duplicate:
+    type: item
+    material: shulker_shell
+    display name: <blue><bold>Duplicate
+    lore:
+    - <empty>
+    - <gray>Duplicate the message animator
+    - <gray>and move it to a new tick.
+    - <empty>
+    - <gray><italic>Click to duplicate message animator
+
+dcutscene_message_timespot_play:
+    type: item
+    material: loom
+    display name: <gold><bold>Play from here
+    lore:
+    - <empty>
+    - <gray>Play the cutscene from here.
+    - <empty>
+    - <gray><italic>Click to play from here
+
 dcutscene_message_remove_modify:
     type: item
     material: paper
@@ -1271,6 +1799,116 @@ dcutscene_message_remove_modify:
     - <empty>
     - <gray><italic>Click to remove message
 #################
+
+##Sound
+dcutscene_add_sound:
+    type: item
+    material: jukebox
+    display name: <blue><bold>Add Sound
+    lore:
+    - <empty>
+    - <gray>Play a sound to the player.
+
+dcutscene_sound_keyframe:
+    type: item
+    material: jukebox
+    display name: <blue><bold>Sound
+
+dcutscene_sound_modify:
+    type: item
+    material: jukebox
+    display name: <blue><bold>Change Sound
+    lore:
+    - <empty>
+    - <gray><italic>Click to change sound
+
+dcutscene_sound_volume_modify:
+    type: item
+    material: repeater
+    display name: <aqua><bold>Change Volume
+    lore:
+    - <empty>
+    - <gray>Volumes greater than 1.0 will be audible from farther away.
+    - <empty>
+    - <gray><italic>Click to change sound volume
+
+dcutscene_sound_pitch_modify:
+    type: item
+    material: lever
+    display name: <dark_blue><bold>Change Pitch
+    lore:
+    - <empty>
+    - <gray><italic>Click to change sound pitch
+
+dcutscene_sound_loc_modify:
+    type: item
+    material: beacon
+    display name: <dark_aqua><bold>Change Location
+    lore:
+    - <empty>
+    - <gray>The sound will play at this location.
+    - <empty>
+    - <gray><italic>Click to change sound location
+
+dcutscene_sound_custom_modify:
+    type: item
+    material: note_block
+    display name: <dark_purple><bold>Custom Sound
+    lore:
+    - <empty>
+    - <gray>If you have a custom sound make sure this is true.
+    - <empty>
+    - <gray><italic>Click to change custom sound
+
+dcutscene_sound_stop_modify:
+    type: item
+    material: paper
+    display name: <red><bold>Stop Sound
+    lore:
+    - <empty>
+    - <gray>Determine what sound or if all sounds will be stopped in this tick.
+    - <empty>
+    - <gray><italic>Click to stop sound
+
+dcutscene_sound_move_to_keyframe:
+    type: item
+    material: tripwire_hook
+    display name: <green><bold>Move to a keyframe
+    lore:
+    - <empty>
+    - <gray>Move the sound animator to
+    - <gray>a new tick.
+    - <empty>
+    - <gray><italic>Click to move sound animator
+
+dcutscene_sound_duplicate:
+    type: item
+    material: shulker_shell
+    display name: <blue><bold>Duplicate
+    lore:
+    - <empty>
+    - <gray>Duplicate the sound animator
+    - <gray>and move it to a new tick.
+    - <empty>
+    - <gray><italic>Click to duplicate sound animator
+
+dcutscene_sound_timespot_play:
+    type: item
+    material: loom
+    display name: <gold><bold>Play from here
+    lore:
+    - <empty>
+    - <gray>Play the cutscene from here.
+    - <empty>
+    - <gray><italic>Click to play from here
+
+dcutscene_sound_remove_modify:
+    type: item
+    material: paper
+    display name: <red><bold>Remove Sound
+    lore:
+    - <empty>
+    - <gray><italic>Click to remove sound
 
 ## Time ########
 dcutscene_send_time:
@@ -1329,6 +1967,38 @@ dcutscene_time_reset_modify:
     - <empty>
     - <gray><italic>Click to set reset time
 
+dcutscene_time_move_to_keyframe:
+    type: item
+    material: tripwire_hook
+    display name: <green><bold>Move to a keyframe
+    lore:
+    - <empty>
+    - <gray>Move the time animator
+    - <gray>to a new tick.
+    - <empty>
+    - <gray><italic>Click to move time animator
+
+dcutscene_time_duplicate:
+    type: item
+    material: shulker_shell
+    display name: <blue><bold>Duplicate
+    lore:
+    - <empty>
+    - <gray>Duplicate the time animator
+    - <gray>and move it to a new tick.
+    - <empty>
+    - <gray><italic>Click to duplicate time animator
+
+dcutscene_time_timespot_play:
+    type: item
+    material: loom
+    display name: <gold><bold>Play from here
+    lore:
+    - <empty>
+    - <gray>Play the cutscene from here.
+    - <empty>
+    - <gray><italic>Click to play from here
+
 dcutscene_time_remove_modify:
     type: item
     material: paper
@@ -1370,6 +2040,38 @@ dcutscene_weather_duration_modify:
     - <gray>to the original for the player.
     - <empty>
     - <gray><italic>Click to set weather duration
+
+dcutscene_weather_move_to_keyframe:
+    type: item
+    material: tripwire_hook
+    display name: <green><bold>Move to a keyframe
+    lore:
+    - <empty>
+    - <gray>Move the weather animator
+    - <gray>to a new tick.
+    - <empty>
+    - <gray><italic>Click to move weather animator
+
+dcutscene_weather_duplicate:
+    type: item
+    material: shulker_shell
+    display name: <blue><bold>Duplicate
+    lore:
+    - <empty>
+    - <gray>Duplicate the weather animator
+    - <gray>and move it to a new tick.
+    - <empty>
+    - <gray><italic>Click to duplicate weather animator
+
+dcutscene_weather_timespot_play:
+    type: item
+    material: loom
+    display name: <gold><bold>Play from here
+    lore:
+    - <empty>
+    - <gray>Play the cutscene from here.
+    - <empty>
+    - <gray><italic>Click to play from here
 
 dcutscene_weather_remove_modify:
     type: item
