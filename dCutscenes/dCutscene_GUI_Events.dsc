@@ -5,7 +5,6 @@
 #======== Cutscene Events ==========
 dcutscene_events:
     type: world
-    #TODO: Set this to false
     debug: false
     events:
         on player quits:
@@ -25,6 +24,8 @@ dcutscene_events:
                 - remove <[root]>
           - flag <player> dcutscene_save_data:!
         ##Main cutscene gui ####
+        after player right clicks block with:dcutscene_open_gui_item:
+        - ~run dcutscene_scene_show def:back
         after player clicks dcutscene_keyframes_list in dcutscene_inventory_scene:
         - ~run dcutscene_keyframe_modify
         after player clicks dcutscene_save_file_item in dcutscene_inventory_scene:
@@ -58,6 +59,12 @@ dcutscene_events:
         #Change cutscene GUI item
         after player clicks dcutscene_change_item in dcutscene_inventory_settings:
         - run dcutscene_settings_modify def:change_item_prep
+        #Change hide players
+        after player clicks dcutscene_hide_players in dcutscene_inventory_settings:
+        - run dcutscene_settings_modify def:change_hide_players|<context.slot>
+        #Change bound to camerea
+        after player clicks dcutscene_bound_to_camera in dcutscene_inventory_settings:
+        - run dcutscene_settings_modify def:change_camera_bound|<context.slot>
         #Remove cutscene from server flag
         after player clicks dcutscene_delete_cutscene in dcutscene_inventory_settings:
         - run dcutscene_settings_modify def:remove_scene_prep
@@ -135,7 +142,7 @@ dcutscene_events:
               - define item <player.item_in_hand>
             - else:
               - define item <[msg]>
-            - run dcutscene_settings_modify def:<[item]>
+            - run dcutscene_settings_modify def:change_item|<[item]>
 
           ##Camera
           #Create new camera modifier
@@ -388,6 +395,10 @@ dcutscene_events:
         after player clicks dcutscene_new_scene_item in dcutscene_inventory_main:
         - inventory close
         - run dcutscene_new_scene
+        after player clicks dcutscene_next in dcutscene_inventory_main:
+        - run dcutscene_scene_show def:next
+        after player clicks dcutscene_previous in dcutscene_inventory_main:
+        - run dcutscene_scene_show def:previous
         after player clicks item in dcutscene_inventory_main:
         - define i <context.item>
         - if <[i].has_flag[cutscene_data]>:
@@ -595,6 +606,12 @@ dcutscene_events:
               - run dcutscene_model_keyframe_edit def:player_model|create_present|new_keyframe_prepare|<[data]>
             - case model:
               - run dcutscene_model_keyframe_edit def:denizen_model|create_present|new_keyframe_prepare|<[data]>
+        #Next page
+        after player clicks dcutscene_next in dcutscene_inventory_keyframe_model_list:
+        - run dcutscene_model_list_new def:<player.flag[dcutscene_tick_modify]>|<player.flag[dcutscene_save_data.scene_name]>|<player.flag[dcutscene_save_data.type]>|next
+        #Previous page
+        after player clicks dcutscene_previous in dcutscene_inventory_keyframe_model_list:
+        - run dcutscene_model_list_new def:<player.flag[dcutscene_tick_modify]>|<player.flag[dcutscene_save_data.scene_name]>|<player.flag[dcutscene_save_data.type]>|previous
 
         #=Sub keyframe scroll up and down
         #Scroll up
@@ -668,11 +685,17 @@ dcutscene_events:
         ## All Models #######
         #New Model in model list gui
         after player clicks dcutscene_add_new_model in dcutscene_inventory_keyframe_model_list:
+        - define msg_prefix <script[dcutscenes_config].data_key[config].get[cutscene_prefix].parse_color||<&color[0,0,255]><bold>DCutscenes>
         - choose <player.flag[dcutscene_save_data.type]>:
+          - case model:
+            - flag <player> cutscene_modify:new_model_id expire:2m
+            - define text "Chat the name of the model this will be used as an identifier."
+            - narrate "<[msg_prefix]> <gray><[text]>"
+            - inventory close
           - case player_model:
             - flag <player> cutscene_modify:new_player_model_id expire:2m
             - define text "Chat the name of the player model this will be used as an identifier."
-            - narrate "<element[DCutscenes].color_gradient[from=blue;to=aqua].bold> <gray><[text]>"
+            - narrate "<[msg_prefix]> <gray><[text]>"
             - inventory close
         #Confirms location for location tool
         after player clicks dcutscene_location_tool_confirm_location in dcutscene_inventory_location_tool:
@@ -1183,7 +1206,7 @@ dcutscene_events:
         - inventory open d:dcutscene_inventory_scene
         #Scene GUI
         after player clicks dcutscene_back_page in dcutscene_inventory_scene:
-        - ~run dcutscene_scene_show
+        - run dcutscene_scene_show def:back
         #Settings page
         after player clicks dcutscene_back_page in dcutscene_inventory_settings:
         - inventory open d:dcutscene_inventory_scene
@@ -1260,5 +1283,3 @@ dcutscene_events:
         after player clicks dcutscene_back_page in dcutscene_inventory_keyframe_modify_weather:
         - inventory open d:dcutscene_inventory_sub_keyframe
         - ~run dcutscene_sub_keyframe_modify def:<player.flag[dcutscene_sub_keyframe_back_data]>
-
-########################################################################################################
