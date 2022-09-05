@@ -14,30 +14,30 @@
 
 #-Github: https://github.com/FutureMaximus/Denizen-Cutscenes
 
-##Description:
-#Denizen Cutscenes allows you to create cutscenes in a very simple
-#way from a gui. Similar to animation keyframes you can adjust what happens within each keyframe.
-#You can show specific animated models to players very useful for something like an intro to a boss level.
-#For even more customization you can use your own run tasks within keyframes.
-#The editor mode allows you to visualize your cutscenes whether it'd be paths, camera locations, or specific locations for animators.
+#=Description:
+# Denizen Cutscenes allows you to create cutscenes in a very simple
+# way from a gui similar to animation keyframes you can adjust what happens within each keyframe.
+# You can show specific animated models to players very useful for something like an intro to a boss level.
+# For even more customization you can use your own run tasks within keyframes.
+# The editor GUI allows you to visualize and create your cutscenes whether it'd be paths, camera locations, or specific locations for animators.
+# You are not required to use a camera making this very useful for timed events as well
+# such as a magical door opening with special effects.
 
-##NOTICE (These are are highly recommended for use of the entire cutscene tool):
-#Denizen Models will allow you to display animated models in cutscenes
-#Forums: https://forum.denizenscript.com/resources/denizen-models.103/
-#Github: https://github.com/mcmonkeyprojects/DenizenModels
+#=NOTICE (These are are highly recommended for use of the entire cutscene tool):
+# Denizen Models will allow you to display animated models in cutscenes
+# Forums: https://forum.denizenscript.com/resources/denizen-models.103/
+# Github: https://github.com/mcmonkeyprojects/DenizenModels
 
-#Denizen Player Models will allow you to display animated player models
-#with multiple joints in cutscenes (Compatible with mccosmetics plugin)
-#Forums: https://forum.denizenscript.com/resources/denizen-player-models.107/
-#Github: https://github.com/FutureMaximus/Denizen-Player-Models
+# Denizen Player Models will allow you to display animated player models
+# with multiple joints in cutscenes (Compatible with mccosmetics plugin)
+# Forums: https://forum.denizenscript.com/resources/denizen-player-models.107/
+# Github: https://github.com/FutureMaximus/Denizen-Player-Models
 
-#There are resource pack assets you can use to improve the overall look of the tool such as
-#the 3D modeled camera that can be viewed in editor mode and custom GUI it also contains the
-#cinematic screeneffect and cutscene black bars so if you'd like to use all features it's highly
-#recommended to use these assets.
-#If you need some info on resource packs https://guide.denizenscript.com/guides/non-denizen/resource-packs.html
+# This requires the use of a resource pack for full functionality.
+# Extract the assets and use the resource pack provided or put them in your own resource pack assets folder.
+# If you need some info on resource packs https://guide.denizenscript.com/guides/non-denizen/resource-packs.html
 
-##Save file location (Must have allow write on true in Denizen config)
+#=Save file location (Must have allow write on true in Denizen config)
 #Denizen/data/dcutscenes/scenes
 
 #Config for DCutscenes (See the wiki for more explanation on what these do.)
@@ -52,7 +52,7 @@ dcutscenes_config:
       cutscene_prefix: &9&lDCutscenes
 
       #title of cutscene gui
-      cutscene_title: 
+      cutscene_title: 
 
       #color of title in cutscene gui (rgb values also work 255,255,255)
       cutscene_title_color: gray
@@ -61,15 +61,15 @@ dcutscenes_config:
       use_cutscene_black_bars: true
 
       #unicode image of cutscene black bar on the top (set it to false to disable this)
-      #-Note: This uses a bossbar other plugins may interfere see if you can disable their functions before starting the cutscene
-      cutscene_black_bar_top: 
+      #-Note: This uses a bossbar other plugins may interfere see if you can disable their functions before starting a cutscene
+      cutscene_black_bar_top: 
 
       #unicode image of cutscene black bar on the bottom (set it to false to disable this)
-      #-Note: This uses an actionbar other plugins may interfere see if you can disable their functions before starting the cutscene
-      cutscene_black_bar_bottom: 
+      #-Note: This uses an actionbar other plugins may interfere see if you can disable their functions before starting a cutscene
+      cutscene_black_bar_bottom: 
 
       #cinematic screen effect unicode image
-      cutscene_transition_unicode: 
+      cutscene_transition_unicode: 
 
       #How far path particles can be seen at and tracked setting this value higher will decrease performance be careful with this
       cutscene_path_distance: 50
@@ -78,7 +78,7 @@ dcutscenes_config:
       cutscene_path_update_interval: 2s
 
       #The material of the path particles (must be a valid material https://hub.spigotmc.org/javadocs/spigot/org/bukkit/Material.html)
-      cutscene_path_material: cyan_stained_glass
+      cutscene_path_material: light_blue_concrete_powder
 
       #The rate in seconds of updating the visible semi path in cutscene editor mode setting this value lower will decrease performance
       cutscene_semi_path_update_interval: 0.5s
@@ -99,8 +99,6 @@ dcutscenes_config:
       #and server dcutscene data will not be updated this is used when handling maptag data so you can visualize the changes without creating corrupt data by accident.
       #If you don't plan on making contributions keep this false.
       cutscene_tool_debugger_mode: false
-
-###################################
 
 #==== API Usage ====
 
@@ -135,8 +133,6 @@ dcutscenes_config:
 # - define scene_entity_type <player.flag[dcutscene_spawned_models.my_models_name.type].if_null[null]>
 
 #===================
-
-##################################
 
 #==== Planned ====
 #- Implement entity animator
