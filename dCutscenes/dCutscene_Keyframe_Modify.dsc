@@ -1,9 +1,9 @@
 #################################################
-#This script file modifies the animators in the cutscene.
-#Below you can see commonly used data
+# This script file modifies the animators in the cutscene.
+# Below you can see commonly used data
 #################################################
 
-#Data Utilized:
+# Data Utilized:
 #- <server.flag[dcutscenes]> "All the cutscenes the server has with specific use as <server.flag[dcutscenes.my_scene]>"
 #- <player.flag[cutscene_data]> "Returns the cutscene the player is modifying"
 #- <player.flag[cutscene_data.keyframes]> "Returns the animators within the cutscene"
@@ -60,8 +60,6 @@ dcutscene_stop_scene_keyframe:
         - ~run dcutscene_sub_keyframe_modify def:<player.flag[dcutscene_sub_keyframe_back_data]>
 
 #================  Camera Modifier =====================
-#TODO:`
-#- Code cleanup
 dcutscene_cam_keyframe_edit:
     type: task
     debug: false
@@ -551,6 +549,7 @@ dcutscene_cam_keyframe_edit:
                 - flag server dcutscenes.<[data.name]>:<[data]>
                 - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
                 - define text "Camera from tick <green><[tick]>t <gray>has been removed for scene <green><[data.name]><gray>."
+                - narrate "<[msg_prefix]> <gray><[text]>"
                 - inventory open d:dcutscene_inventory_sub_keyframe
                 - ~run dcutscene_sub_keyframe_modify def:<player.flag[dcutscene_sub_keyframe_back_data]>
 ############################
@@ -1914,7 +1913,6 @@ dcutscene_model_list_new:
       - define new_model_list <list>
       - define exceed false
       - define less false
-      #Page calculations
       - foreach <[prev_models]> as:model:
         - define model_list <[model.data.model_list]>
         - if <[model_list].is_empty>:
@@ -1944,7 +1942,7 @@ dcutscene_model_list_new:
             - flag <[item]> model_keyframe_modify:<[item_data]>
             - inventory set d:<[inv]> o:<[item]> slot:<[slot]>
           #Player model item set
-          - if <[model_data.type]> == player_model && <[model_data.root]||none> == none:
+          - else if <[model_data.type]> == player_model && <[model_data.root]||none> == none:
             - define slot:++
             - definemap item_data type:<[model_data.type]> tick:<[model.tick]> uuid:<[model_uuid]> id:<[model_data.id]>
             - define skin <[model_data.path.<[model.tick]>.skin].parsed||none>
@@ -3815,7 +3813,7 @@ dcutscene_animator_keyframe_edit:
 
             #Change velocity prep
             - case change_particle_velocity_prep:
-              - define text "Chat a valid velocity vector it can be a LocationTag or the input as 0,0,0. Chat <green>false <gray>to disable."
+              - define text "Chat a valid velocity vector it can be a LocationTag or the input as <green>0,0,0<gray>. Chat <green>false <gray>to disable."
               - narrate "<[msg_prefix]> <gray><[text]>"
               - flag <player> cutscene_modify:change_particle_velocity expire:3m
               - inventory close
