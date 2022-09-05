@@ -6,16 +6,50 @@
 
 ## GUI Tasks ################
 #Show list of cutscenes in a gui
-#TODO:
-#- Add page system for this
 dcutscene_scene_show:
     type: task
     debug: false
+    definitions: page
     script:
     - inventory open d:dcutscene_inventory_main
     - define inv <player.open_inventory>
     - if <server.has_flag[dcutscenes]>:
-      - foreach <server.flag[dcutscenes]> key:id as:cutscene:
+      - if !<player.has_flag[scene_show_page_index]>:
+        - flag <player> scene_show_page_index:1
+        - define page_index:1
+      - else:
+        - define page_index <player.flag[scene_show_page_index]>
+      - if <[page]||null> == null:
+        - define page_index:1
+        - flag <player> scene_show_page_index:1
+      - else if <[page]> != back:
+        - choose <[page]>:
+          - case next:
+            - flag <player> scene_show_page_index:++
+            - define page_index <player.flag[scene_show_page_index]>
+          - case previous:
+            - flag <player> scene_show_page_index:<[page_index].sub[1].equals[0].if_true[1].if_false[<[page_index].sub[1]>]>
+            - define page_index <player.flag[scene_show_page_index]>
+      - define max 45
+      - define limit <[max].mul[<[page_index]>]>
+      - define start <[limit].sub[<[max].sub[1]>]>
+      - define data <server.flag[dcutscenes]||<map>>
+      - define keys <[data].keys>
+      - define size <[keys].size>
+      - if <[size]> < <[limit]>:
+        - define exceed false
+        - define list <[keys].get[<[start]>].to[<[size]>]||<list>>
+      - else:
+        - define exceed true
+        - inventory set d:<player.open_inventory> slot:51 o:dcutscene_next
+        - define list <[keys].get[<[start]>].to[<[limit]>]>
+      - if <[page_index]> != 1:
+        - inventory set d:<player.open_inventory> slot:49 o:dcutscene_previous
+      - foreach <[list]> as:scene:
+        - define cutscene <[data.<[scene]>]||null>
+        - if <[cutscene]> == null:
+          - debug error "Scene <[scene]> could not be found."
+          - foreach next
         - define desc_color:!
         - define lore1:!
         - define lore:!
@@ -35,10 +69,10 @@ dcutscene_scene_show:
           - define lore <[lore1]>
           - adjust <[item]> lore:<[lore]> save:item
           - define item <entry[item].result>
-        - flag <[item]> cutscene_data:<[id]>
+        - flag <[item]> cutscene_data:<[cutscene.name]>
         - inventory set d:<[inv]> o:<[item]> slot:<[loop_index]>
-        - define index <[loop_index].add[1]>
-      - inventory set d:<[inv]> o:dcutscene_new_scene_item slot:<[index]>
+      - if !<[exceed].is_truthy>:
+        - inventory set d:<[inv]> o:dcutscene_new_scene_item slot:<[list].size.add[1].equals[0].if_true[1].if_false[<[list].size.add[1]>]>
     - else:
       - inventory set d:<[inv]> o:dcutscene_new_scene_item slot:1
 
@@ -124,7 +158,7 @@ dcutscene_keyframe_modify:
     script:
     - define data <player.flag[cutscene_data]>
     - define keyframes <[data.keyframes]>
-    #max adjustable slots in inventory
+    #Max adjustable slots in inventory
     - define max 45
     #0.45 = 9 ticks for 9 slots per row
     - if !<player.has_flag[keyframe_modify_index]>:
@@ -132,28 +166,26 @@ dcutscene_keyframe_modify:
       - flag <player> keyframe_modify_index:1
       - define page_index 1
     - else:
-      #determine page
+      #Determine page
       - define page <[page]||null>
       - if <[page]> == null:
         - inventory open d:dcutscene_inventory_keyframe
         - define page_index 1
         - flag <player> keyframe_modify_index:<[page_index]>
       - else:
+        - define page_index <player.flag[keyframe_modify_index]>
         - choose <[page]>:
           #next page button
           - case next:
-            - define page_index <player.flag[keyframe_modify_index].add[1]>
+            - define page_index <[page_index].add[1]>
             - flag <player> keyframe_modify_index:<[page_index]>
           #previous page button
           - case previous:
-            - define page_index <player.flag[keyframe_modify_index].sub[1]>
-            - if <[page_index]> < 1:
-              - define page_index 1
+            - define page_index <[page_index].sub[1].equals[0].if_true[1].if_false[<[page_index].sub[1]>]>
             - flag <player> keyframe_modify_index:<[page_index]>
           #back page
           - case back:
             - inventory open d:dcutscene_inventory_keyframe
-            - define page_index <player.flag[keyframe_modify_index]>
     - define inv <player.open_inventory>
     #time increments
     - define inc 0.45
@@ -1066,7 +1098,7 @@ dcutscene_inventory_settings:
     slots:
     - [] [] [] [] [] [] [] [] []
     - [] [] [dcutscene_change_scene_name] [dcutscene_change_description_item] [dcutscene_change_show_bars] [dcutscene_duplicate_scene] [dcutscene_change_item] [] []
-    - [] [] [] [] [] [] [] [] []
+    - [] [] [dcutscene_hide_players] [dcutscene_bound_to_camera] [] [] [] [] []
     - [] [] [] [] [] [] [] [] []
     - [] [] [] [] [] [] [] [] []
     - [dcutscene_back_page] [] [] [] [dcutscene_delete_cutscene] [] [] [] [dcutscene_exit]
@@ -1174,7 +1206,7 @@ dcutscene_inventory_keyframe_model_list:
     - [] [] [] [] [] [] [] [] []
     - [] [] [] [] [] [] [] [] []
     - [] [] [] [] [] [] [] [] []
-    - [dcutscene_back_page] [] [dcutscene_previous] [] [dcutscene_add_new_model] [] [dcutscene_next] [] [dcutscene_exit]
+    - [dcutscene_back_page] [] [] [] [dcutscene_add_new_model] [] [] [] [dcutscene_exit]
 
 #Denizen Models modifier GUI
 dcutscene_inventory_keyframe_modify_model:
