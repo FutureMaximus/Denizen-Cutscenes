@@ -19,11 +19,12 @@ dcutscene_new_scene:
     - else:
       - define scene <[scene]||null>
       - if <[scene].equals[null]>:
+        - debug error "No scene specified for dcutscene_new_scene"
         - stop
       - if <server.has_flag[dcutscenes]>:
         - define search <server.flag[dcutscenes.<[scene]>]||null>
         - if <[search]> != null:
-          - define text "A cutscene with the name <underline><[scene]> <gray>already exists!"
+          - define text "A cutscene with the name <green><underline><[scene]> <gray>already exists!"
           - narrate "<[msg_prefix]> <gray><[text]>"
           - stop
         - flag <player> cutscene_modify:!
@@ -35,11 +36,10 @@ dcutscene_new_scene:
       - define cutscene.world <list[<player.world.name>]>
       - define cutscene.length 0
       - define cutscene.keyframes <empty>
-      - definemap settings_data bars:true item:<item[dcutscene_scene_item_default]>
+      - definemap settings_data bars:true item:<item[dcutscene_scene_item_default]> hide_players:false camera_bound:true
       - define cutscene.settings <[settings_data]>
       - flag server dcutscenes.<[scene]>:<[cutscene]>
-      - inventory open d:dcutscene_inventory_main
-      - ~run dcutscene_scene_show
+      - ~run dcutscene_scene_show def:back
       - define text "New cutscene <green><[scene]> <gray>has been created."
       - narrate "<[msg_prefix]> <gray><[text]>"
 
@@ -94,7 +94,7 @@ dcutscene_settings_modify:
 
       #Change cutscene description prep
       - case change_desc_prep:
-        - define text "Chat the description for this cutscene to go to the next line use a comma '<green>,<gray>' ."
+        - define text "Chat the description for this cutscene to go to the next line use a comma '<green>,<gray>'."
         - narrate "<[msg_prefix]> <gray><[text]>"
         - flag <player> cutscene_modify:cutscene_new_desc expire:10m
         - inventory close
@@ -144,11 +144,43 @@ dcutscene_settings_modify:
         - narrate "<[msg_prefix]> <gray><[text]>"
         - ~run dcutscene_scene_show
 
+      #Determine if players are hidden or not during the cutscene
+      - case change_hide_players:
+        - choose <[cutscene.settings.hide_players].if_null[false]>:
+          - case true:
+            - define cutscene.settings.hide_players false
+            - define bool false
+          - case false:
+            - define cutscene.settings.hide_players true
+            - define bool true
+        - flag server dcutscenes.<[cutscene.name]>:<[cutscene]>
+        - flag <player> cutscene_data:<server.flag[dcutscenes.<[cutscene.name]>]>
+        - define l1 "<gold>Hide players: <gray><[bool]>"
+        - define click "<gray><italic>Click to change hide players"
+        - define lore <list[<empty>|<[l1]>|<empty>|<[click]>]>
+        - inventory adjust d:<player.open_inventory> slot:<[arg]> lore:<[lore]>
+
+      #Determine if the player is bound to the camera
+      - case change_camera_bound:
+        - choose <[cutscene.settings.camera_bound].if_null[true]>:
+          - case true:
+            - define cutscene.settings.camera_bound false
+            - define bool false
+          - case false:
+            - define cutscene.settings.camera_bound true
+            - define bool true
+        - flag server dcutscenes.<[cutscene.name]>:<[cutscene]>
+        - flag <player> cutscene_data:<server.flag[dcutscenes.<[cutscene.name]>]>
+        - define l1 "<dark_gray>Bound to camera: <gray><[bool]>"
+        - define click "<gray><italic>Click to change bound to camera"
+        - define lore <list[<empty>|<[l1]>|<empty>|<[click]>]>
+        - inventory adjust d:<player.open_inventory> slot:<[arg]> lore:<[lore]>
+
       #Remove cutscene prep
       - case remove_scene_prep:
         - clickable dcutscene_settings_modify def:remove_scene|<[cutscene.name]> save:remove_scene
         - define prefix <[msg_prefix]>
-        - define text "Are you sure you want to remove this cutscene? It is suggested you make a backup using the save button before proceeding. <green><bold><element[Yes].on_hover[<[prefix]> <gray>This will remove this cutscene from the server.].type[SHOW_TEXT].on_click[<entry[remove_scene].command>]>"
+        - define text "Are you sure you want to remove <green><[cutscene.name]><gray>? It is suggested you make a backup using the save button before proceeding. <green><bold><element[Yes].on_hover[<[prefix]> <gray>This will remove this cutscene from the server.].type[SHOW_TEXT].on_click[<entry[remove_scene].command>]>"
         - narrate "<[prefix]> <gray><[text]>"
         - inventory close
       #Remove cutscene
@@ -173,7 +205,7 @@ dcutscene_command:
     - dscene
     description: Cutscene command for DCutscene
     tab completions:
-      1: <list[load|save|open|play|location|animate|model|sound|material|particle|stop]>
+      1: <list[load|save|open|play|location|loc|animate|model|sound|material|particle|stop|item]>
       2: <player.proc[dcutscene_data_list]>
     permission: dcutscene.op
     script:
@@ -185,11 +217,24 @@ dcutscene_command:
     - else:
       - define msg_prefix <script[dcutscenes_config].data_key[config].get[cutscene_prefix].parse_color||<&color[0,0,255]><bold>DCutscenes>
       - choose <[a_1]>:
+        #Item for opening the gui
+        - case item:
+          - give dcutscene_open_gui_item
         #Open the location tool GUI
         - case location:
           - if <player.has_flag[cutscene_modify]>:
             - inventory clear
             - inventory open d:dcutscene_inventory_location_tool
+          - else:
+            - define text "You do not have an object selected to modify it's location."
+            - narrate "<[msg_prefix]> <gray><[text]>"
+        - case loc:
+          - if <player.has_flag[cutscene_modify]>:
+            - inventory clear
+            - inventory open d:dcutscene_inventory_location_tool
+          - else:
+            - define text "You do not have an object selected to modify it's location."
+            - narrate "<[msg_prefix]> <gray><[text]>"
         #Load dcutscene files
         - case load:
           - if <[a_2]> == null:
@@ -285,9 +330,7 @@ dcutscene_command:
               - else if <player.flag[cutscene_modify]> == change_particle:
                 - run dcutscene_animator_keyframe_edit def:particle|change_particle|<[a_2]>
 
-## Tab Completion Procedures ########
-
-#Tab completion for list of cutscenes or animator modifiers that utilize data from the server
+# Tab completion for list of cutscenes or animator modifiers that utilize data from the server
 dcutscene_data_list:
     type: procedure
     debug: false
@@ -555,16 +598,6 @@ dcutscene_animation_length:
       - define ticks:->:<[stop_point.tick]>
     - determine <[ticks]>
 
-#TODO:
-#- Work on this
-#Removes any corrupt data
-dcutscene_validate_data:
-    type: task
-    debug: false
-    definitions: cutscene
-    script:
-    - define data data
-
 ## Utility Example Procedures ############
 #See wiki for example usages you can use these for animators that allow location procedures
 
@@ -667,5 +700,3 @@ dcutscene_vector_path:
             - define data <proc[dcutscene_catmullrom_proc].context[<[loc_3]>|<[loc_1]>|<[loc_2]>|<[loc_4]>|<[time_percent]>]>
             - define points:->:<[data].random_offset[<[offset]>]>
         - determine <[points]||<[loc]>>
-
-######################################
