@@ -73,82 +73,83 @@ dcutscene_location_tool_events:
       - run dcutscene_location_edit_ray_trace_water
       on player right clicks block with:dcutscene_loc_forward:
       - if <player.has_flag[cutscene_modify]>:
-        - define offset <player.flag[dcutscene_location_editor.offset]||null>
+        - define offset <player.flag[dcutscene_location_editor.button.offset]||null>
         - if <[offset]> != null:
-          - define offset_mul <player.flag[dcutscene_location_editor.offset_mul]||0>
+          - define offset_mul <player.flag[dcutscene_location_editor.button.offset_mul]||0>
           - define offset.z <[offset.z].add[1].mul[<[offset_mul]>]>
           - run dcutscene_location_button_change def:<[offset]>
       on player right clicks block with:dcutscene_loc_backward:
       - if <player.has_flag[cutscene_modify]>:
-        - define offset <player.flag[dcutscene_location_editor.offset]||null>
+        - define offset <player.flag[dcutscene_location_editor.button.offset]||null>
         - if <[offset]> != null:
-          - define offset_mul <player.flag[dcutscene_location_editor.offset_mul]||0>
-          - define offset.z <[offset.z].add[1].mul[<[offset_mul]>]>
+          - define offset_mul <player.flag[dcutscene_location_editor.button.offset_mul]||0>
+          - define offset.z <[offset.z].sub[1].mul[<[offset_mul]>]>
           - run dcutscene_location_button_change def:<[offset]>
       on player right clicks block with:dcutscene_loc_up:
       - if <player.has_flag[cutscene_modify]>:
-        - define offset <player.flag[dcutscene_location_editor.offset]||null>
+        - define offset <player.flag[dcutscene_location_editor.button.offset]||null>
         - if <[offset]> != null:
-          - define offset_mul <player.flag[dcutscene_location_editor.offset_mul]||0>
+          - define offset_mul <player.flag[dcutscene_location_editor.button.offset_mul]||0>
           - define offset.y <[offset.y].add[1].mul[<[offset_mul]>]>
           - run dcutscene_location_button_change def:<[offset]>
       on player right clicks block with:dcutscene_loc_down:
       - if <player.has_flag[cutscene_modify]>:
-        - define offset <player.flag[dcutscene_location_editor.offset]||null>
+        - define offset <player.flag[dcutscene_location_editor.button.offset]||null>
         - if <[offset]> != null:
-          - define offset_mul <player.flag[dcutscene_location_editor.offset_mul]||0>
+          - define offset_mul <player.flag[dcutscene_location_editor.button.offset_mul]||0>
           - define offset.y <[offset.y].sub[1].mul[<[offset_mul]>]>
           - run dcutscene_location_button_change def:<[offset]>
       on player right clicks block with:dcutscene_loc_right:
       - if <player.has_flag[cutscene_modify]>:
-        - define offset <player.flag[dcutscene_location_editor.offset]||null>
+        - define offset <player.flag[dcutscene_location_editor.button.offset]||null>
         - if <[offset]> != null:
-          - define offset_mul <player.flag[dcutscene_location_editor.offset_mul]||0>
+          - define offset_mul <player.flag[dcutscene_location_editor.button.offset_mul]||0>
           - define offset.x <[offset.x].sub[1].mul[<[offset_mul]>]>
           - run dcutscene_location_button_change def:<[offset]>
       on player right clicks block with:dcutscene_loc_left:
       - if <player.has_flag[cutscene_modify]>:
-        - define offset <player.flag[dcutscene_location_editor.offset]||null>
+        - define offset <player.flag[dcutscene_location_editor.button.offset]||null>
         - if <[offset]> != null:
-          - define offset_mul <player.flag[dcutscene_location_editor.offset_mul]||0>
+          - define offset_mul <player.flag[dcutscene_location_editor.button.offset_mul]||0>
           - define offset.x <[offset.x].add[1].mul[<[offset_mul]>]>
           - run dcutscene_location_button_change def:<[offset]>
       on player right clicks block with:dcutscene_loc_mul_add:
       - if <player.has_flag[cutscene_modify]>:
         - define data <player.flag[dcutscene_location_editor]||null>
         - if <[data]> != null:
-          - define mul_inc <[data.offset_mul].add[0.5]>
+          - define mul_inc <[data.button.offset_mul].add[0.15]>
           - if <[mul_inc]> < 10.0:
-            - flag <player> dcutscene_location_editor.offset_mul:<[mul_inc]>
+            - flag <player> dcutscene_location_editor.button.offset_mul:<[mul_inc]>
             - actionbar "<red><bold>Offset Multiplier + <[mul_inc]>"
           - else:
-            - flag <player> dcutscene_location_editor.offset_mul:10.0
+            - flag <player> dcutscene_location_editor.button.offset_mul:10.0
             - define mul_inc 10.0
             - actionbar "<red><bold>Offset Multiplier Maximum <[mul_inc]>"
       on player right clicks block with:dcutscene_loc_mul_sub:
       - if <player.has_flag[cutscene_modify]>:
         - define data <player.flag[dcutscene_location_editor]||null>
         - if <[data]> != null:
-          - define mul_inc <[data.offset_mul].sub[0.5]>
+          - define mul_inc <[data.button.offset_mul].sub[0.15]>
           - if <[mul_inc]> >= 0:
-            - flag <player> dcutscene_location_editor.offset_mul:<[mul_inc]>
+            - flag <player> dcutscene_location_editor.button.offset_mul:<[mul_inc]>
             - actionbar "<blue><bold>Offset Multiplier - <[mul_inc]>"
           - else:
-            - flag <player> dcutscene_location_editor.offset_mul:0.0
+            - flag <player> dcutscene_location_editor.button.offset_mul:0.0
             - define mul_inc 0.0
             - actionbar "<blue><bold>Offset Multiplier Minimum <[mul_inc]>"
       on player right clicks block with:dcutscene_loc_use_yaw:
       - if <player.has_flag[cutscene_modify]>:
         - define data <player.flag[dcutscene_location_editor]||null>
         - if <[data]> != null:
-          - define use_yaw <[data.use_yaw]>
+          - define use_yaw <[data.button.use_yaw]||false>
           - choose <[use_yaw]>:
             - case true:
               - define use_yaw false
             - case false:
               - define use_yaw true
-          - flag <player> dcutscene_location_editor.use_yaw:<[use_yaw]>
-          - inventory set d:<player.inventory> o:dcutscene_loc_use_yaw slot:9
+          - flag <player> dcutscene_location_editor.button.use_yaw:<[use_yaw]>
+          - define display "<dark_purple><bold>Use yaw: <gray><[use_yaw]>"
+          - inventory adjust d:<player.inventory> slot:<player.held_item_slot> display:<[display]>
 
 # Task for changing the location based on the location button tool
 dcutscene_location_button_change:
@@ -157,7 +158,7 @@ dcutscene_location_button_change:
     definitions: offset
     script:
     - define data <player.flag[dcutscene_location_editor]||null>
-    - define use_yaw <[data.use_yaw]>
+    - define use_yaw <[data.button.use_yaw]>
     - if <[use_yaw].equals[false]>:
       - define loc <[data.location].with_pitch[0].relative[<[offset.x]>,<[offset.y]>,<[offset.z]>]>
     - else:
@@ -189,6 +190,27 @@ dcutscene_location_ray_trace_update:
           - run dcutscene_location_edit_ray_trace def:<player.flag[dcutscene_location_editor.ray_trace_range]||5>
           - wait 1t
 
+# Updates the semi path
+dcutscene_location_semi_path_interval:
+    type: task
+    debug: false
+    script:
+    - define root <player.flag[dcutscene_location_editor.root_ent]||null>
+    - define rate <script[dcutscenes_config].data_key[config].get[cutscene_semi_path_update_interval]||0.5s>
+    - if <[root]> != null:
+      - if <[root].is_spawned>:
+        - while <player.has_flag[dcutscene_location_editor]>:
+          - define data <player.flag[dcutscene_location_editor]>
+          - define root <[data.root_ent]>
+          - if <[root].is_spawned>:
+            - define root_type <[data.root_type]>
+            - define ray <[data.location]>
+            - define tick_data <player.flag[dcutscene_save_data.data]||null>
+            - if <[tick_data]> == null:
+              - stop
+            - run dcutscene_semi_path_show def:<[ray]>|<[tick_data.tick]>|<player.flag[dcutscene_tick_modify.tick].if_null[<player.flag[dcutscene_tick_modify]>]>|<[tick_data.uuid]>
+          - wait <[rate]>
+
 # Ray traces the location based on the player's cursor
 dcutscene_location_edit_ray_trace:
     type: task
@@ -203,7 +225,6 @@ dcutscene_location_edit_ray_trace:
       - if <[ray_trace]> != null:
         - define root <[data.root_ent]||null>
         - define root_type <[data.root_type]>
-        - define tick_data <player.flag[dcutscene_save_data.data]||null>
         - define ploc <player.location>
         - if <[root]> != null:
           #Rotate Model
@@ -211,7 +232,7 @@ dcutscene_location_edit_ray_trace:
             - case true:
               - define yaw <[ploc].rotate_yaw[180].yaw>
             - case false:
-              - define yaw <[ploc].location.yaw>
+              - define yaw <[ploc].yaw>
           #Special attribute like model, entity, or player skin
           - define attribute <player.flag[dcutscene_location_editor.attribute]>
           #Check if root model is not spawned and chunk is not loaded
@@ -228,12 +249,8 @@ dcutscene_location_edit_ray_trace:
               - run pmodels_reset_model_position def:<[root]>
             - case model:
               - run dmodels_reset_model_position def:<[root]>
-          - run dcutscene_semi_path_show def:<[ray_loc]>|<[root_type]>|<[tick_data.tick]>|<player.flag[dcutscene_tick_modify.tick]||<player.flag[dcutscene_tick_modify]>>|<[tick_data.uuid]>
         - else:
           - flag <player> dcutscene_location_editor.location:<[root].location>
-          - if <[tick_data.uuid]||null> != null:
-            - ratelimit <player> <script[dcutscene_config].data_key[config].get[cutscene_semi_path_update_interval]||0.5s>
-            - run dcutscene_semi_path_show def:<[ray_trace]>|<[root_type]>|<[tick_data.tick]>|<player.flag[dcutscene_tick_modify.tick]||<player.flag[dcutscene_tick_modify]>>|<[tick_data.uuid]>
 
 # Spawns a model animator for the location tool and updates it
 dcutscene_location_tool_model_spawner:
@@ -351,10 +368,8 @@ dcutscene_location_tool_give_data:
       - define yaw <[yaw]>
     - else:
       - define yaw 0
-    #TODO:
-    #- Implement data for other location tool
-    #- definemap editor_data offset:<[offset]> offset_mul:1 yaw:<[yaw]> location:<[loc]> use_yaw:true
-    - definemap editor_data ray_trace_bool:false ray_trace_solids:false ray_trace_passable:false ray_trace_water:true reverse_model:false
+    - definemap button_data offset:<[offset]> offset_mul:1 yaw:<[yaw]> location:<[loc]> use_yaw:true
+    - definemap editor_data button:<[button_data]> ray_trace_bool:false ray_trace_solids:false ray_trace_passable:false ray_trace_water:true reverse_model:false
     - define editor_data.ray_trace_range <script[dcutscenes_config].data_key[config].get[cutscene_loc_tool_ray_dist]||5>
     - flag <player> dcutscene_location_editor:<[editor_data]>
     - if <entity[<[root_ent]>]||null> != null:
@@ -365,6 +380,7 @@ dcutscene_location_tool_give_data:
     - if <[attribute]||null> != null:
       - flag <player> dcutscene_location_editor.attribute:<[attribute]>
     - flag <player> dcutscene_location_editor.inv:<player.inventory.map_slots>
+    - run dcutscene_location_semi_path_interval
 
 # Location Button Tool Inventory
 dcutscene_location_toolset_inv:
@@ -383,6 +399,7 @@ dcutscene_location_toolset_inv:
     - inventory set d:<[inv]> o:dcutscene_loc_use_yaw slot:9
     - inventory close
 
+# Returns the previous inventory
 dcutscene_location_tool_return_inv:
     type: task
     debug: false
@@ -403,5 +420,3 @@ dcutscene_location_raytrace_inv:
     - inventory set d:<[inv]> o:dcutscene_loc_ray_trace_reverse_model slot:6
     - inventory close
     - adjust <player> item_slot:1
-
-#================================================================================================
