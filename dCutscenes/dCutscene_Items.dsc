@@ -5,11 +5,20 @@ dcutscene_camera_item:
     type: item
     material: scute
     mechanisms:
-      custom_model_data: 10001
+      custom_model_data: 10010
+
+dcutscene_open_gui_item:
+    type: item
+    material: scute
+    display name: <blue><bold>Open Cutscene Editor
+    mechanisms:
+      custom_model_data: 10015
 
 dcutscene_play_cutscene_item:
     type: item
-    material: paper
+    material: scute
+    mechanisms:
+        custom_model_data: 10008
     display name: <blue><bold>Play Cutscene
     lore:
     - <empty>
@@ -36,84 +45,94 @@ dcutscene_add_new_model:
 #The exit button for the cutscene gui
 dcutscene_exit:
     type: item
-    material: stick
+    material: scute
     display name: <red><bold>Exit
-    lore:
-    - <empty>
     mechanisms:
-      custom_model_data: 0
+      custom_model_data: 10007
 
-#Next page button in keyframe page
+#Next page button
 dcutscene_next:
     type: item
-    material: blue_wool
+    material: scute
     display name: <blue><bold>Next Page
+    mechanisms:
+        custom_model_data: 10003
 
-#Previous page button in keyframe page
+#Previous page button
 dcutscene_previous:
     type: item
-    material: blue_wool
+    material: scute
     display name: <blue><bold>Previous Page
+    mechanisms:
+        custom_model_data: 10002
 
 #Scroll down the page
 dcutscene_scroll_down:
     type: item
-    material: blue_wool
+    material: scute
     display name: <blue><bold>Scroll Down
+    mechanisms:
+        custom_model_data: 10001
 
 #Scroll up the page
 dcutscene_scroll_up:
     type: item
-    material: blue_wool
+    material: scute
     display name: <blue><bold>Scroll Up
+    mechanisms:
+        custom_model_data: 10004
 
 #Keyframe Item
 dcutscene_keyframe:
     type: item
-    material: blue_stained_glass_pane
+    material: scute
     mechanisms:
-      custom_model_data: 0
+      custom_model_data: 10012
 
 #Keyframe that contains elements
 dcutscene_keyframe_contains:
     type: item
-    material: green_stained_glass_pane
+    material: scute
     mechanisms:
-      custom_model_data: 0
+      custom_model_data: 10013
 
 #Keyframe that contains the scene stop point
 dcutscene_keyframe_stop_point:
     type: item
-    material: red_stained_glass_pane
+    material: scute
+    mechanisms:
+      custom_model_data: 10014
 
 #Sub keyframe
 dcutscene_sub_keyframe:
     type: item
-    material: cyan_stained_glass_pane
+    material: scute
     mechanisms:
-      custom_model_data: 0
+      custom_model_data: 10011
 
 #Create new cutscene item
 dcutscene_new_scene_item:
     type: item
-    material: green_stained_glass_pane
+    material: scute
     display name: <green><bold>New Scene +
     lore:
     - <gray>Create a new cutscene
     mechanisms:
-      custom_model_data: 0
+      custom_model_data: 10009
 
 #back page button
 dcutscene_back_page:
     type: item
-    material: blue_wool
+    material: scute
     display name: <blue><bold>Back
+    mechanisms:
+        custom_model_data: 10000
 
 ###### Settings #########
 #Settings button
 dcutscene_settings:
     type: item
-    material: gray_wool
+    material: smithing_table
     display name: <dark_gray><bold>Settings
     lore:
     - <empty>
@@ -156,15 +175,48 @@ dcutscene_duplicate_scene:
 
 dcutscene_change_item:
     type: item
-    material: green_wool
+    material: scute
+    mechanisms:
+      custom_model_data: 10015
     display name: <green><bold>Change GUI Item
     lore:
     - <empty>
     - <gray><italic>Click to change GUI item
 
+dcutscene_hide_players:
+    type: item
+    material: daylight_detector
+    display name: <gold><bold>Hide Players
+    lore:
+    - <empty>
+    - <gray>Determine if players will
+    - <gray>be hidden during the cutscene.
+    - <empty>
+    - <gray><italic>Click to change hide players
+
+dcutscene_bound_to_camera:
+    type: item
+    material: armor_stand
+    display name: <dark_gray><bold>Bound To Camera
+    lore:
+    - <empty>
+    - <gray>If true the player will stay
+    - <gray>near the camera and cannot do normal
+    - <gray>activity.
+    - <empty>
+    - <gray>Note: If false and the player is too
+    - <gray>far from the camera this can cause
+    - <gray>issues this was created so an external
+    - <gray>source can modify the player without being
+    - <gray>bound to the camera.
+    - <empty>
+    - <gray><italic>Click to change bound to camera
+
 dcutscene_delete_cutscene:
     type: item
-    material: paper
+    material: scute
+    mechanisms:
+        custom_model_data: 10005
     display name: <red><bold>Delete Cutscene
     lore:
     - <empty>
@@ -173,23 +225,30 @@ dcutscene_delete_cutscene:
     - <gray>a backup using the save file button.
     - <empty>
     - <gray><italic>Click to delete this cutscene
+
 ###### Cutscene GUI Items ########
 #Modify keyframes button
 dcutscene_keyframes_list:
     type: item
-    material: blue_wool
+    material: scute
+    mechanisms:
+        custom_model_data: 10012
     display name: <blue><bold>Modify Keyframes
 
 #Add animator button
 dcutscene_keyframe_tick_add:
     type: item
-    material: green_stained_glass
+    material: scute
+    mechanisms:
+        custom_model_data: 10009
     display name: <green><bold>Add Animator +
 
 #Default item for cutscenes
 dcutscene_scene_item_default:
     type: item
-    material: green_wool
+    material: scute
+    mechanisms:
+        custom_model_data: 10015
 
 ##Location Tool Items ##########
 dcutscene_location_tool_item:
@@ -262,7 +321,7 @@ dcutscene_loc_mul_sub:
 dcutscene_loc_use_yaw:
     type: item
     material: comparator
-    display name: <dark_purple><bold>Use Yaw <gray><player.flag[dcutscene_location_editor.use_yaw]>
+    display name: <dark_purple><bold>Use Yaw <gray><player.flag[dcutscene_location_editor.button.use_yaw]>
 
 dcutscene_loc_ray_trace:
     type: item
@@ -305,7 +364,7 @@ dcutscene_add_cam:
     type: item
     material: scute
     mechanisms:
-      custom_model_data: 10001
+      custom_model_data: 10010
     display name: <dark_gray><bold>Modify Camera
     lore:
     - <empty>
@@ -322,7 +381,7 @@ dcutscene_camera_keyframe:
     type: item
     material: scute
     mechanisms:
-      custom_model_data: 10001
+      custom_model_data: 10010
     display name: <dark_gray><bold>Camera
 
 dcutscene_camera_loc_modify:
@@ -457,7 +516,9 @@ dcutscene_camera_timespot_play:
 
 dcutscene_camera_remove_modify:
     type: item
-    material: paper
+    material: scute
+    mechanisms:
+      custom_model_data: 10006
     display name: <red><bold>Remove camera from keyframe
     lore:
     - <empty>
@@ -676,8 +737,10 @@ dcutscene_model_teleport_loc:
 
 dcutscene_remove_model_tick:
     type: item
-    material: paper
+    material: scute
     display name: <red><bold>Remove from tick
+    mechanisms:
+        custom_model_data: 10006
     lore:
     - <empty>
     - <gray><italic>Click to remove model from this tick
@@ -686,6 +749,8 @@ dcutscene_remove_model:
     type: item
     material: paper
     display name: <dark_red><bold>Remove Model
+    mechanisms:
+        custom_model_data: 10005
     lore:
     - <empty>
     - <gray><italic>Click to remove model from cutscene
@@ -908,7 +973,9 @@ dcutscene_player_model_timespot_play:
 
 dcutscene_remove_player_model:
     type: item
-    material: paper
+    material: scute
+    mechanisms:
+        custom_model_data: 10005
     display name: <dark_red><bold>Remove Player Model
     lore:
     - <empty>
@@ -916,7 +983,9 @@ dcutscene_remove_player_model:
 
 dcutscene_remove_player_model_tick:
     type: item
-    material: paper
+    material: scute
+    mechanisms:
+        custom_model_data: 10006
     display name: <red><bold>Remove from tick
     lore:
     - <empty>
@@ -1013,7 +1082,9 @@ dcutscene_run_task_timespot_play:
 
 dcutscene_run_task_remove_modify:
     type: item
-    material: paper
+    material: scute
+    mechanisms:
+        custom_model_data: 10006
     display name: <red><bold>Remove Run Task
     lore:
     - <empty>
@@ -1153,7 +1224,9 @@ dcutscene_fake_block_timespot_play:
 
 dcutscene_fake_object_block_remove:
     type: item
-    material: paper
+    material: scute
+    mechanisms:
+        custom_model_data: 10006
     display name: <red><bold>Remove Fake Block
     lore:
     - <empty>
@@ -1314,7 +1387,9 @@ dcutscene_fake_schem_timespot_play:
 
 dcutscene_fake_object_schem_remove:
     type: item
-    material: paper
+    material: scute
+    mechanisms:
+        custom_model_data: 10006
     display name: <red><bold>Remove Fake Schematic
     lore:
     - <empty>
@@ -1388,7 +1463,9 @@ dcutscene_screeneffect_timespot_play:
 
 dcutscene_screeneffect_remove_modify:
     type: item
-    material: paper
+    material: scute
+    mechanisms:
+        custom_model_data: 10006
     display name: <red><bold>Remove Screeneffect
     lore:
     - <empty>
@@ -1560,7 +1637,9 @@ dcutscene_particle_timespot_play:
 
 dcutscene_particle_remove:
     type: item
-    material: paper
+    material: scute
+    mechanisms:
+        custom_model_data: 10006
     display name: <red><bold>Remove Particle
     lore:
     - <empty>
@@ -1642,7 +1721,9 @@ dcutscene_title_timespot_play:
 
 dcutscene_title_remove_modify:
     type: item
-    material: paper
+    material: scute
+    mechanisms:
+        custom_model_data: 10006
     display name: <red><bold>Remove Title
     lore:
     - <empty>
@@ -1729,7 +1810,9 @@ dcutscene_command_timespot_play:
 
 dcutscene_command_remove_modify:
     type: item
-    material: paper
+    material: scute
+    mechanisms:
+        custom_model_data: 10006
     display name: <red><bold>Remove Command
     lore:
     - <empty>
@@ -1793,7 +1876,9 @@ dcutscene_message_timespot_play:
 
 dcutscene_message_remove_modify:
     type: item
-    material: paper
+    material: scute
+    mechanisms:
+        custom_model_data: 10006
     display name: <red><bold>Remove Message
     lore:
     - <empty>
@@ -1904,7 +1989,9 @@ dcutscene_sound_timespot_play:
 
 dcutscene_sound_remove_modify:
     type: item
-    material: paper
+    material: scute
+    mechanisms:
+        custom_model_data: 10006
     display name: <red><bold>Remove Sound
     lore:
     - <empty>
@@ -2001,7 +2088,9 @@ dcutscene_time_timespot_play:
 
 dcutscene_time_remove_modify:
     type: item
-    material: paper
+    material: scute
+    mechanisms:
+        custom_model_data: 10006
     display name: <red><bold>Remove Time
     lore:
     - <empty>
@@ -2075,7 +2164,9 @@ dcutscene_weather_timespot_play:
 
 dcutscene_weather_remove_modify:
     type: item
-    material: paper
+    material: scute
+    mechanisms:
+        custom_model_data: 10006
     display name: <red><bold>Remove Weather
     lore:
     - <empty>
@@ -2099,7 +2190,9 @@ dcutscene_stop_scene_keyframe_item:
 
 dcutscene_stop_point_remove_modify:
     type: item
-    material: paper
+    material: scute
+    mechanisms:
+        custom_model_data: 10006
     display name: <red><bold>Remove Stop Point
     lore:
     - <empty>
