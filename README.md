@@ -1,6 +1,6 @@
 # Denizen Cutscenes
 
-https://github.com/FutureMaximus/Denizen-Cutscenes/wiki
+![javaw 2022-09-16 12-53-13-322](https://user-images.githubusercontent.com/97306922/190721158-19c26009-b4e3-414a-b4e4-6515b44e9d37.jpg)
 
 ## Wiki
 
