@@ -1,5 +1,9 @@
 # Denizen Cutscenes
 
+## Wiki
+
+https://github.com/FutureMaximus/Denizen-Cutscenes/wiki
+
 **What is Denizen Cutscenes?**
 
 Denizen Cutscenes is a powerful and easy to use cutscene creation tool. The goal set for this tool is to allow as much creative freedom as possible while at the same time making it simple to create cutscenes. Creating an entire cutscene by script can be tedious as you likely won't be able visualize what your doing so it's essentially a bunch of painful trial and error to get the right locations but Denizen Cutscenes allows you to set or modify locations easily accelerating the cutscene creation process.
