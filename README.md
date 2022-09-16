@@ -2,32 +2,14 @@
 
 **What is Denizen Cutscenes?**
 
-Denizen Cutscenes is a very powerful cutscene creation tool. The goal for this tool is to allow as much creative freedom as possible while at the same time making it simple to create cutscenes.
+Denizen Cutscenes is a powerful and easy to use cutscene creation tool. The goal set for this tool is to allow as much creative freedom as possible while at the same time making it simple to create cutscenes. Creating an entire cutscene by script can be tedious as you likely won't be able visualize what your doing so it's essentially a bunch of painful trial and error to get the right locations but Denizen Cutscenes allows you to set or modify locations easily accelerating the cutscene creation process.
 
-**What can it do?**
-
-Anything! You can run your own tasks in keyframes useful for something like a scene of an animated crate and giving the player rewards with run task give_rewards.
-
-Some features:
-- Modifying the camera
-- Show animated models to the player (Requires Denizen Models by mcmonkey)
-- Show animated multi joint player models to the player (Requires Denizen Player Models by Max^)
-- The path system
-- Play particles
-- Show a fake block or schematic at a location
-- Set the time for the player
-- Use the cinematic screeneffect which is useful for scene to scene transitions
-- Set the weather for the player
-- Show an entity to the player
-- Make the player use a command or send one to console
-- Send a message to the player
-
-All of these features contain extra options to modify them to your liking.
+The tool has a very strong integration with DModels and Denizen Player Models which allow you to display animated models to the player in the cutscene. This is very useful for something like an intro to a boss level or displaying an animated modeled crate that gives rewards to the player.
 
 **What is the path system?**
 
-The path system is what allows your camera to move including models and entities you can see the path you created in editor mode.
-There are 2 methods of interpolation for your path which is linear and smooth.
+The path system is what allows your camera, models, or entities to move and you can see the path you created in editor mode.
+There are 2 methods of interpolation for your path which is linear and smooth. The recording system allows you to record your movement for a duration specified this in turn allows more complex movement.
 
 **What's the difference between linear and smooth?**
 
