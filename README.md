@@ -1,5 +1,7 @@
 # Denizen Cutscenes
 
+https://github.com/FutureMaximus/Denizen-Cutscenes/wiki
+
 ## Wiki
 
 https://github.com/FutureMaximus/Denizen-Cutscenes/wiki
