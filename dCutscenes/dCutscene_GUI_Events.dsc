@@ -10,6 +10,8 @@ dcutscene_events:
         on player quits:
         - if <player.has_flag[cutscene_modify]>:
           - flag <player> cutscene_modify:!
+        - if <player.has_flag[dcutscene_location_editor]>:
+          - flag <player> dcutscene_location_editor:!
         - if <player.has_flag[dcutscene_save_data]>:
           - define data <player.flag[dcutscene_save_data]>
           - define root <[data.root]||null>
@@ -28,13 +30,6 @@ dcutscene_events:
         - ~run dcutscene_scene_show def:back
         after player clicks dcutscene_keyframes_list in dcutscene_inventory_scene:
         - ~run dcutscene_keyframe_modify
-        after player clicks dcutscene_save_file_item in dcutscene_inventory_scene:
-        - ratelimit <player> 2s
-        - define cutscene <player.flag[cutscene_data]>
-        - ~run dcutscene_save_file def:<[cutscene]>
-        - define msg_prefix <script[dcutscenes_config].data_key[config].get[cutscene_prefix].parse_color||<&color[0,0,255]><bold>DCutscenes>
-        - define text "Cutscene <green><[cutscene.name].parse_color> <gray>has been saved to <green>Denizen/data/dcutscenes/scenes<gray>."
-        - narrate "<[msg_prefix]> <gray><[text]>"
         after player clicks dcutscene_play_cutscene_item in dcutscene_inventory_scene:
         - define cutscene <player.flag[cutscene_data.name]>
         - if <server.flag[dcutscenes.<[cutscene]>]||null> != null:
@@ -56,6 +51,9 @@ dcutscene_events:
         #Change cutscene bar bool
         after player clicks dcutscene_change_show_bars in dcutscene_inventory_settings:
         - run dcutscene_settings_modify def:change_bars|<context.slot>
+        #Duplicate cutscene
+        after player clicks dcutscene_duplicate_scene in dcutscene_inventory_settings:
+        - run dcutscene_settings_modify def:duplicate_prep
         #Change cutscene GUI item
         after player clicks dcutscene_change_item in dcutscene_inventory_settings:
         - run dcutscene_settings_modify def:change_item_prep
@@ -68,6 +66,14 @@ dcutscene_events:
         #Remove cutscene from server flag
         after player clicks dcutscene_delete_cutscene in dcutscene_inventory_settings:
         - run dcutscene_settings_modify def:remove_scene_prep
+        #Saves the cutscene
+        after player clicks dcutscene_save_file_item in dcutscene_inventory_settings:
+        - ratelimit <player> 2s
+        - define cutscene <player.flag[cutscene_data]>
+        - ~run dcutscene_save_file def:<[cutscene]>
+        - define msg_prefix <script[dcutscenes_config].data_key[config].get[cutscene_prefix].parse_color||<&color[0,0,255]><bold>DCutscenes>
+        - define text "Cutscene <green><[cutscene.name].parse_color> <gray>has been saved to <green>Denizen/data/dcutscenes/scenes<gray>."
+        - narrate "<[msg_prefix]> <gray><[text]>"
 
         ##Misc #################
         #Exit page
@@ -121,6 +127,7 @@ dcutscene_events:
         - determine passively cancelled
         - if <[msg]> == cancel:
           - flag <player> cutscene_modify:!
+          - flag <player> dcutscene_location_editor:!
           - flag <player> dcutscene_animator_change:!
           - if <player.gamemode> == spectator:
             - adjust <player> gamemode:creative
@@ -143,6 +150,9 @@ dcutscene_events:
             - else:
               - define item <[msg]>
             - run dcutscene_settings_modify def:change_item|<[item]>
+          #Duplicate cutscene
+          - case cutscene_duplicate:
+            - run dcutscene_settings_modify def:duplicate|<[msg]>
 
           ##Camera
           #Create new camera modifier
@@ -386,10 +396,19 @@ dcutscene_events:
           #Change time duration
           - case change_time_duration:
             - run dcutscene_animator_keyframe_edit def:time|change_time_duration|<[msg]>
+
           ##Weather
           #Change weather duration
           - case change_weather_duration:
             - run dcutscene_animator_keyframe_edit def:weather|change_weather_duration|<[msg]>
+
+          ##Play Scene Animator
+          #Set new play scene animator
+          - case new_play_scene_animator:
+            - run dcutscene_play_scene_keyframe_modify def:new|<[msg]>
+          #Change scene to play
+          - case change_scene_animator:
+            - run dcutscene_play_scene_keyframe_modify def:change_scene|<[msg]>
 
         ##Main Keyframe GUI ####################
         after player clicks dcutscene_new_scene_item in dcutscene_inventory_main:
@@ -479,6 +498,10 @@ dcutscene_events:
             - case weather:
               - flag <player> dcutscene_tick_modify:<[i].flag[keyframe_opt_modify.tick]>
               - inventory open d:dcutscene_inventory_keyframe_modify_weather
+            #Play scene
+            - case play_scene:
+              - flag <player> dcutscene_tick_modify:<[i].flag[keyframe_opt_modify.tick]>
+              - inventory open d:dcutscene_inventory_keyframe_modify_play_scene
             #Stop Point
             - case stop_point:
               - flag <player> dcutscene_tick_modify:<[i].flag[keyframe_opt_modify]>
@@ -741,6 +764,9 @@ dcutscene_events:
         #Change ray trace passable
         after player clicks dcutscene_model_ray_trace_passable in dcutscene_inventory_keyframe_ray_trace_model:
         - run dcutscene_model_keyframe_edit def:denizen_model|ray_trace|ray_trace_passable|<context.slot>
+        #Change model
+        after player clicks dcutscene_model_change_model in dcutscene_inventory_keyframe_modify_model:
+        - run dcutscene_model_keyframe_edit def:denizen_model|change_model_prep
         #Change move
         after player clicks dcutscene_model_change_move in dcutscene_inventory_keyframe_modify_model:
         - run dcutscene_model_keyframe_edit def:denizen_model|set_move|<context.slot>
@@ -930,12 +956,6 @@ dcutscene_events:
         #Add new fake block
         after player clicks dcutscene_add_fake_block in dcutscene_inventory_keyframe_modify:
         - run dcutscene_animator_keyframe_edit def:fake_object|new_fake_block_material
-        #New fake block
-        after player clicks dcutscene_fake_object_block_select in dcutscene_inventory_fake_object_selection:
-        - run dcutscene_animator_keyframe_edit def:fake_object|new_fake_block_material
-        #Fake block modify gui
-        after player clicks dcutscene_fake_object_block_modify in dcutscene_inventory_fake_object_selection_modify:
-        - inventory open d:dcutscene_inventory_fake_object_block_modify
         #Change location
         after player clicks dcutscene_fake_object_block_loc_change in dcutscene_inventory_fake_object_block_modify:
         - run dcutscene_animator_keyframe_edit def:fake_object|set_fake_block_prepare
@@ -1182,6 +1202,17 @@ dcutscene_events:
         after player clicks dcutscene_weather_remove_modify in dcutscene_inventory_keyframe_modify_weather:
         - run dcutscene_animator_keyframe_edit def:weather|remove_weather
 
+        ## Play Scene Animator #####
+        #Add new play scene animator
+        after player clicks dcutscene_play_scene in dcutscene_inventory_keyframe_modify:
+        - run dcutscene_play_scene_keyframe_modify def:new_prep
+        #Change scene to play
+        after player clicks dcutscene_play_scene_change in dcutscene_inventory_keyframe_modify_play_scene:
+        - run dcutscene_play_scene_keyframe_modify def:change_scene_prep
+        #Remove play scene animator
+        after player clicks dcutscene_play_scene_remove in dcutscene_inventory_keyframe_modify_play_scene:
+        - run dcutscene_play_scene_keyframe_modify def:remove
+
         ## Stop Point #####
         #Add new stop point
         after player clicks dcutscene_stop_scene in dcutscene_inventory_keyframe_modify:
@@ -1249,6 +1280,10 @@ dcutscene_events:
         - inventory open d:dcutscene_inventory_keyframe_modify_player_model
         #Fake block
         after player clicks dcutscene_back_page in dcutscene_inventory_fake_object_block_modify:
+        - inventory open d:dcutscene_inventory_sub_keyframe
+        - ~run dcutscene_sub_keyframe_modify def:<player.flag[dcutscene_sub_keyframe_back_data]>
+        #Play Scene
+        after player clicks dcutscene_back_page in dcutscene_inventory_keyframe_modify_play_scene:
         - inventory open d:dcutscene_inventory_sub_keyframe
         - ~run dcutscene_sub_keyframe_modify def:<player.flag[dcutscene_sub_keyframe_back_data]>
         #Stop point

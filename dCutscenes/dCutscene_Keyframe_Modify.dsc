@@ -1,6 +1,5 @@
 #################################################
 # This script file modifies the animators in the cutscene.
-# Below you can see commonly used data
 #################################################
 
 # Data Utilized:
@@ -20,13 +19,84 @@
 
 #=The debugger mode when on is useful in viewing the modified data in a file without changing the server flag dcutscenes and accidently creating corrupt data.
 
-#=============Keyframe Modifiers ===============
+#============= Keyframe Modifiers ===============
+
+#======== Play Another Scene Modifier ========
+dcutscene_play_scene_keyframe_modify:
+    type: task
+    debug: false
+    definitions: option|arg
+    script:
+    - define data <player.flag[cutscene_data]>
+    - define tick <player.flag[dcutscene_tick_modify]>
+    - define msg_prefix <script[dcutscenes_config].data_key[config].get[cutscene_prefix].parse_color||<&color[0,0,255]><bold>DCutscenes>
+    - choose <[option]>:
+      #-New play scene animator prep
+      - case new_prep:
+        - define text "Chat the cutscene the animator will play."
+        - narrate "<[msg_prefix]> <gray><[text]>"
+        - flag <player> cutscene_modify:new_play_scene_animator expire:3m
+        - inventory close
+
+      #-New play cutscene animator
+      - case new:
+        - define scene_check <[data.keyframes.play_scene]||null>
+        - if <[scene_check]> != null:
+          - define text "There is already a play cutscene animator at tick <green><[scene_check.tick]>t<gray>."
+          - narrate "<[msg_prefix]> <gray><[text]>"
+        - else:
+          - if <server.flag[dcutscenes.<[arg]>]> == null:
+            - define text "The cutscene <green><[arg]><gray> does not exist."
+            - narrate "<[msg_prefix]> <gray><[text]>"
+            - stop
+          - definemap play_scene_data tick:<[tick]> cutscene:<[arg]>
+          - define data.keyframes.play_scene:<[play_scene_data]>
+          - flag server dcutscenes.<[data.name]>:<[data]>
+          - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
+          - inventory open d:dcutscene_inventory_sub_keyframe
+          - ~run dcutscene_sub_keyframe_modify def:<player.flag[dcutscene_sub_keyframe_back_data]>
+          - define text "The scene <green><[arg]> <gray>will now play at tick <green><[tick]>t <gray>for scene <green><[data.name]><gray>."
+          - narrate "<[msg_prefix]> <gray><[text]>"
+          - ~run dcutscene_sort_data def:<[data.name]>
+
+      #-Change scene prep
+      - case change_scene_prep:
+        - define text "Chat the cutscene the animator will play."
+        - narrate "<[msg_prefix]> <gray><[text]>"
+        - flag <player> cutscene_modify:change_scene_animator expire:3m
+        - inventory close
+
+      #-Change scene
+      - case change_scene:
+        - if <server.flag[dcutscenes.<[arg]>]> == null:
+          - define text "The cutscene <green><[arg]><gray> does not exist."
+          - narrate "<[msg_prefix]> <gray><[text]>"
+          - stop
+        - define play_scene <[data.keyframes.play_scene]>
+        - define play_scene.cutscene <[arg]>
+        - define data.keyframes.play_scene:<[play_scene]>
+        - flag server dcutscenes.<[data.name]>:<[data]>
+        - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
+        - inventory open d:dcutscene_inventory_keyframe_modify_play_scene
+        - define text "The scene <green><[arg]> <gray>will now play at tick <green><[play_scene.tick]>t <gray>for scene <green><[data.name]><gray>."
+        - narrate "<[msg_prefix]> <gray><[text]>"
+
+      #-Remove play cutscene animator
+      - case remove:
+        - define data.keyframes <[data.keyframes].exclude[play_scene]>
+        - flag server dcutscenes.<[data.name]>:<[data]>
+        - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
+        - inventory open d:dcutscene_inventory_sub_keyframe
+        - ~run dcutscene_sub_keyframe_modify def:<player.flag[dcutscene_sub_keyframe_back_data]>
+        - define text "Cutscene play scene animator has been removed from tick <green><[tick]>t<gray>."
+        - narrate "<[msg_prefix]> <gray><[text]>"
+        - ~run dcutscene_sort_data def:<[data.name]>
 
 #======== Stop Cutscene Modifier ========
 dcutscene_stop_scene_keyframe:
     type: task
     debug: false
-    definitions: option|arg|arg_2
+    definitions: option|arg
     script:
     - define data <player.flag[cutscene_data]>
     - define tick <player.flag[dcutscene_tick_modify]>
@@ -58,6 +128,7 @@ dcutscene_stop_scene_keyframe:
         - narrate "<[msg_prefix]> <gray><[text]>"
         - inventory open d:dcutscene_inventory_sub_keyframe
         - ~run dcutscene_sub_keyframe_modify def:<player.flag[dcutscene_sub_keyframe_back_data]>
+        - ~run dcutscene_sort_data def:<[data.name]>
 
 #================  Camera Modifier =====================
 dcutscene_cam_keyframe_edit:
@@ -394,7 +465,7 @@ dcutscene_cam_keyframe_edit:
                     - define end_tick <[max_time]>
                   - case own:
                     - define create_new_keyframe true
-                    - if <[arg_3]> == stop:
+                    - if !<[arg_3]>:
                       - run dcutscene_cam_keyframe_edit def:edit|record_camera_false
                       - stop
                     - define duration <duration[<[arg_3]>]||null>
@@ -431,6 +502,8 @@ dcutscene_cam_keyframe_edit:
                 - narrate "<[msg_prefix]> <gray>Recording has begun."
                 #l = location
                 #e = eye_location
+                #y = yaw
+                #p = pitch
                 - define length <[duration].in_ticks>
                 - repeat <[length]> as:tick-i:
                   - define pl <player.location>
@@ -562,7 +635,7 @@ dcutscene_cam_keyframe_edit:
 #let's say you change the id of the root model or sub-frame model this will update every tick that contains the model.
 #While albeit this is a bit more complicated internally this makes the model changing process much simpler for the creator.
 #This data is similar to a chain essentially.
-#The root model is the starting point and contains the path and sub-frames tick and UUIDs.
+#The root model is the starting point that contains the path and sub-frames with ticks and UUIDs.
 #For a visual example on how this data appears make your model with sub frames, turn off save file compression, save your cutscene, and look at the json file created.
 
 #Removes the previous spawned model the player was modifying
@@ -613,7 +686,7 @@ dcutscene_model_keyframe_edit:
               #-Create new model ID
               - case create_id:
                 #Check if model has already been set in tick
-                - define model_list <[data.keyframes.models.<[tick]>.model_list]>
+                - define model_list <[data.keyframes.models.<[tick]>.model_list]||<list>>
                 - foreach <[model_list]> as:model_uuid:
                   - define model_id <[data.keyframes.models.<[tick]>.<[model_uuid]>.id]>
                   - if <[model_id]> == <[arg_2]>:
@@ -647,7 +720,7 @@ dcutscene_model_keyframe_edit:
                     #Don't reset save_data with a - definemap
                     - flag <player> dcutscene_save_data.root:<[root]>
                     - flag <player> dcutscene_save_data.model:<[arg_2]>
-                    - run dcutscene_location_tool_give_data def:<player.location>|<[root]>|<[root].location.yaw>|model|<[model]>
+                    - run dcutscene_location_tool_give_data def:<player.location>|<[root]>|<[root].location.yaw>|model|<[arg_2]>
                     - define text "After choosing your location for this model click <green>Confirm Location <gray>in the location GUI or chat <green>confirm<gray>. To re-open the location GUI do /dcutscene location."
                     - narrate "<[msg_prefix]> <gray><[text]>"
                     - inventory open d:dcutscene_inventory_location_tool
@@ -672,7 +745,7 @@ dcutscene_model_keyframe_edit:
                 - definemap model_data id:<[save_data.id]> model:<[save_data.model]> type:model root:none sub_frames:none item:<item[dcutscene_model_keyframe_item]||<item[dragon_head]>>
                 #Set model to path data
                 - definemap ray_trace_data direction:floor liquid:false passable:false
-                - definemap path_data interpolation:linear rotate_interp:true rotate_mul:1.0 move:false location:<[arg_2]> animation:false ray_trace:<[ray_trace_data]> tick:<[tick]>
+                - definemap path_data interpolation:linear rotate_interp:true rotate_mul:1.0 move:true location:<[arg_2]> animation:false ray_trace:<[ray_trace_data]> tick:<[tick]>
                 - define model_data.path.<[tick]> <[path_data]>
                 - define data.keyframes.models.<[tick]>.<[model_uuid]> <[model_data]>
                 - define data.keyframes.models.<[tick]>.model_list:->:<[model_uuid]>
@@ -734,7 +807,7 @@ dcutscene_model_keyframe_edit:
                     - define root_id <[root_save.id]>
                     #Default data for new model
                     - definemap ray_trace_data direction:floor liquid:false passable:false
-                    - definemap path_data rotate_interp:true rotate_mul:1.0 interpolation:linear location:<[loc]> move:false animation:false ray_trace:<[ray_trace_data]> tick:<[tick]>
+                    - definemap path_data rotate_interp:true rotate_mul:1.0 interpolation:linear location:<[loc]> move:true animation:false ray_trace:<[ray_trace_data]> tick:<[tick]>
                     #Update the root data
                     - define path <[data.keyframes.models.<[root_tick]>.<[root_uuid]>.path]>
                     - define path.<[tick]> <[path_data]>
@@ -957,13 +1030,45 @@ dcutscene_model_keyframe_edit:
                 - define lore <list[<empty>|<[l1]>|<empty>|<[l2]>]>
                 - inventory adjust d:<player.open_inventory> slot:<[arg_3]> lore:<[lore]>
 
+              #-Change model prep
+              - case change_model_prep:
+                - define tick_data <player.flag[dcutscene_tick_modify]>
+                - define tick <[tick_data.tick]>
+                - define uuid <[tick_data.uuid]>
+                - define root_data <[data.keyframes.models.<[tick]>.<[uuid]>.root]||none>
+                - define text "Use /dcutscene model <green>my_model_name <gray>to change the model."
+                - narrate "<[msg_prefix]> <gray><[text]>"
+                - flag <player> cutscene_modify:change_model_prep expire:2m
+                - inventory close
+
+              #-Change model
+              - case change_model:
+                - define tick_data <player.flag[dcutscene_tick_modify]>
+                - define tick <[tick_data.tick]>
+                - define uuid <[tick_data.uuid]>
+                - define model_data <[data.keyframes.models]>
+                - define root_data <[model_data.<[tick]>.<[uuid]>.root]||none>
+                - if <[root_data]> != none:
+                  - define model_data.<[root_data.tick]>.<[root_data.uuid]>.model <[arg_2]>
+                - else:
+                  - define model_data.<[tick]>.<[uuid]>.model <[arg_2]>
+                #=-Debugger
+                - if <script[dcutscenes_config].data_key[config].get[cutscene_tool_debugger_mode].if_null[false].is_truthy>:
+                  - ~run dcutscene_debugger def:change_model|<[model_data]>
+                  - stop
+                - flag server dcutscenes.<[data.name]>.keyframes.models:<[model_data]>
+                - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
+                - define text "Model <green><[model_data.<[tick]>.<[uuid]>.id]> <gray>will now spawn with model <green><[arg_2]><gray>."
+                - narrate "<[msg_prefix]> <gray><[text]>"
+                - inventory open d:dcutscene_inventory_keyframe_modify_model
+
               #-Whether the model will move to the next keyframe point
               - case set_move:
                 - define tick_data <player.flag[dcutscene_tick_modify]>
                 - define tick <[tick_data.tick]>
                 - define uuid <[tick_data.uuid]>
                 - define model_data <[data.keyframes.models]>
-                - define root_data <[data.keyframes.models.<[tick]>.<[uuid]>.root]||none>
+                - define root_data <[model_data.<[tick]>.<[uuid]>.root]||none>
                 #If the model contains a root data model
                 - if <[root_data]> != none:
                   - define move <[model_data.<[root_data.tick]>.<[root_data.uuid]>.path.<[tick]>.move]>
@@ -1257,7 +1362,7 @@ dcutscene_model_keyframe_edit:
                 #ID Set
                 - if <[arg_2]> == id_set && <[arg_3]> != null:
                   #Check if model has already been set in tick
-                  - define model_list <[data.keyframes.models.<[tick]>.model_list]>
+                  - define model_list <[data.keyframes.models.<[tick]>.model_list]||<list>>
                   - foreach <[model_list]> as:model_uuid:
                     - define model_id <[data.keyframes.models.<[tick]>.<[model_uuid]>.id]>
                     - if <[model_id]> == <[arg_3]>:
@@ -1293,7 +1398,7 @@ dcutscene_model_keyframe_edit:
                   - define model_uuid <util.random_uuid>
                   - definemap model_data id:<player.flag[dcutscene_save_data.id]> type:player_model root:none sub_frames:none
                   - definemap ray_trace_data direction:floor liquid:false passable:false
-                  - definemap path_data interpolation:linear rotate_interp:true rotate_mul:1.0 move:false location:<[arg_3]> animation:false ray_trace:<[ray_trace_data]> skin:none tick:<[tick]>
+                  - definemap path_data interpolation:linear rotate_interp:true rotate_mul:1.0 move:true location:<[arg_3]> animation:false ray_trace:<[ray_trace_data]> skin:none tick:<[tick]>
                   - define model_data.path.<[tick]> <[path_data]>
                   - define data.keyframes.models.<[tick]>.<[model_uuid]> <[model_data]>
                   - define data.keyframes.models.<[tick]>.model_list:->:<[model_uuid]>
@@ -1359,7 +1464,7 @@ dcutscene_model_keyframe_edit:
                     - define root_id <[root_save.id]>
                     #Default data for new model
                     - definemap ray_trace_data direction:floor liquid:false passable:false
-                    - definemap path_data rotate_interp:true rotate_mul:1.0 interpolation:linear location:<[loc]> move:false animation:false ray_trace:<[ray_trace_data]> skin:none tick:<[tick]>
+                    - definemap path_data rotate_interp:true rotate_mul:1.0 interpolation:linear location:<[loc]> move:true animation:false ray_trace:<[ray_trace_data]> skin:none tick:<[tick]>
                     #Update the root data
                     - define path <[data.keyframes.models.<[root_tick]>.<[root_uuid]>.path]>
                     - define path.<[tick]> <[path_data]>
@@ -1750,7 +1855,7 @@ dcutscene_model_keyframe_edit:
                 - flag <player> cutscene_modify:player_model_change_rotate_mul expire:2m
                 - inventory close
 
-              #-Change rotate mul
+              #-Change rotate multiplier
               - case change_rotate_mul:
                 - if <[arg_2].is_decimal>:
                   - flag <player> cutscene_modify:!
@@ -1867,16 +1972,29 @@ dcutscene_model_list_new:
     script:
     - define msg_prefix <script[dcutscenes_config].data_key[config].get[cutscene_prefix].parse_color||<&color[0,0,255]><bold>DCutscenes>
     - define keyframes <server.flag[dcutscenes.<[scene]>.keyframes.models]||<map>>
-    - define prev_models <list>
     - define max 9
+    - define prev_models <list>
     #Look for previously made models
     - foreach <[keyframes]> key:time as:model:
       - if <[time]> < <[tick]>:
-        - definemap model_data tick:<[time]> data:<[model]>
-        - define prev_models:->:<[model_data]>
+        - define model_list <[model.model_list]>
+        #Exclude that models that are not the type specified
+        - foreach <[model_list]> as:model_uuid:
+          - define model_data <[model.<[model_uuid]>]>
+          - if <[model_data.type]> != <[type]>:
+            - define model <[model].deep_exclude[<[model_uuid]>]>
+        - if <[model].deep_exclude[model_list].any>:
+          #Set the previously created models as data to be utilized
+          - definemap model_prev tick:<[time]> data:<[model]>
+          - define prev_models:->:<[model_prev]>
+    #If there are no previously made models create a new model animator immediately
     - if <[prev_models].is_empty>:
-      - flag <player> cutscene_modify:new_model_id expire:3m
-      - define text "Chat the name of the model this will be used as an identifier."
+      - choose <[type]>:
+        - case model:
+          - flag <player> cutscene_modify:new_model_id expire:3m
+        - case player_model:
+          - flag <player> cutscene_modify:new_player_model_id expire:3m
+      - define text "Chat the name of the <[type].replace[_].with[ ]> this will be used as an identifier."
       - narrate "<[msg_prefix]> <gray><[text]>"
       - inventory close
     #If there are previously created models set them as data items in a GUI
@@ -1925,9 +2043,12 @@ dcutscene_model_list_new:
           - if <[size]> > <[limit]>:
             - define exceed true
             - foreach next
-          - define model_data <[model.data.<[model_uuid]>]>
+          - define model_data <[model.data.<[model_uuid]>]||null>
+          - if <[model_data]> == null:
+            - foreach next
           #Model item set
-          - if <[model_data.type]> == model && <[model_data.root]||none> == none:
+          - define model_type <[model_data.type]>
+          - if <[model_type]> == model && <[model_data.root]||none> == none && <[model_type]> == <[type]>:
             - define slot:++
             - definemap item_data type:<[model_data.type]> tick:<[model.tick]> uuid:<[model_uuid]> id:<[model_data.id]>
             - define display <blue><bold><[model_data.id]>
@@ -1942,7 +2063,7 @@ dcutscene_model_list_new:
             - flag <[item]> model_keyframe_modify:<[item_data]>
             - inventory set d:<[inv]> o:<[item]> slot:<[slot]>
           #Player model item set
-          - else if <[model_data.type]> == player_model && <[model_data.root]||none> == none:
+          - else if <[model_type]> == player_model && <[model_data.root]||none> == none && <[model_type]> == <[type]>:
             - define slot:++
             - definemap item_data type:<[model_data.type]> tick:<[model.tick]> uuid:<[model_uuid]> id:<[model_data.id]>
             - define skin <[model_data.path.<[model.tick]>.skin].parsed||none>
@@ -2616,10 +2737,11 @@ dcutscene_animator_keyframe_edit:
               - if <[fade_in]> != null && <[stay]> != null && <[fade_out]> != null:
                 - flag <player> cutscene_modify:!
                 - define tick <player.flag[dcutscene_tick_modify.tick]>
-                - define keyframe <[keyframes.screeneffect.<[tick]>]>
-                - definemap time_data fade_in:<[fade_in]> stay:<[stay]> fade_out:<[fade_out]>
-                - define keyframe <[time_data]>
-                - flag server dcutscenes.<[data.name]>.keyframes.elements.screeneffect.<[tick]>:<[keyframe]>
+                - define effect_data <[keyframes.screeneffect.<[tick]>]>
+                - define effect_data.fade_in <[fade_in]>
+                - define effect_data.stay <[stay]>
+                - define effect_data.fade_out <[fade_out]>
+                - flag server dcutscenes.<[data.name]>.keyframes.elements.screeneffect.<[tick]>:<[effect_data]>
                 - flag <player> cutscene_data:<server.flag[dcutscenes.<[data.name]>]>
                 - ~run dcutscene_sort_data def:<[data.name]>
                 - define text "New cinematic screeneffect time created at tick <green><[tick]>t <gray>in scene <green><[data.name]><gray>."

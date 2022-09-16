@@ -1,6 +1,6 @@
 #==================== Denizen Cutscenes Animation =====================
 
-##Camera Entity ################
+## Camera Entity ################
 dcutscene_camera_entity:
     type: entity
     debug: false
@@ -13,13 +13,13 @@ dcutscene_camera_entity:
         gravity: false
         persistent: true
 
-###################################################
-
 #========= Cutscene Animator Events ============
 dcutscene_animation_events:
     type: world
     debug: false
     events:
+      on player quits flagged:dcutscene_played_scene:
+      - run dcutscene_animation_stop def.player:<player>
       on player exits armor_stand flagged:dcutscene_camera:
       - determine cancelled
       on player right clicks entity flagged:dcutscene_camera:
@@ -32,8 +32,7 @@ dcutscene_animation_events:
       - determine 0.0
 
 #========= Cutscene Animator Tasks and Procedures =========
-
-#Start the cutscene
+# Start the cutscene
 dcutscene_animation_begin:
     type: task
     debug: false
@@ -60,15 +59,19 @@ dcutscene_animation_begin:
       - if <[length]> == null:
         - debug error "Length of cutscene could not be found for scene <[scene]>"
         - stop
-      #Scene UUID (To avoid conflict when playing another cutscene)
+      #=Cutscene Setup
+      #Scene UUID
       - define scene_uuid <util.random_uuid>
       - definemap scene_data name:<[cutscene.name]> uuid:<[scene_uuid]>
       - flag <[player]> dcutscene_played_scene:<[scene_data]>
       #World
-      - define world <world[<[world]||<[player].world>>]>
-      #TODO:
-      #- Implement cutscene inventory
-      #=Cutscene Setup
+      - define world <world[<[world]||<[cutscene.world].first>>]||null>
+      - if <[world]> == null:
+        - debug error "Invalid world for cutscene <[scene]>"
+        - stop
+      #Inventory
+      - flag <[player]> dcutscene_played_scene_inv:<[player].inventory.map_slots>
+      - inventory clear
       #Cutscene black bars
       - if <[settings.bars]>:
         - run dcutscene_bars def.player:<[player]>
@@ -81,6 +84,8 @@ dcutscene_animation_begin:
       - define models <[keyframes.models]||null>
       #Elements in keyframe
       - define elements <[keyframes.elements]||null>
+      #Play another scene in keyframe
+      - define play_scene <[keyframes.play_scene]||null>
       #Stop point in keyframe
       - define stop_point <[keyframes.stop]||null>
       #Camera in keyframes (keys check for extra validation)
@@ -92,9 +97,10 @@ dcutscene_animation_begin:
 
       #======== Animator =========
       - repeat <duration[<[length]>].in_ticks.sub[<[timespot]>]> as:tick:
+        - if !<[player].is_online>:
+          - stop
         - if !<[player].has_flag[dcutscene_played_scene.uuid]>:
           - stop
-        #Check if player is in another cutscene if so stop
         - if <[player].flag[dcutscene_played_scene.uuid]> != <[scene_uuid]>:
           - stop
         #Tick added by timespot
@@ -206,7 +212,7 @@ dcutscene_animation_begin:
             - foreach <[particles]> as:particle_id:
               - define p_data <[elements.particle.<[tick]>.<[particle_id]>]||null>
               - if <[p_data]> != null:
-                - run dcutscene_particle_animator_play def.p_data:<[p_data]> def.world:<[world]>
+                - run dcutscene_particle_animator_play def.player:<[player]> def.p_data:<[p_data]> def.world:<[world]> def.scene_uuid:<[scene_uuid]>
           #=Sound check
           - define sounds <[elements.sound.<[tick]>.sounds]||null>
           - if <[sounds]> != null:
@@ -244,10 +250,15 @@ dcutscene_animation_begin:
           - define weather_data <[elements.weather.<[tick]>]||null>
           - if <[weather_data]> != null:
             - weather player <[weather_data.weather]> reset:<[weather_data.duration]>
+        #===== Play Scene Check =====
+        - if <[play_scene]> != null:
+          - if <[play_scene.tick].equals[<[tick]>]>:
+            - run dcutscene_animation_begin def.scene:<[play_scene.cutscene]> def.player:<[player]> def.timespot:0s
+            - stop
         #===== Stop Check ======
         - if <[stop_point]> != null:
           - if <[stop_point.tick].equals[<[tick]>]>:
-            - run dcutscene_animation_stop def.player:<player>
+            - run dcutscene_animation_stop def.player:<[player]>
             - stop
         - wait 1t
 
@@ -257,14 +268,17 @@ dcutscene_camera_spawn:
     debug: false
     definitions: player|timespot|camera|bound|world
     script:
-    #Chunks must be loaded so we teleport the player here
-    - define first <[camera].keys.filter[is_more_than_or_equal_to[<[timespot]>]].first>
-    - define first_loc <location[<[camera.<[first]>.location]>]||null>
-    - if <[first_loc]> != null && <[bound]>:
-      - teleport <[player]> <[first_loc].with_world[<[world]>]>
-    - wait <duration[<script[dcutscenes_config].data_key[config].get[cutscene_chunk_load_delay]>].in_ticks||10.sub[1]>t
-    - flag <player> dcutscene_previous_gamemode:<player.gamemode>
     - cast INVISIBILITY d:10000000000000s <[player]> hide_particles no_ambient no_icon
+    - define first <[camera].keys.filter[is_more_than_or_equal_to[<[timespot]>]].first>
+    - define first_loc <location[<[camera.<[first]>.location]>].with_world[<[world]>]||null>
+    - if <[first_loc]> != null && <[bound]>:
+      # Determine if there should be a delay to allow chunks to load
+      - if <[player].location.distance[<[first_loc]>]> > <[player].world.simulation_distance.mul[6]> || <[player].world> != <[world]>:
+        - teleport <[player]> <[first_loc]>
+        - wait <duration[<script[dcutscenes_config].data_key[config].get[cutscene_chunk_load_delay]>].in_ticks||10.sub[1]>t
+      - else:
+        - teleport <[player]> <[first_loc]>
+    - flag <player> dcutscene_previous_gamemode:<player.gamemode>
     - define uuid <util.random_uuid>
     - spawn dcutscene_camera_entity <[player].location.below[5]> save:<[uuid]>
     - define camera_ent <entry[<[uuid]>].spawned_entity>
@@ -283,12 +297,44 @@ dcutscene_camera_spawn:
     - determine <[camera_ent]>
     - wait 1t
 
+# Returns the first camera location in the cutscene and returns null if there is an error.
+dcutscene_first_loc:
+    type: procedure
+    debug: false
+    definitions: scene
+    script:
+    - define data <server.flag[dcutscenes.<[scene]>]||null>
+    - if <[data]> == null:
+      - determine null
+    - else:
+      - define camera <[data.keyframes.camera]||null>
+      - if <[camera]> == null:
+        - determine null
+      - else:
+        - define first <[camera].keys.first>
+        - define camera_data <[camera.<[first]>]>
+        - if <[camera_data.recording.bool].is_truthy>:
+          - define first <[camera_data.recording.frames].keys.first>
+          - define loc <[camera_data.recording.frames.<[first]>]>
+          - define first_loc <location[<[loc.l]>].with_pitch[<[loc.p]>].with_yaw[<[loc.y]>]||null>
+          - if <[first_loc]> == null:
+            - determine null
+          - else:
+            - determine <[first_loc]>
+        - else:
+          - define first_loc <location[<[camera.<[first]>.location]>]||null>
+          - if <[first_loc]> == null:
+            - determine null
+          - else:
+            - determine <[first_loc]>
+
 # Makes players hidden for the cutscene user until the cutscene is over
 dcutscene_hide_players_task:
     type: task
     debug: false
     definitions: player|world
     script:
+    - flag <[player]> dcutscene_hide_players:<map>
     - foreach <server.online_players.exclude[<[player]>].filter_tag[<[filter_value].world.equals[<[world]>]>]> as:p:
       - adjust <[player]> hide_entity:<[p]>
       - flag <[player]> dcutscene_hide_players.<[p].uuid>
@@ -347,7 +393,7 @@ dcutscene_animator_sound_play:
     script:
     - define loc <[s_data.location]||false>
     - define custom <[s_data.custom]||false>
-    - if !<[loc]>:
+    - if !<[loc].is_truthy>:
       - define sound_to <player>
     - else:
       - define sound_to <location[<[loc]>].with_world[<[world]>]>
@@ -433,7 +479,7 @@ dcutscene_fake_schem_animator:
 dcutscene_particle_animator_play:
     type: task
     debug: false
-    definitions: p_data|world
+    definitions: player|p_data|world|scene_uuid
     script:
     - define loc <location[<[p_data.loc]>].with_world[<[world]>]||null>
     - if <[loc]> == null:
@@ -449,14 +495,18 @@ dcutscene_particle_animator_play:
     - define quantity <[p_data.quantity]>
     - define offset <[p_data.offset]>
     - define proc_script <[p_data.procedure.script]>
-    - define proc_defs <[p_data.procedure.defs]>
+    - define proc_defs <[p_data.procedure.defs].parsed>
     - define velocity <location[<[p_data.velocity]>]>
     #Animator
-    - if <[special_data]>:
+    - if <[special_data].is_truthy>:
       - repeat <[repeat_count]>:
-        - if <[proc_script]>:
-          - if <[proc_defs]>:
-            - define loc <[particle_loc].proc[<[proc_script]>].context[<[proc_defs].parsed>]||null>
+        - if !<[player].is_online>:
+          - stop
+        - if <[player].flag[dcutscene_played_scene.uuid]||null> != <[scene_uuid]>:
+          - stop
+        - if <[proc_script].is_truthy>:
+          - if <[proc_defs].is_truthy>:
+            - define loc <[particle_loc].proc[<[proc_script]>].context[<[proc_defs]>]||null>
           - else:
             - define loc <[particle_loc].proc[<[proc_script]>]||null>
           - if <[loc]> == null:
@@ -466,9 +516,13 @@ dcutscene_particle_animator_play:
         - wait <[repeat_interval]>
     - else:
       - repeat <[repeat_count]>:
+        - if !<[player].is_online>:
+          - stop
+        - if <[player].flag[dcutscene_played_scene.uuid]||null> != <[scene_uuid]>:
+          - stop
         - if <[proc_script].is_truthy>:
           - if <[proc_defs].is_truthy>:
-            - define loc <[particle_loc].proc[<[proc_script]>].context[<[proc_defs].parsed>]||null>
+            - define loc <[particle_loc].proc[<[proc_script]>].context[<[proc_defs]>]||null>
           - else:
             - define loc <[particle_loc].proc[<[proc_script]>]||null>
           - if <[loc]> == null:
@@ -520,6 +574,7 @@ dcutscene_animation_stop:
     definitions: player
     script:
     - define player <[player]||<player>>
+    - inventory swap d:<[player].inventory> o:<[player].flag[dcutscene_played_scene_inv].if_null[<player.inventory>]>
     - cast INVISIBILITY remove
     - adjust <[player]> stop_sound
     - adjust <[player]> gamemode:<[player].flag[dcutscene_previous_gamemode]>
@@ -536,7 +591,7 @@ dcutscene_animation_stop:
       - define bound <[player].flag[dcutscene_bound]>
       - if <[bound]>:
         - mount cancel <[player]>
-        - teleport <[player]> <[player].flag[dcutscene_camera].location>
+        - teleport <[player]> <[player].flag[dcutscene_camera].location.above[0.6]>
       - remove <[player].flag[dcutscene_mount]>
       - remove <[player].flag[dcutscene_camera]>
       - flag <[player]> dcutscene_mount:!
@@ -596,10 +651,10 @@ dcutscene_path_move:
               - if <[rec_bool]>:
                 #Length of recording
                 - repeat <[rec.length]> as:t:
-                  - if !<player.has_flag[dcutscene_played_scene.uuid]>:
+                  - if !<player.is_online>:
                     - stop
                   #Check if player is in another cutscene if so stop
-                  - if <player.flag[dcutscene_played_scene.uuid]> != <[scene_uuid]>:
+                  - if <player.flag[dcutscene_played_scene.uuid]||null> != <[scene_uuid]>:
                     - stop
                   - define r <[rec.frames.<[t]>]>
                   #If a look location has been set
@@ -618,8 +673,7 @@ dcutscene_path_move:
                   #This is an easy solution to the cannot interact with player error
                   - if <[bound]>:
                     - look <player> <[entity].location.relative[0,0,-5].rotate_yaw[180].with_pitch[0]> duration:1t
-                  - define mount_loc <[entity].location.relative[0,0,-1]>
-                  - teleport <[mount]> <[mount_loc]>
+                  - teleport <[mount]> <[entity].location.relative[0,1,-1]>
                   - wait 1t
               #=Default
               - else:
@@ -657,6 +711,8 @@ dcutscene_path_move:
                   - define loc_1_prev <[list].last.get[location]||<[loc_1]>>
                 #Animation
                 - repeat <[time]>:
+                  - if !<player.is_online>:
+                    - stop
                   - if !<player.has_flag[dcutscene_played_scene.uuid]>:
                     - stop
                   - if <player.flag[dcutscene_played_scene.uuid]||null> != <[scene_uuid]>:
@@ -670,13 +726,13 @@ dcutscene_path_move:
                         - choose <[interpolation]>:
                           #Linear Interpolation
                           - case linear:
-                            - define data <[loc_2].as_location.sub[<[loc_1]>].mul[<[time_percent]>].add[<[loc_1]>]>
+                            - define data <[loc_2].as[location].sub[<[loc_1]>].mul[<[time_percent]>].add[<[loc_1]>]>
                           #Catmullrom Interpolation
                           - case smooth:
-                            - define p0 <[loc_1_prev].as_location>
-                            - define p1 <[loc_1].as_location>
-                            - define p2 <[loc_2].as_location>
-                            - define p3 <[loc_2_after].as_location>
+                            - define p0 <[loc_1_prev].as[location]>
+                            - define p1 <[loc_1].as[location]>
+                            - define p2 <[loc_2].as[location]>
+                            - define p3 <[loc_2_after].as[location]>
                             #Catmullrom calc
                             - define data <proc[dcutscene_catmullrom_proc].context[<[p0]>|<[p1]>|<[p2]>|<[p3]>|<[time_percent]>]>
                         #Interp Look True
@@ -720,7 +776,7 @@ dcutscene_path_move:
                         - define yaw <[eye_loc_2].yaw>
                         - define pitch <[eye_loc_2].pitch>
                         - define data <[loc_2]>
-                      - define mount_loc <[loc_2].as_location.sub[<[loc_1]>].mul[<[time_percent]>].add[<[loc_1]>]>
+                      - define mount_loc <[loc_2].as[location].sub[<[loc_1]>].mul[<[time_percent]>].add[<[loc_1]>]>
                     #If a look location has been set
                     - if <[eye_loc_bool]>:
                       - define look_loc <[entity].eye_location.face[<[eye_loc].with_world[<[world]>]>]>
@@ -741,7 +797,6 @@ dcutscene_path_move:
                   - wait 1t
 
           #====================== Model Path Move =======================
-          #Denizen Models
           - case model:
             - define keyframes <[cutscene.keyframes.models.<[data.tick]>.<[data.uuid]>.path]>
             - foreach <[keyframes]> key:tick_id as:keyframe:
@@ -761,10 +816,16 @@ dcutscene_path_move:
               #Model Animation
               - if <[animation]> != false && <[animation]> != stop:
                 - run dmodels_animate def:<[entity]>|<[animation]>
+                - define loop <server.flag[dmodels_data.animations_<[entity].flag[dmodel_model_id]>.<[animation]>.loop]||false>
+                - if <[loop]> == hold:
+                  - flag <[entity]> dcutscene_model_animation_state:hold
+                - else:
+                  - flag <[entity]> dcutscene_model_animation_state:!
               - else if <[animation]> == stop:
                 - run dmodels_end_animation def:<[entity]>
               #Reset position
-              - run dmodels_reset_model_position def:<[entity]>
+              - if !<[entity].has_flag[dcutscene_model_animation_state]> || <[entity].flag[dcutscene_model_animation_state]> != hold:
+                - run dmodels_reset_model_position def:<[entity]>
               #After
               - foreach <[keyframes]> key:aft_tick_id as:aft_keyframe:
                 - if <[aft_tick_id].is_more_than[<[time_1]>]>:
@@ -792,8 +853,6 @@ dcutscene_path_move:
                 - define loc_2_after <[loc_2_after]||<[loc_2]>>
               #Animation
               - repeat <[time]>:
-                - if !<player.has_flag[dcutscene_played_scene.uuid]>:
-                  - stop
                 - if <player.flag[dcutscene_played_scene.uuid]||null> != <[scene_uuid]>:
                   - stop
                 - chunkload <[entity].location.with_world[<[world]>].chunk> duration:1t
@@ -814,23 +873,23 @@ dcutscene_path_move:
                       - choose <[interpolation]>:
                         - case linear:
                           #Linear Interpolation calc
-                          - define data <[loc_2].as_location.sub[<[loc_1]>].mul[<[time_percent]>].add[<[loc_1]>]>
+                          - define data <[loc_2].as[location].sub[<[loc_1]>].mul[<[time_percent]>].add[<[loc_1]>]>
                         - case smooth:
-                          - define p0 <[loc_1_prev].as_location>
-                          - define p1 <[loc_1].as_location>
-                          - define p2 <[loc_2].as_location>
-                          - define p3 <[loc_2_after].as_location>
+                          - define p0 <[loc_1_prev].as[location]>
+                          - define p1 <[loc_1].as[location]>
+                          - define p2 <[loc_2].as[location]>
+                          - define p3 <[loc_2_after].as[location]>
                           #Catmullrom calc
                           - define data <proc[dcutscene_catmullrom_proc].context[<[p0]>|<[p1]>|<[p2]>|<[p3]>|<[time_percent]>]>
                       #Ray Trace
-                      - if <[ray_trace.direction]||false>:
+                      - if <[ray_trace.direction].is_truthy>:
                         - choose <[ray_trace.direction]||floor>:
                           - case floor:
-                            - define ray <[data].above[0.5].with_pitch[90].ray_trace[range=384;fluids=<[ray_trace.liquid]||false>;nonsolids=<[ray_trace.passable]||false>]||null>
+                            - define ray <[data].above[0.5].with_pitch[90].ray_trace[range=60;fluids=<[ray_trace.liquid]||false>;nonsolids=<[ray_trace.passable]||false>]||null>
                             - if <[ray]> != null:
                               - define data <[ray]>
                           - case ceiling:
-                            - define ray <[data].above[0.5].with_pitch[-90].ray_trace[range=384;fluids=<[ray_trace.liquid]||false>;nonsolids=<[ray_trace.passable]||false>]||null>
+                            - define ray <[data].above[0.5].with_pitch[-90].ray_trace[range=60;fluids=<[ray_trace.liquid]||false>;nonsolids=<[ray_trace.passable]||false>]||null>
                             - if <[ray]> != null:
                               - define data <[ray]>
                       - teleport <[entity]> <[data].with_pitch[0].with_yaw[<[yaw]>].with_world[<[world]>]>
@@ -842,7 +901,7 @@ dcutscene_path_move:
               - adjust <[loc_2].with_world[<[world]>].chunk> load
               - teleport <[entity]> <[loc_2].with_yaw[<[loc_2].yaw>].with_world[<[world]>]>
 
-          #Player Model
+          #====================== Player Model Path Move =======================
           - case player_model:
             - define keyframes <[cutscene.keyframes.models.<[data.tick]>.<[data.uuid]>.path]>
             - foreach <[keyframes]> key:tick_id as:keyframe:
@@ -862,11 +921,19 @@ dcutscene_path_move:
               - define skin <[keyframe.skin]||none>
               #Model Animation
               - if <[animation]> != false && <[animation]> != stop:
+                - if <[entity].has_flag[external_parts]>:
+                  - run pmodels_remove_external_parts def:<[entity]>
                 - run pmodels_animate def:<[entity]>|<[animation]>
+                - define loop <server.flag[pmodels_data.animations_<[entity].flag[pmodel_model_id]>.<[animation]>.loop]||false>
+                - if <[loop]> == hold:
+                  - flag <[entity]> dcutscene_model_animation_state:hold
+                - else:
+                  - flag <[entity]> dcutscene_model_animation_state:!
               - else if <[animation]> == stop:
                 - run pmodels_end_animation def:<[entity]>
               #Reset position
-              - run pmodels_reset_model_position def:<[entity]>
+              - if !<[entity].has_flag[dcutscene_model_animation_state]> || <[entity].flag[dcutscene_model_animation_state]> != hold:
+                - run pmodels_reset_model_position def:<[entity]>
               #Skin
               - if <[skin]> != none && <[loop_index]> != 1:
                 - if <[skin]> == player:
@@ -901,15 +968,13 @@ dcutscene_path_move:
                 - define loc_2_after <[loc_2_after]||<[loc_2]>>
               #Animation
               - repeat <[time]>:
-                - if !<player.has_flag[dcutscene_played_scene.uuid]>:
-                  - stop
                 - if <player.flag[dcutscene_played_scene.uuid]||null> != <[scene_uuid]>:
                   - stop
                 - chunkload <[entity].location.with_world[<[world]>].chunk> duration:1t
                 - if <[entity].is_spawned>:
                   - define time_index <[value]>
                   - define time_percent <[time_index].div[<[time]>]>
-                  - if <[move].equals[true]>:
+                  - if <[move]||false>:
                     - if <[time_index]> < <[time]>:
                       #Rotation Interpolation
                       - if <[rotate_interp]>:
@@ -923,23 +988,23 @@ dcutscene_path_move:
                       - choose <[interpolation]>:
                         - case linear:
                           #Linear Interpolation calc
-                          - define data <[loc_2].as_location.sub[<[loc_1]>].mul[<[time_percent]>].add[<[loc_1]>]>
+                          - define data <[loc_2].as[location].sub[<[loc_1]>].mul[<[time_percent]>].add[<[loc_1]>]>
                         - case smooth:
-                          - define p0 <[loc_1_prev].as_location>
-                          - define p1 <[loc_1].as_location>
-                          - define p2 <[loc_2].as_location>
-                          - define p3 <[loc_2_after].as_location>
+                          - define p0 <[loc_1_prev].as[location]>
+                          - define p1 <[loc_1].as[location]>
+                          - define p2 <[loc_2].as[location]>
+                          - define p3 <[loc_2_after].as[location]>
                           #Catmullrom calc
                           - define data <proc[dcutscene_catmullrom_proc].context[<[p0]>|<[p1]>|<[p2]>|<[p3]>|<[time_percent]>]>
                       #Ray Trace
-                      - if <[ray_trace.direction]> != false:
+                      - if <[ray_trace.direction].is_truthy>:
                         - choose <[ray_trace.direction]||floor>:
                           - case floor:
-                            - define ray <[data].above[0.5].with_pitch[90].ray_trace[range=384;fluids=<[ray_trace.liquid]||false>;nonsolids=<[ray_trace.passable]||false>]||null>
+                            - define ray <[data].above[0.5].with_pitch[90].ray_trace[range=60;fluids=<[ray_trace.liquid]||false>;nonsolids=<[ray_trace.passable]||false>]||null>
                             - if <[ray]> != null:
                               - define data <[ray]>
                           - case ceiling:
-                            - define ray <[data].above[0.5].with_pitch[-90].ray_trace[range=384;fluids=<[ray_trace.liquid]||false>;nonsolids=<[ray_trace.passable]||false>]||null>
+                            - define ray <[data].above[0.5].with_pitch[-90].ray_trace[range=60;fluids=<[ray_trace.liquid]||false>;nonsolids=<[ray_trace.passable]||false>]||null>
                             - if <[ray]> != null:
                               - define data <[ray]>
                       - teleport <[entity]> <[data].with_pitch[0].with_yaw[<[yaw]>].with_world[<[world]>]>
@@ -1048,7 +1113,7 @@ dcutscene_path_show:
             - case linear:
               #time
               - define time <[time_2].sub[<[time_1]>]>
-              - define path <proc[dcutscene_path_creator].context[<player>|<[loc_1]>|<[loc_2]>|linear|<[time]>]>
+              - define path <player.proc[dcutscene_path_creator].context[<[loc_1]>|<[loc_2]>|linear|<[time]>]>
               - if <[path]> != null:
                 - foreach <[path]> as:point:
                   #For optimization it should only play when the player is facing the location and is within range
@@ -1074,7 +1139,7 @@ dcutscene_path_show:
               - define loc_1_prev <[list].last.get[location]||<[loc_1]>>
               #time
               - define time <[time_2].sub[<[time_1]>]>
-              - define path <proc[dcutscene_path_creator].context[<player>|<[loc_1]>|<[loc_2]>|smooth|<[time]>|<[loc_1_prev]>|<[loc_2_after]>]||null>
+              - define path <player.proc[dcutscene_path_creator].context[<[loc_1]>|<[loc_2]>|smooth|<[time]>|<[loc_1_prev]>|<[loc_2_after]>]||null>
               - if <[path]> != null:
                 #Reason for not using points between here is it was very performance heavy but this still gets the job done on demonstrating the spline curve
                 - foreach <[path]> as:point:
@@ -1130,7 +1195,7 @@ dcutscene_semi_path_show:
       - choose <[interpolation]>:
         #Linear Interpolation
         - case linear:
-          - define path <proc[dcutscene_path_creator].context[<player>|<[loc_1]>|<[loc_2]>|linear|<[time]>]||null>
+          - define path <player.proc[dcutscene_path_creator].context[<[loc_1]>|<[loc_2]>|linear|<[time]>]||null>
           - if <[path]> != null:
             - foreach <[path]> as:point:
               - if <player.location.facing[<[point]>].degrees[60]> && <player.location.distance[<[point]>]> <= <[dist].mul[2.5]>:
@@ -1149,7 +1214,7 @@ dcutscene_semi_path_show:
             - if <[tick_id].is_less_than[<[time_1]>]>:
               - define frame_list:->:<[frame]>
           - define loc_before <[frame_list].last.get[location]||<[loc_1]>>
-          - define path <proc[dcutscene_path_creator].context[<player>|<[loc_1]>|<[loc_2]>|smooth|<[time]>|<[loc_before]>|<[loc_2_after]>]||null>
+          - define path <player.proc[dcutscene_path_creator].context[<[loc_1]>|<[loc_2]>|smooth|<[time]>|<[loc_before]>|<[loc_2_after]>]||null>
           - if <[path]> != null:
             - foreach <[path]> as:point:
               - if <player.location.facing[<[point]>].degrees[60]> && <player.location.distance[<[point]>]> <= <[dist].mul[2.5]>:
@@ -1173,32 +1238,32 @@ dcutscene_path_creator:
             - if <[time_index]> < <[time]>:
               - define time_percent <[time_index].div[<[time]>]>
               #Lerp calc
-              - define data <[loc_2].as_location.sub[<[loc_1]>].mul[<[time_percent]>].add[<[loc_1]>]>
+              - define data <[loc_2].as[location].sub[<[loc_1]>].mul[<[time_percent]>].add[<[loc_1]>]>
             - else:
-              - define data <[loc_2].as_location>
+              - define data <[loc_2].as[location]>
             #This ensures points that are not visible will not show particles for optimization
             - if <[player].location.facing[<[data]>].degrees[60]> && <[player].location.distance[<[data]>]> <= <[dist].mul[2.5]>:
               #Input data to path list
               - define points:->:<[data]>
-          - determine <[points]||<empty>>
+          - determine <[points]||<list>>
         #Catmullrom Interpolation
         - case smooth:
           - repeat <[time]>:
             - define time_index <[value]>
             - if <[time_index]> < <[time]>:
               - define time_percent <[time_index].div[<[time]>]>
-              - define p0 <[loc_1_prev].as_location>
-              - define p1 <[loc_1].as_location>
-              - define p2 <[loc_2].as_location>
-              - define p3 <[loc_2_after].as_location>
+              - define p0 <[loc_1_prev].as[location]>
+              - define p1 <[loc_1].as[location]>
+              - define p2 <[loc_2].as[location]>
+              - define p3 <[loc_2_after].as[location]>
               #Catmullrom calc
               - define data <proc[dcutscene_catmullrom_proc].context[<[p0]>|<[p1]>|<[p2]>|<[p3]>|<[time_percent]>]>
             - else:
-              - define data <[loc_2_after].as_location>
+              - define data <[loc_2_after].as[location]>
             - if <[player].location.facing[<[data]>].degrees[60]> && <[player].location.distance[<[data]>]> <= <[dist].mul[2.5]>:
               #Input data to path list
               - define points:->:<[data]>
-          - determine <[points]||<empty>>
+          - determine <[points]||<list>>
         - default:
           - debug error "Could not determine interpolation type in dcutscene_path_creator"
     - else:
@@ -1220,7 +1285,7 @@ dcutscene_recording_frames_path_creator:
         - define l <location[<[r.l]>].with_world[<[world]>]>
         - if <[player].location.facing[<[l]>].degrees[60]> && <[player].location.distance[<[l]>]> <= <[dist].mul[2.5]>:
           - define points:->:<[l]>
-      - determine <[points]||<empty>>
+      - determine <[points]||<list>>
 
 dcutscene_catmullrom_get_t:
     type: procedure
@@ -1308,8 +1373,8 @@ dcutscene_bars:
     script:
     - define player <[player]||<player>>
     - define script <script[dcutscenes_config].data_key[config]>
-    - define bool <[script.use_cutscene_black_bars]||null>
-    - if <[bool].equals[true]> || null:
+    - define bool <[script.use_cutscene_black_bars]||false>
+    - if <[bool]>:
       - if <[player].has_flag[dcutscene_bars]>:
         - flag <[player]> dcutscene_bars:!
       - define top <[script.cutscene_black_bar_top]>

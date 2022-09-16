@@ -186,7 +186,7 @@ dcutscene_location_ray_trace_update:
       - flag <player> dcutscene_location_editor.ray_trace_bool:<[ray_trace_bool]>
       - if <[ray_trace_bool].is_truthy>:
         - actionbar "<gold><bold>Ray Trace On"
-        - while <player.flag[dcutscene_location_editor.ray_trace_bool].is_truthy>:
+        - while <player.flag[dcutscene_location_editor.ray_trace_bool].if_null[false].is_truthy>:
           - run dcutscene_location_edit_ray_trace def:<player.flag[dcutscene_location_editor.ray_trace_range]||5>
           - wait 1t
 

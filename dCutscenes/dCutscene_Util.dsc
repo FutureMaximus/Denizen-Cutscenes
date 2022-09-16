@@ -18,7 +18,7 @@ dcutscene_new_scene:
       - narrate "<[msg_prefix]> <gray><[text]>"
     - else:
       - define scene <[scene]||null>
-      - if <[scene].equals[null]>:
+      - if <[scene]> == null:
         - debug error "No scene specified for dcutscene_new_scene"
         - stop
       - if <server.has_flag[dcutscenes]>:
@@ -29,7 +29,8 @@ dcutscene_new_scene:
           - stop
         - flag <player> cutscene_modify:!
       # Default data creation
-      - define cutscene.name <[scene]>
+      - define cutscene.name <[scene].parse_color.strip_color>
+      - define cutscene.display <[scene]>
       - define l1 "&bA specially crafted cutscene"
       - define l2 "&bjust for you <player.name>."
       - define cutscene.description <list[<[l1]>|<[l2]>]>
@@ -38,9 +39,9 @@ dcutscene_new_scene:
       - define cutscene.keyframes <empty>
       - definemap settings_data bars:true item:<item[dcutscene_scene_item_default]> hide_players:false camera_bound:true
       - define cutscene.settings <[settings_data]>
-      - flag server dcutscenes.<[scene]>:<[cutscene]>
+      - flag server dcutscenes.<[cutscene.name]>:<[cutscene]>
       - ~run dcutscene_scene_show def:back
-      - define text "New cutscene <green><[scene]> <gray>has been created."
+      - define text "New cutscene <green><[cutscene.name]> <gray>has been created."
       - narrate "<[msg_prefix]> <gray><[text]>"
 
 #Removes the scene from the server flag dcutscenes
@@ -84,30 +85,31 @@ dcutscene_settings_modify:
           - narrate "<[msg_prefix]> <gray><[text]>"
           - stop
         - else:
-          - define new_data <[data].deep_exclude[<[cutscene.name]>]>
-          - define new_data.<[arg]>:<[cutscene].deep_with[name].as[<[arg].parse_color.strip_color>]>
-          - flag server dcutscenes:<[new_data]>
+          - define cutscene.name <[arg].parse_color.strip_color>
+          - define cutscene.display <[arg]>
+          - flag server dcutscenes.<[cutscene.name]>:<[cutscene]>
           - flag <player> cutscene_data:<server.flag[dcutscenes.<[arg]>]>
-          - define text "Scene <green><[cutscene.name]> <gray>has been renamed to <green><[arg]>."
+          - define text "Scene <green><[cutscene.name]> <gray>has been renamed to <green><[cutscene.name]>."
           - narrate "<[msg_prefix]> <gray><[text]>"
           - ~run dcutscene_scene_show
+          - flag <player> cutscene_modify:!
 
       #Change cutscene description prep
       - case change_desc_prep:
-        - define text "Chat the description for this cutscene to go to the next line use a comma '<green>,<gray>'."
+        - define text "Chat the description for this cutscene. To go to the next line use a semicolon '<green>;<gray>'."
         - narrate "<[msg_prefix]> <gray><[text]>"
         - flag <player> cutscene_modify:cutscene_new_desc expire:10m
         - inventory close
       #Change cutscene description
       - case change_desc:
-        - define cutscene.description <[arg].split[,]>
+        - define cutscene.description <[arg].split[;]>
         - flag server dcutscenes.<[cutscene.name]>:<[cutscene]>
         - flag <player> cutscene_data:<server.flag[dcutscenes.<[cutscene.name]>]>
         - define text "Cutscene <green><[cutscene.name]> <gray>description has been modified."
         - narrate "<[msg_prefix]> <gray><[text]>"
         - ~run dcutscene_scene_show
 
-      #Determine whether cutscene bars will show or not
+      #Determine whether cutscene bars will shown or not
       - case change_bars:
         - choose <[cutscene.settings.bars].if_null[true]>:
           - case true:
@@ -122,6 +124,27 @@ dcutscene_settings_modify:
         - define click "<gray><italic>Click to change cutscene bars"
         - define lore <list[<empty>|<[l1]>|<empty>|<[click]>]>
         - inventory adjust d:<player.open_inventory> slot:<[arg]> lore:<[lore]>
+
+      #Preparation for duplicate cutscene
+      - case duplicate_prep:
+        - define text "Chat a new name for the duplicate cutscene. Chat <red>cancel <gray>to stop."
+        - narrate "<[msg_prefix]> <gray><[text]>"
+        - flag <player> cutscene_modify:cutscene_duplicate expire:2m
+        - inventory close
+
+      #Duplicate the cutscene
+      - case duplicate:
+        - define scene_check <[data.<[arg]>]||null>
+        - if <[scene_check]> != null:
+          - define text "There is already a cutscene named <green><[arg]><gray>."
+          - stop
+        - define dup_scene <[cutscene]>
+        - define dup_scene.name <[arg].parse_color.strip_color>
+        - define dup_scene.display <[arg]>
+        - flag server dcutscenes.<[dup_scene.name]>:<[dup_scene]>
+        - define text "Cutscene <green><[cutscene.name]> <gray>has been duplicated to <green><[dup_scene.name]>."
+        - narrate "<[msg_prefix]> <gray><[text]>"
+        - ~run dcutscene_scene_show
 
       #Change cutscene gui item prep
       - case change_item_prep:
@@ -143,6 +166,7 @@ dcutscene_settings_modify:
         - define text "Cutscene <green><[cutscene.name].parse_color> <gray>GUI item is now <green><[arg]><gray>."
         - narrate "<[msg_prefix]> <gray><[text]>"
         - ~run dcutscene_scene_show
+        - flag <player> cutscene_modify:!
 
       #Determine if players are hidden or not during the cutscene
       - case change_hide_players:
@@ -178,7 +202,7 @@ dcutscene_settings_modify:
 
       #Remove cutscene prep
       - case remove_scene_prep:
-        - clickable dcutscene_settings_modify def:remove_scene|<[cutscene.name]> save:remove_scene
+        - clickable dcutscene_settings_modify def:remove_scene|<[cutscene.name]> usages:1 save:remove_scene
         - define prefix <[msg_prefix]>
         - define text "Are you sure you want to remove <green><[cutscene.name]><gray>? It is suggested you make a backup using the save button before proceeding. <green><bold><element[Yes].on_hover[<[prefix]> <gray>This will remove this cutscene from the server.].type[SHOW_TEXT].on_click[<entry[remove_scene].command>]>"
         - narrate "<[prefix]> <gray><[text]>"
@@ -205,14 +229,14 @@ dcutscene_command:
     - dscene
     description: Cutscene command for DCutscene
     tab completions:
-      1: <list[load|save|open|play|location|loc|animate|model|sound|material|particle|stop|item]>
-      2: <player.proc[dcutscene_data_list]>
+      1: <list[load|save|play|location|loc|animate|model|sound|material|particle|stop|item]>
+      2: <player.proc[dcutscene_data_list].if_null[<empty>]>
     permission: dcutscene.op
     script:
     - define a_1 <context.args.get[1]||null>
     - define a_2 <context.args.get[2]||null>
     - define a_3 <context.args.get[3]||null>
-    - if <[a_1]> == null || <[a_1]> == open:
+    - if <[a_1]> == null:
       - ~run dcutscene_scene_show
     - else:
       - define msg_prefix <script[dcutscenes_config].data_key[config].get[cutscene_prefix].parse_color||<&color[0,0,255]><bold>DCutscenes>
@@ -228,6 +252,7 @@ dcutscene_command:
           - else:
             - define text "You do not have an object selected to modify it's location."
             - narrate "<[msg_prefix]> <gray><[text]>"
+        #Same thing as above
         - case loc:
           - if <player.has_flag[cutscene_modify]>:
             - inventory clear
@@ -238,9 +263,9 @@ dcutscene_command:
         #Load dcutscene files
         - case load:
           - if <[a_2]> == null:
-            - ~run dcutscene_load_files
+            - ~run dcutscene_load_file def:all
           - else:
-            - ~run dcutscene_load_files def.cutscene:<[a_2]>
+            - ~run dcutscene_load_file def:<[a_2]>
         #Save dcutscene files to a directory
         - case save:
           - if <[a_2]> != null:
@@ -264,7 +289,10 @@ dcutscene_command:
               - narrate "<[msg_prefix]> <gray><[text]>"
         #Stop a cutscene from playing
         - case stop:
-          - run dcutscene_animation_stop def:<player>
+          - if <[a_2]> == null:
+            - run dcutscene_animation_stop def:<player>
+          - else if <player[<[a_2]>]||null> != null:
+            - run dcutscene_animation_stop def:<player[<[a_2]>]>
         #Animate the model the player is modifying.
         - case animate:
           - if <player.has_flag[cutscene_modify]>:
@@ -308,6 +336,8 @@ dcutscene_command:
           - if <player.has_flag[cutscene_modify]>:
             - if <[a_2]> != null && <player.flag[cutscene_modify]> == set_model_name:
               - run dcutscene_model_keyframe_edit def:denizen_model|create_model_name|<[a_2]>
+            - else if <[a_2]> != null && <player.flag[cutscene_modify]> == change_model_prep:
+              - run dcutscene_model_keyframe_edit def:denizen_model|change_model|<[a_2]>
         #Input a new sound
         - case sound:
           - if <player.has_flag[cutscene_modify]>:
@@ -365,6 +395,7 @@ dcutscene_data_list:
             - determine <server.particle_types>
           - default:
             - determine <empty>
+        - determine <empty>
     - else if <server.has_flag[dcutscenes]>:
       - determine <server.flag[dcutscenes].keys||<empty>>
 
@@ -378,13 +409,13 @@ dcutscene_save_file:
     - if <server.flag[dcutscenes.<[cutscene.name]>]||null> == null:
       - debug error "Could not find cutscene to save."
     - else:
-      - if <script[dcutscenes_config].data_key[config].get[cutscene_compress_save_file]||false.is_truthy>:
+      - if <script[dcutscenes_config].data_key[config].get[cutscene_compress_save_file].if_null[false].is_truthy>:
         - define indent 0
       - else:
         - define indent 4
       - define cutscene_data <server.flag[dcutscenes.<[cutscene.name]>]>
       - define c_id <[cutscene_data.name]>
-      - ~filewrite path:data/dcutscenes/scenes/<[c_id]>.dcutscene.json data:<[cutscene].to_json[native_types=true;indent=<[indent]>].utf8_encode>
+      - ~filewrite path:data/dcutscenes/scenes/<[c_id]>.dcutscene data:<[cutscene].to_json[native_types=true;indent=<[indent]>].utf8_encode>
 
 #Data debugger to visualize the data in "Denizen/data/dcutscenes/debug"
 dcutscene_debugger:
@@ -403,36 +434,56 @@ dcutscene_debugger:
     - define text "Debug information sent to <green>data/dcutscenes/debug/<[file]>.json<gray>."
     - narrate "<[msg_prefix]> <gray><[text]>"
 
-#Loading cutscene files
-dcutscene_load_files:
+# Cutscene file load validation
+dcutscene_load_file:
     type: task
     debug: false
+    definitions: file
     script:
-    - define files <util.list_files[data/dcutscenes/scenes]||null>
-    - if <[files]> != null:
+    - if <[file]||null> == null:
+      - debug error "No file specified."
+      - stop
+    - if <[file]> == all:
+      - define files <util.list_files[data/dcutscenes/scenes]||null>
       - foreach <[files]> as:file:
         - define check <[file].split[.]>
-        - if <[check].contains[dcutscene]>:
-          - ~yaml id:file_<[file]> load:data/dcutscenes/scenes/<[file]>
-          - define name <yaml[file_<[file]>].read[name]||null>
-          - if <[name]> == null:
-            - debug error "<[file]> is an invalid dcutscene file"
-            - foreach next
-          - define cutscene.name <[name]>
-          - define cutscene.name_color <yaml[file_<[file]>].read[name_color]||<empty>>
-          - define cutscene.description <yaml[file_<[file]>].read[description]||<empty>>
-          - define cutscene.world <yaml[file_<[file]>].read[world]||<empty>>
-          - define cutscene.item <yaml[file_<[file]>].read[item]||<empty>>
-          - define cutscene.length <yaml[file_<[file]>].read[length]||<empty>>
-          - define cutscene.keyframes <yaml[file_<[file]>].read[keyframes]||<empty>>
-          - define cutscene.settings <yaml[file_<[file]>].read[settings]||<empty>>
-          - flag server dcutscenes.<[name]>:<[cutscene]>
-          - ~run dcutscene_sort_data def:<[cutscene.name]>
-          - announce to_console "[Denizen Cutscenes] Cutscene <[name]> has been loaded."
-        - else:
+        - if !<[check].contains[dcutscene]>:
           - debug error "<[file]> is not a dcutscene file in Denizen/data/dcutscenes/scenes"
+        - else:
+          - ~run dcutscene_load_file_data def.file:<[file]>
+    - else:
+      - define check <util.list_files[data/dcutscenes/scenes].contains[<[file]>.dcutscene]||false>
+      - if !<[check]||false>:
+        - debug error "File <[file]> could not be found in dcutscene_load_file"
+        - stop
+      - run dcutscene_load_file_data def.file:<[file]>.dcutscene
 
-#Sort the keyframes
+# Loads cutscene file
+dcutscene_load_file_data:
+    type: task
+    debug: false
+    definitions: file
+    script:
+    - ~yaml id:file_<[file]> load:data/dcutscenes/scenes/<[file]>
+    - define name <yaml[file_<[file]>].read[name]||null>
+    - if <[name]> == null:
+      - debug error "<[file]> is an invalid dcutscene file"
+      - foreach next
+    - define cutscene.name <[name]>
+    - define cutscene.display <yaml[file_<[file]>].read[display]||<[name]>>
+    - define cutscene.name_color <yaml[file_<[file]>].read[name_color]||<empty>>
+    - define cutscene.description <yaml[file_<[file]>].read[description]||<empty>>
+    - define cutscene.world <yaml[file_<[file]>].read[world]||<empty>>
+    - define cutscene.item <yaml[file_<[file]>].read[item]||<empty>>
+    - define cutscene.length <yaml[file_<[file]>].read[length]||<empty>>
+    - define cutscene.keyframes <yaml[file_<[file]>].read[keyframes]||<empty>>
+    - define cutscene.settings <yaml[file_<[file]>].read[settings]||<empty>>
+    - flag server dcutscenes.<[name]>:<[cutscene]>
+    - ~run dcutscene_sort_data def:<[cutscene.name]>
+    - announce to_console "[Denizen Cutscenes] Cutscene <[name]> has been loaded."
+    - yaml unload id:file_<[file]>
+
+# Sort the keyframes
 dcutscene_sort_data:
     type: task
     debug: false
@@ -512,7 +563,7 @@ dcutscene_sort_data:
       #Scene Length
       - define ticks <proc[dcutscene_animation_length].context[<[cutscene]>]>
       #Total cutscene length
-      - if !<[ticks].is_empty>:
+      - if <[ticks].any>:
         - define animation_length <duration[<[ticks].highest>t].in_seconds>s
         - define data.length <[animation_length]>
         - flag server dcutscenes.<[name]>.length:<[data.length]>
@@ -592,6 +643,10 @@ dcutscene_animation_length:
     - if <[weather_keyframes]> != null:
       - define highest <[weather_keyframes].keys.highest||0>
       - define ticks:->:<[highest]>
+    #Play scene
+    - define play_scene <[keyframes.play_scene]||null>
+    - if <[play_scene]> != null:
+      - define ticks:->:<[play_scene.tick]>
     #Stop Point
     - define stop_point <[keyframes.stop]||null>
     - if <[stop_point]> != null:
@@ -627,7 +682,7 @@ dcutscene_circle_proc:
 dcutscene_cube_proc:
   type: procedure
   debug: false
-  definitions: loc|vec|vec_2|axis
+  definitions: loc|vec|vec_2
   script:
   - define vec <[vec]||10,10,10>
   - define vec_2 <[vec_2]||null>
@@ -671,29 +726,30 @@ dcutscene_sphere_proc:
 dcutscene_vector_path:
   type: procedure
   debug: false
-  definitions: loc|vec|time|interpolation|vec_2|vec_3|offset
+  definitions: loc|vec|time|interpolation|offset|vec_2|vec_3
   script:
   - define vec <[vec]||null>
   - if <[vec]> == null:
     - determine <[loc]>
   - else:
     - define offset <[offset]||0,0,0>
+    - define time <duration[<[time]>].in_ticks>
     - define interpolation <[interpolation]||linear>
     - define loc_1 <[loc]>
     - define loc_2 <[loc].add[<[vec]>]>
     - choose <[interpolation]>:
       - case linear:
-        - repeat <duration[<[time]>].in_ticks||250>:
+        - repeat <[time]>:
           - define time_index <[value]>
           - if <[time_index]> < <[time]>:
             - define time_percent <[time_index].div[<[time]>]>
-            - define data <[loc_2].as_location.sub[<[loc_1]>].mul[<[time_percent]>].add[<[loc_1]>]>
+            - define data <[loc_2].as[location].sub[<[loc_1]>].mul[<[time_percent]>].add[<[loc_1]>]>
             - define points:->:<[data].random_offset[<[offset]>]>
         - determine <[points]||<[loc]>>
       - case smooth:
         - define loc_3 <[loc].add[<[vec_2]||0,0,0>]>
         - define loc_4 <[loc].add[<[vec_3]||<[vec]>>]>
-        - repeat <duration[<[time]>].in_ticks||250>:
+        - repeat <[time]>:
           - define time_index <[value]>
           - if <[time_index]> < <[time]>:
             - define time_percent <[time_index].div[<[time]>]>

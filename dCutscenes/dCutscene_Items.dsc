@@ -36,7 +36,9 @@ dcutscene_save_file_item:
 
 dcutscene_add_new_model:
     type: item
-    material: green_stained_glass_pane
+    material: scute
+    mechanisms:
+        custom_model_data: 10009
     display name: <green><bold>Add New Model +
     lore:
     - <empty>
@@ -263,7 +265,9 @@ dcutscene_location_tool_item:
 
 dcutscene_location_tool_confirm_location:
     type: item
-    material: green_stained_glass_pane
+    material: scute
+    mechanisms:
+        custom_model_data: 10017
     display name: <green><bold>Confirm Location
 
 dcutscene_location_tool_ray_trace_item:
@@ -464,8 +468,8 @@ dcutscene_camera_interpolate_look:
     - <empty>
     - <gray>If true the camera will smoothly
     - <gray>transition to the next look point.
-    - <gray>If false the camera will instantly look
-    - <gray>at the next look point.
+    - <gray>If false the camera will stay at
+    - <gray>the previous keyframe point yaw and pitch.
     - <empty>
     - <gray><italic>Click to modify look interpolation for camera
 
@@ -567,6 +571,18 @@ dcutscene_model_change_item:
     - <gray>this model in the cutscene GUI.
     - <empty>
     - <gray>Click to change displayed item
+
+dcutscene_model_change_model:
+    type: item
+    material: sculk_shrieker
+    display name: <dark_blue><bold>Change Model
+    lore:
+    - <empty>
+    - <gray>Change the model spawned.
+    - <gray>Note: Must be a starting point
+    - <gray>model (root-model).
+    - <empty>
+    - <gray><italic>Click to change model
 
 dcutscene_model_change_location:
     type: item
@@ -747,7 +763,7 @@ dcutscene_remove_model_tick:
 
 dcutscene_remove_model:
     type: item
-    material: paper
+    material: scute
     display name: <dark_red><bold>Remove Model
     mechanisms:
         custom_model_data: 10005
@@ -1928,7 +1944,7 @@ dcutscene_sound_pitch_modify:
 dcutscene_sound_loc_modify:
     type: item
     material: beacon
-    display name: <dark_aqua><bold>Change Location
+    display name: <dark_aqua><bold>Set Location
     lore:
     - <empty>
     - <gray>The sound will play at this location.
@@ -1947,7 +1963,9 @@ dcutscene_sound_custom_modify:
 
 dcutscene_sound_stop_modify:
     type: item
-    material: paper
+    material: scute
+    mechanisms:
+        custom_model_data: 10006
     display name: <red><bold>Stop Sound
     lore:
     - <empty>
@@ -2172,6 +2190,52 @@ dcutscene_weather_remove_modify:
     - <empty>
     - <gray><italic>Click to remove the weather
 ###################
+
+## Play Scene ##########
+dcutscene_play_scene:
+    type: item
+    material: scute
+    display name: <dark_blue><bold>Play a cutscene
+    mechanisms:
+        custom_model_data: 10015
+    lore:
+    - <empty>
+    - <gray>Play another cutscene at
+    - <gray>this tick. This will immediately
+    - <gray>stop the previous scene from
+    - <gray>playing as well.
+
+dcutscene_play_scene_change:
+    type: item
+    material: scute
+    display name: <dark_blue><bold>Change cutscene to play
+    mechanisms:
+        custom_model_data: 10015
+    lore:
+    - <empty>
+    - <gray><italic>Click to change cutscene
+
+dcutscene_play_scene_keyframe:
+    type: item
+    material: scute
+    mechanisms:
+      custom_model_data: 10015
+
+dcutscene_play_scene_keyframe_contains:
+    type: item
+    material: scute
+    mechanisms:
+      custom_model_data: 10016
+
+dcutscene_play_scene_remove:
+    type: item
+    material: scute
+    display name: <red><bold>Remove play cutscene animator
+    mechanisms:
+        custom_model_data: 10005
+    lore:
+    - <empty>
+    - <gray><italic>Click to remove play cutscene animator
 
 ## Stop Point ##########
 dcutscene_stop_scene:

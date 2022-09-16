@@ -55,12 +55,12 @@ dcutscene_scene_show:
         - define lore:!
         - define world <[cutscene.world]>
         - define settings <[cutscene.settings]||null>
-        - define name <blue><bold><[cutscene.name].parse_color>
+        - define display <blue><bold><[cutscene.display].parse_color||<blue><bold><[cutscene.name]>>
         - define desc <[cutscene.description]||<list>>
         - foreach <[desc]> as:d:
           - define desc_color:->:<[d].parse_color>
         - define item <item[<[settings.item].if_null[dcutscene_scene_item_default]>]>
-        - adjust <[item]> display:<[name]> save:item
+        - adjust <[item]> display:<[display]> save:item
         - define item <entry[item].result>
         - define lore2 <list[<[desc_color].if_null[<empty>]>]>
         - if <[lore2].any>:
@@ -88,8 +88,13 @@ dcutscene_keyframe_calculate:
     - define tick_map <map>
     - repeat 9 as:loop_i:
       - define tick <[tick_min].add[<[loop_i]>]>
+      #Play Scene Search
+      - define play_scene_search <[keyframes.play_scene.tick]||null>
+      - if <[play_scene_search].equals[<[tick]>]>:
+        - define tick_map.play_scene.tick <[tick]>
+        - define tick_map.play_scene.cutscene <[keyframes.play_scene.cutscene]>
       #Stop Search
-      - define stop_search <[keyframes.stop.tick]||none>
+      - define stop_search <[keyframes.stop.tick]||null>
       - if <[stop_search].equals[<[tick]>]>:
         - define tick_map.stop_point.tick <[tick]>
       #Camera Search
@@ -194,7 +199,7 @@ dcutscene_keyframe_modify:
     - repeat <[max]> as:loop_i:
         - define lore_list:!
         - define stop_point null
-        #======= Time calculations =======
+        #======= Time Calculations =======
         #page 1 and loop 1
         - if <[loop_i]> == 1 && <[page_index]> == 1:
           - define time <[inc].round_up_to_precision[0.1]>s
@@ -338,6 +343,11 @@ dcutscene_keyframe_modify:
             - foreach <[weather]> key:tick as:weather:
               - define text "<aqua>Weather <green><[weather.weather]> <aqua>on tick <green><[tick]>t"
               - define lore_list:->:<[text]>
+          #Play Scene
+          - define play_scene <[keyframe_data.play_scene]||null>
+          - if <[play_scene]> != null:
+            - define text "<blue>Play scene <green><[play_scene.cutscene]> <blue>on tick <green><[play_scene.tick]>t"
+            - define lore_list:->:<[text]>
           #Stop Point
           - define stop_point <[keyframe_data.stop_point]||null>
           - if <[stop_point]> != null:
@@ -397,6 +407,10 @@ dcutscene_sub_keyframe_modify:
     - define time <[keyframe.timespot]>
     - define tick_max <duration[<[time]>s].in_ticks>
     - define tick_min <[tick_max].sub[9]>
+    #Play Scene
+    - define play_scene <[keyframes.play_scene]||none>
+    #Stop Point
+    - define stop_point <[keyframes.stop.tick]||<[tick_max].add[1]>>
     #Used for scrolling down or up
     - define tick_page <player.flag[sub_keyframe_tick_page]>
     - define tick_page_max <[tick_page].add[4]>
@@ -414,7 +428,7 @@ dcutscene_sub_keyframe_modify:
         #=========== Camera check (First Priority)============
         - if <[camera]> != null && <[camera].contains[<[tick]>]>:
           - define tick_column_check true
-          - define tick_index <[tick_index].add[1]>
+          - define tick_index:++
           - define tick_row:++
           - if <[tick_row]> > 4:
             - define tick_row:1
@@ -465,7 +479,7 @@ dcutscene_sub_keyframe_modify:
           - define tick_column_check true
           - define model_list <[model_data.model_list]||<list>>
           - foreach <[model_list]> as:model_uuid:
-            - define tick_index <[tick_index].add[1]>
+            - define tick_index:++
             - define tick_row:++
             - if <[tick_row]> > 4:
               - define tick_row:1
@@ -590,7 +604,7 @@ dcutscene_sub_keyframe_modify:
           - define opt_item <item[dcutscene_run_task_keyframe]>
           - define run_task_list <[elements.run_task.<[tick]>.run_task_list]||<list>>
           - foreach <[run_task_list]> as:task_id:
-            - define tick_index <[tick_index].add[1]>
+            - define tick_index:++
             - define tick_row:++
             - if <[tick_row]> > 4:
               - define tick_row:1
@@ -629,7 +643,7 @@ dcutscene_sub_keyframe_modify:
           - define opt_item <item[dcutscene_fake_schem_keyframe]>
           - define fake_schems_list <[elements.fake_object.fake_schem.<[tick]>.fake_schems]||<list>>
           - foreach <[fake_schems_list]> as:object_id:
-            - define tick_index <[tick_index].add[1]>
+            - define tick_index:++
             - define tick_row:++
             - if <[tick_row]> > 4:
               - define tick_row:1
@@ -668,7 +682,7 @@ dcutscene_sub_keyframe_modify:
           - define opt_item <item[dcutscene_fake_block_keyframe]>
           - define fake_blocks_list <[elements.fake_object.fake_block.<[tick]>.fake_blocks]||<list>>
           - foreach <[fake_blocks_list]> as:object_id:
-            - define tick_index <[tick_index].add[1]>
+            - define tick_index:++
             - define tick_row:++
             - if <[tick_row]> > 4:
               - define tick_row:1
@@ -709,7 +723,7 @@ dcutscene_sub_keyframe_modify:
           - define opt_item <item[dcutscene_particle_keyframe]>
           - define particle_list <[elements.particle.<[tick]>.particle_list]||<list>>
           - foreach <[particle_list]> as:particle_id:
-            - define tick_index <[tick_index].add[1]>
+            - define tick_index:++
             - define tick_row:++
             - if <[tick_row]> > 4:
               - define tick_row:1
@@ -751,7 +765,7 @@ dcutscene_sub_keyframe_modify:
         - if <[screeneffect]> != null:
           - define tick_column_check true
           - define opt_item <item[dcutscene_screeneffect_keyframe]>
-          - define tick_index <[tick_index].add[1]>
+          - define tick_index:++
           - define tick_row:++
           #Only 4 rows
           - if <[tick_row]> > 4:
@@ -791,7 +805,7 @@ dcutscene_sub_keyframe_modify:
           - define sound_list <[elements.sound.<[tick]>.sounds]||<list>>
           #Gather data from sound list
           - foreach <[sound_list]> as:sound_id:
-            - define tick_index <[tick_index].add[1]>
+            - define tick_index:++
             - define tick_row:++
             - if <[tick_row]> > 4:
               - define tick_row:1
@@ -828,7 +842,7 @@ dcutscene_sub_keyframe_modify:
         - if <[title]> != null:
           - define tick_column_check true
           - define opt_item <item[dcutscene_title_keyframe]>
-          - define tick_index <[tick_index].add[1]>
+          - define tick_index:++
           - define tick_row:++
           #Only 4 rows
           - if <[tick_row]> > 4:
@@ -867,7 +881,7 @@ dcutscene_sub_keyframe_modify:
           - define opt_item <item[dcutscene_command_keyframe]>
           - define command_list <[elements.command.<[tick]>.command_list]||<list>>
           - foreach <[command_list]> as:command_id:
-            - define tick_index <[tick_index].add[1]>
+            - define tick_index:++
             - define tick_row:++
             - if <[tick_row]> > 4:
               - define tick_row:1
@@ -904,7 +918,7 @@ dcutscene_sub_keyframe_modify:
           - define opt_item <item[dcutscene_message_keyframe]>
           - define message_list <[elements.message.<[tick]>.message_list]||<list>>
           - foreach <[message_list]> as:msg_id:
-            - define tick_index <[tick_index].add[1]>
+            - define tick_index:++
             - define tick_row:++
             - if <[tick_row]> > 4:
               - define tick_row:1
@@ -937,7 +951,7 @@ dcutscene_sub_keyframe_modify:
           - define tick_column_check true
           #Option Item
           - define opt_item <item[dcutscene_time_keyframe]>
-          - define tick_index <[tick_index].add[1]>
+          - define tick_index:++
           - define tick_row:++
           #Only 4 rows
           - if <[tick_row]> > 4:
@@ -973,7 +987,7 @@ dcutscene_sub_keyframe_modify:
           - define tick_column_check true
           #Option Item
           - define opt_item <item[dcutscene_weather_keyframe]>
-          - define tick_index <[tick_index].add[1]>
+          - define tick_index:++
           - define tick_row:++
           #Only 4 rows
           - if <[tick_row]> > 4:
@@ -1001,18 +1015,53 @@ dcutscene_sub_keyframe_modify:
               - flag <[add_item]> keyframe_modify:<[tick]>
               - inventory set d:<[inv]> o:<[add_item]> slot:<[loop_i].add[<[tick_column]>]>
 
+        #======== Play Scene =========
+        - if <[play_scene]> != none:
+          - if <[play_scene.tick].equals[<[tick]>]>:
+            - define tick_column_check true
+            - define opt_item <item[dcutscene_play_scene_keyframe]>
+            - define tick_index:++
+            - define tick_row:++
+            #Only 4 rows
+            - if <[tick_row]> > 4:
+              - define tick_row:1
+            - if <[tick_index]> > <[tick_page]>:
+              - define display "<blue><bold>Play scene <green><bold><[play_scene.cutscene]>"
+              - adjust <[opt_item]> display:<[display]> save:item
+              - define opt_item <entry[item].result>
+              - define l1 "<blue>Cutscene <green><[play_scene.cutscene]> <blue>will play here."
+              - define modify "<gray><italic>Click to modify play scene"
+              - define play_lore <list[<empty>|<[l1]>|<empty>|<[modify]>]>
+              - adjust <[opt_item]> lore:<[play_lore]> save:item
+              - define opt_item <entry[item].result>
+              #Data to pass through for use of modifying the animator
+              - definemap modify_data type:play_scene tick:<[tick]>
+              - flag <[opt_item]> keyframe_opt_modify:<[modify_data]>
+              #-GUI placement calculation for tick row
+              - if <[tick_index]> <= <[tick_page_max]>:
+                - inventory set d:<[inv]> o:<[opt_item]> slot:<[loop_i].add[<[tick_column].mul[<[tick_row]>]>]>
+                - define add_slot <[loop_i].add[<[tick_column].mul[<[tick_row]>]>].add[9]>
+                - if <[add_slot]> < 46:
+                  - define add_item <item[dcutscene_keyframe_tick_add]>
+                  - flag <[add_item]> keyframe_modify:<[tick]>
+                  - inventory set d:<[inv]> o:<[add_item]> slot:<[add_slot]>
+            - else:
+              - define add_item <item[dcutscene_keyframe_tick_add]>
+              - flag <[add_item]> keyframe_modify:<[tick]>
+              - inventory set d:<[inv]> o:<[add_item]> slot:<[loop_i].add[<[tick_column]>]>
+
         #======== Stop Point =========
-        - define stop_point <[keyframes.stop.tick]||none>
         - if <[stop_point].equals[<[tick]>]>:
+          - define stop_point_check true
           - define tick_column_check true
           - define opt_item <item[dcutscene_stop_scene_keyframe_item]>
-          - define tick_index <[tick_index].add[1]>
+          - define tick_index:++
           - define tick_row:++
           #Only 4 rows
           - if <[tick_row]> > 4:
             - define tick_row:1
           - if <[tick_index]> > <[tick_page]>:
-            - define l_1 "<gray>The cutscene will stop here."
+            - define l_1 "<red>The cutscene will stop here."
             - define modify "<gray><italic>Click to modify stop point"
             - define stop_lore <list[<empty>|<[l_1]>|<empty>|<[modify]>]>
             - adjust <[opt_item]> lore:<[stop_lore]> save:item
@@ -1034,7 +1083,7 @@ dcutscene_sub_keyframe_modify:
               - inventory set d:<[inv]> o:<[add_item]> slot:<[loop_i].add[<[tick_column]>]>
 
         #======= No Animator ========
-        - else if <[tick_column_check]> == none:
+        - else if <[tick_column_check]> == none && <[tick]> < <[stop_point]>:
           - define opt_item <item[dcutscene_keyframe_tick_add]>
           - flag <[opt_item]> keyframe_modify:<[tick]>
           - define tick_index:++
@@ -1098,7 +1147,7 @@ dcutscene_inventory_settings:
     slots:
     - [] [] [] [] [] [] [] [] []
     - [] [] [dcutscene_change_scene_name] [dcutscene_change_description_item] [dcutscene_change_show_bars] [dcutscene_duplicate_scene] [dcutscene_change_item] [] []
-    - [] [] [dcutscene_hide_players] [dcutscene_bound_to_camera] [] [] [] [] []
+    - [] [] [dcutscene_hide_players] [dcutscene_bound_to_camera] [dcutscene_save_file_item] [] [] [] []
     - [] [] [] [] [] [] [] [] []
     - [] [] [] [] [] [] [] [] []
     - [dcutscene_back_page] [] [] [] [dcutscene_delete_cutscene] [] [] [] [dcutscene_exit]
@@ -1116,7 +1165,7 @@ dcutscene_inventory_scene:
     - [] [] [dcutscene_keyframes_list] [] [] [] [dcutscene_settings] [] []
     - [] [] [] [] [] [] [] [] []
     - [] [] [] [] [] [] [] [] []
-    - [dcutscene_back_page] [] [] [] [dcutscene_play_cutscene_item] [] [dcutscene_save_file_item] [] [dcutscene_exit]
+    - [dcutscene_back_page] [] [] [] [dcutscene_play_cutscene_item] [] [] [] [dcutscene_exit]
 
 #Scene keyframes
 dcutscene_inventory_keyframe:
@@ -1160,7 +1209,7 @@ dcutscene_inventory_keyframe_modify:
     - [] [] [dcutscene_add_cam] [dcutscene_add_model] [dcutscene_add_player_model] [dcutscene_add_entity] [dcutscene_add_run_task] [] []
     - [] [] [dcutscene_add_fake_block] [dcutscene_add_fake_schem] [dcutscene_add_screeneffect] [dcutscene_add_particle] [dcutscene_send_title] [] []
     - [] [] [dcutscene_play_command] [dcutscene_add_msg] [dcutscene_add_sound] [dcutscene_send_time] [dcutscene_set_weather] [] []
-    - [] [] [dcutscene_stop_scene] [] [] [] [] [] []
+    - [] [] [dcutscene_play_scene] [dcutscene_stop_scene] [] [] [] [] []
     - [dcutscene_back_page] [] [] [] [] [] [] [] [dcutscene_exit]
 
 #Camera GUI
@@ -1217,9 +1266,9 @@ dcutscene_inventory_keyframe_modify_model:
     gui: true
     slots:
     - [] [] [] [] [] [] [] [] []
-    - [] [] [dcutscene_model_change_id] [dcutscene_model_change_item] [dcutscene_model_change_location] [dcutscene_model_ray_trace_change] [dcutscene_model_change_move] [] []
-    - [] [] [dcutscene_model_change_animation] [dcutscene_model_interp_method] [dcutscene_model_show_path] [dcutscene_model_interp_rotate_change] [dcutscene_model_interp_rotate_mul] [] []
-    - [] [] [dcutscene_model_move_to_keyframe] [dcutscene_model_duplicate] [dcutscene_model_timespot_play] [dcutscene_model_teleport_loc] [] [] []
+    - [] [] [dcutscene_model_change_id] [dcutscene_model_change_item] [dcutscene_model_change_location] [dcutscene_model_ray_trace_change] [dcutscene_model_change_model] [] []
+    - [] [] [dcutscene_model_change_move] [dcutscene_model_change_animation] [dcutscene_model_interp_method] [dcutscene_model_show_path] [dcutscene_model_interp_rotate_change] [] []
+    - [] [] [dcutscene_model_interp_rotate_mul] [dcutscene_model_move_to_keyframe] [dcutscene_model_duplicate] [dcutscene_model_timespot_play] [dcutscene_model_teleport_loc] [] []
     - [] [] [] [] [] [] [] [] []
     - [dcutscene_back_page] [] [] [dcutscene_remove_model_tick] [] [dcutscene_remove_model] [] [] [dcutscene_exit]
 
@@ -1279,7 +1328,7 @@ dcutscene_inventory_particle_modify:
     - [] [] [] [] [] [] [] [] []
     - [] [] [dcutscene_particle_modify] [dcutscene_particle_loc_modify] [dcutscene_particle_quantity_modify] [dcutscene_particle_range_modify] [dcutscene_particle_repeat_modify] [] []
     - [] [] [dcutscene_particle_repeat_interval_modify] [dcutscene_particle_offset_modify] [dcutscene_particle_procedure_modify] [dcutscene_particle_procedure_defs_modify] [dcutscene_particle_special_data_modify] [] []
-    - [] [] [dcutscene_particle_velocity_modify] [dcutscene_particle_move_to_keyframe] [dcutscene_particle_duplicate] [dcutscene_particle_teleport_to] [dcutscene_particle_timespot_play] [] []
+    - [] [] [dcutscene_particle_velocity_modify] [dcutscene_particle_move_to_keyframe] [dcutscene_particle_duplicate] [dcutscene_particle_timespot_play] [dcutscene_particle_teleport_to] [] []
     - [] [] [] [] [] [] [] [] []
     - [dcutscene_back_page] [] [] [] [dcutscene_particle_remove] [] [] [] [dcutscene_exit]
 
@@ -1432,6 +1481,21 @@ dcutscene_inventory_keyframe_modify_weather:
     - [] [] [] [] [] [] [] [] []
     - [] [] [] [] [] [] [] [] []
     - [dcutscene_back_page] [] [] [] [dcutscene_weather_remove_modify] [] [] [] [dcutscene_exit]
+
+#Play scene GUI
+dcutscene_inventory_keyframe_modify_play_scene:
+    type: inventory
+    inventory: CHEST
+    title: <&color[<script[dcutscenes_config].data_key[config].get[cutscene_title_color]>]><script[dcutscenes_config].data_key[config].get[cutscene_title]>
+    size: 54
+    gui: true
+    slots:
+    - [] [] [] [] [] [] [] [] []
+    - [] [] [] [] [] [] [] [] []
+    - [] [] [] [] [dcutscene_play_scene_change] [] [] [] []
+    - [] [] [] [] [] [] [] [] []
+    - [] [] [] [] [] [] [] [] []
+    - [dcutscene_back_page] [] [] [] [dcutscene_play_scene_remove] [] [] [] [dcutscene_exit]
 
 #Stop point GUI
 dcutscene_inventory_keyframe_modify_stop_point:
