@@ -6,7 +6,7 @@ https://github.com/FutureMaximus/Denizen-Cutscenes/wiki
 
 **What is Denizen Cutscenes?**
 
-Denizen Cutscenes is a powerful and easy to use cutscene creation tool. The goal set for this tool is to allow as much creative freedom as possible while at the same time making it simple to create cutscenes. Creating an entire cutscene by script can be tedious as you likely won't be able visualize what your doing so it's essentially a bunch of painful trial and error to get the right locations but Denizen Cutscenes allows you to set or modify locations easily accelerating the cutscene creation process.
+Denizen Cutscenes is a powerful and easy to use cutscene creation tool. The goal for this tool is to allow as much creative freedom as possible while at the same time making it simple to create cutscenes. Creating an entire cutscene by script can be tedious as you likely won't be able visualize what your doing so it's essentially a bunch of painful trial and error to get the right locations but Denizen Cutscenes allows you to set or modify locations easily accelerating the cutscene creation process.
 
 The tool has a very strong integration with DModels and Denizen Player Models which allow you to display animated models to the player in the cutscene. This is very useful for something like an intro to a boss level or displaying an animated modeled crate that gives rewards to the player.
 
