@@ -12,7 +12,7 @@ The tool has a very strong integration with DModels and Denizen Player Models wh
 
 There are also several other built-in animators that are great for cutscenes such as the fake block animator which allows you to display blocks that only the player in the cutscene can see or fake particles. Here's all the animators in the cutscene https://github.com/FutureMaximus/Denizen-Cutscenes/wiki/3.-Animators
 
-**What is the path system?**
+**Path System**
 
 The path system is what allows your camera, models, or entities to move and you can see the path you created in editor mode.
 There are 2 methods of interpolation for your path which is linear and smooth. The recording system allows you to record your movement for a duration specified this in turn allows more complex movement.
