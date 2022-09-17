@@ -8,8 +8,8 @@
 # +---------------------------
 # @Author Max^
 # @date 2022/06/16
-# @updated 2022/09/15
-# @denizen-build REL-1771
+# @updated 2022/09/16
+# @denizen-build REL-1776
 # @script-version 1.0 BETA
 
 #-Github: https://github.com/FutureMaximus/Denizen-Cutscenes
