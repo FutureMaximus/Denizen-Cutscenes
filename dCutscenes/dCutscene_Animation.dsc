@@ -98,9 +98,7 @@ dcutscene_animation_begin:
       - repeat <duration[<[length]>].in_ticks.sub[<[timespot]>]> as:tick:
         - if !<[player].is_online>:
           - stop
-        - if !<[player].has_flag[dcutscene_played_scene.uuid]>:
-          - stop
-        - if <[player].flag[dcutscene_played_scene.uuid]> != <[scene_uuid]>:
+        - if <[player].flag[dcutscene_played_scene.uuid]||null> != <[scene_uuid]>:
           - stop
         #Tick added by timespot
         - define tick <[tick].add[<[timespot]>]>
