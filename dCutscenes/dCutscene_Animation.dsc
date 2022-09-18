@@ -47,8 +47,7 @@ dcutscene_animation_begin:
       - if <[player].has_flag[dcutscene_played_scene]>:
         - ~run dcutscene_animation_stop def.player:<[player]>
       #Allows the animation to begin at a certain tick
-      - define timespot <[timespot]||0t>
-      - define timespot <duration[<[timespot]>].in_ticks||0>
+      - define timespot <duration[<[timespot].if_null[0t]>].in_ticks||0>
       #Cutscene Information
       - define settings <[cutscene.settings]>
       - define keyframes <[cutscene.keyframes]||null>
@@ -280,7 +279,7 @@ dcutscene_camera_spawn:
         - teleport <[player]> <[first_loc]>
     - flag <player> dcutscene_previous_gamemode:<player.gamemode>
     - define uuid <util.random_uuid>
-    - spawn dcutscene_camera_entity <[player].location.below[5]> save:<[uuid]>
+    - spawn dcutscene_camera_entity <[player]> save:<[uuid]>
     - define camera_ent <entry[<[uuid]>].spawned_entity>
     - adjust <[player]> spectate:<[camera_ent]>
     - adjust <[camera_ent]> tracking_range:256
@@ -327,6 +326,23 @@ dcutscene_first_loc:
             - determine null
           - else:
             - determine <[first_loc]>
+
+# Returns the first camera location before the timespot
+#-Finish this
+dcutscene_timespot_loc:
+    type: procedure
+    debug: false
+    definitions: scene|timespot
+    script:
+    - define data <server.flag[dcutscenes.<[scene]>]||null>
+    - if <[data]> == null:
+      - determine null
+    - if !<[timespot].exists> || !<[timespot].is_decimal>:
+      - determine null
+    - else:
+      - define camera <[data.keyframes.camera]||null>
+      - if <[camera]> == null:
+        - determine null
 
 # Makes players hidden for the cutscene user until the cutscene is over
 dcutscene_hide_players_task:
