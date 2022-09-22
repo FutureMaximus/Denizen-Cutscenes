@@ -45,7 +45,7 @@ dcutscene_play_scene_keyframe_modify:
           - define text "There is already a play cutscene animator at tick <green><[scene_check.tick]>t<gray>."
           - narrate "<[msg_prefix]> <gray><[text]>"
         - else:
-          - if <server.flag[dcutscenes.<[arg]>]> == null:
+          - if <server.flag[dcutscenes.<[arg]>]||null> == null:
             - define text "The cutscene <green><[arg]><gray> does not exist."
             - narrate "<[msg_prefix]> <gray><[text]>"
             - stop
@@ -68,7 +68,7 @@ dcutscene_play_scene_keyframe_modify:
 
       #-Change scene
       - case change_scene:
-        - if <server.flag[dcutscenes.<[arg]>]> == null:
+        - if <server.flag[dcutscenes.<[arg]>]||null> == null:
           - define text "The cutscene <green><[arg]><gray> does not exist."
           - narrate "<[msg_prefix]> <gray><[text]>"
           - stop
