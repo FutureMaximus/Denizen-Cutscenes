@@ -228,6 +228,32 @@ dcutscene_delete_cutscene:
     - <empty>
     - <gray><italic>Click to delete this cutscene
 
+dcutscene_set_origin_point:
+    type: item
+    material: recovery_compass
+    display name: <green><bold>Set Origin Point
+    lore:
+    - <empty>
+    - <gray>Set the origin point of the cutscene.
+    - <gray>All animator locations will be
+    - <gray>calculated relative to this point.
+    - <gray>You may use a tag for the input note that
+    - <gray>if the location does not exist it will return to
+    - <gray>the cutscene's default location.
+    - <empty>
+    - <gray><italic>Click to set origin point
+
+dcutscene_origin_point_refresh:
+    type: item
+    material: fishing_rod
+    display name: <green><bold>Refresh Offsets
+    lore:
+    - <empty>
+    - <gray>Refreshes the location offsets of each
+    - <gray>animator that contains locations.
+    - <empty>
+    - <gray><italic>Click to refresh offsets
+
 ###### Cutscene GUI Items ########
 #Modify keyframes button
 dcutscene_keyframes_list:

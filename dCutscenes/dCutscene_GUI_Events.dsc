@@ -1,5 +1,6 @@
 ##########################################################################################
-#This script file contains gui and regular events for the DCutscene GUI
+# This script file contains gui and regular events for the DCutscene GUI
+# The cutscene_modify flag determines what will occur for the cutscene modification events
 ##########################################################################################
 
 #======== Cutscene Events ==========
@@ -74,6 +75,19 @@ dcutscene_events:
         - define msg_prefix <script[dcutscenes_config].data_key[config].get[cutscene_prefix].parse_color||<&color[0,0,255]><bold>DCutscenes>
         - define text "Cutscene <green><[cutscene.name].parse_color> <gray>has been saved to <green>Denizen/data/dcutscenes/scenes<gray>."
         - narrate "<[msg_prefix]> <gray><[text]>"
+        #Set the origin point
+        after player clicks dcutscene_set_origin_point in dcutscene_inventory_settings:
+        - run dcutscene_settings_modify def:set_origin_point_prep
+        #Refresh location offsets
+        after player clicks dcutscene_origin_point_refresh in dcutscene_inventory_settings:
+        - ratelimit <player> 1s
+        - define cutscene <player.flag[cutscene_data]>
+        - ~run dcutscene_origin_set def.origin:<[cutscene.settings.origin]||false> def.scene:<[cutscene.name]> save:result
+        - define loc_count <entry[result].created_queue.determination.first>
+        - if <[loc_count].is_truthy>:
+          - define text "<green><[loc_count]> <gray>location offsets have been refreshed."
+          - define msg_prefix <script[dcutscenes_config].data_key[config].get[cutscene_prefix].parse_color||<&color[0,0,255]><bold>DCutscenes>
+          - narrate "<[msg_prefix]> <gray><[text]>"
 
         ##Misc #################
         #Exit page
@@ -105,6 +119,9 @@ dcutscene_events:
             - run dcutscene_animator_keyframe_edit def:particle|new_particle|<context.relative>
           - case change_particle_loc:
             - run dcutscene_animator_keyframe_edit def:particle|change_particle_loc|<context.relative>
+          #Set Origin Point
+          - case set_origin_point:
+            - run dcutscene_settings_modify def:set_origin_point|<context.location.center>
 
         ##Tab completion ############
         after tab complete flagged:cutscene_modify:
@@ -153,6 +170,9 @@ dcutscene_events:
           #Duplicate cutscene
           - case cutscene_duplicate:
             - run dcutscene_settings_modify def:duplicate|<[msg]>
+          #Set origin point
+          - case set_origin_point:
+            - run dcutscene_settings_modify def:set_origin_point|<[msg]>
 
           ##Camera
           #Create new camera modifier
@@ -411,18 +431,23 @@ dcutscene_events:
             - run dcutscene_play_scene_keyframe_modify def:change_scene|<[msg]>
 
         ##Main Keyframe GUI ####################
+        # Create new scene
         after player clicks dcutscene_new_scene_item in dcutscene_inventory_main:
         - inventory close
         - run dcutscene_new_scene
+        # Next page
         after player clicks dcutscene_next in dcutscene_inventory_main:
         - run dcutscene_scene_show def:next
+        # Previous page
         after player clicks dcutscene_previous in dcutscene_inventory_main:
         - run dcutscene_scene_show def:previous
+        # Open a cutscene in the GUI
         after player clicks item in dcutscene_inventory_main:
         - define i <context.item>
         - if <[i].has_flag[cutscene_data]>:
           - flag <player> cutscene_data:<server.flag[dcutscenes.<[i].flag[cutscene_data]>]>
           - inventory open d:dcutscene_inventory_scene
+        # Open a main keyframe to display animators
         after player clicks item in dcutscene_inventory_keyframe:
         - define i <context.item>
         - if <[i].has_flag[keyframe_data]>:

@@ -8,9 +8,8 @@
 # +---------------------------
 # @Author Max^
 # @date 2022/06/16
-# @updated 2022/09/16
-# @denizen-build REL-1776
-# @script-version 1.0 BETA
+# @updated 2023/1/29
+# @script-version 1.2 BETA
 
 #-Github: https://github.com/FutureMaximus/Denizen-Cutscenes
 
@@ -46,7 +45,7 @@ dcutscenes_config:
     config:
       #Compress the save file saving storage if you want to debug the save file put false
       #Note that allow write must be true in your Denizen config for this to function.
-      cutscene_compress_save_file: true
+      cutscene_compress_save_file: false
 
       #Prefix for messages (Use & for color codes)
       cutscene_prefix: &9&lDCutscenes
@@ -107,7 +106,7 @@ dcutscenes_config:
 #==Run Tasks
 
 # To begin a cutscene. You may also specify the time it will begin:
-# - run dcutscene_animation_begin def.scene:my_scene def.player:<player> def.timespot:0s def.world:<player.world>
+# - run dcutscene_animation_begin def.scene:my_scene def.player:<player> def.timespot:0s def.origin:<player.flag[origin_location]||false> def.world:<player.world>
 
 # To stop the cutscene for the player
 # - run dcutscene_animation_stop def.player:<player>
@@ -139,13 +138,19 @@ dcutscenes_config:
 # Returns the first location of the camera in the cutscene
 # - define first_loc <proc[dcutscene_first_loc].context[my_scene_name].if_null[null]>
 
+# Returns the length of the cutscene in seconds
+# - define scene_length <proc[dcutscene_length].context[my_scene_name].if_null[null]>
+
+# Returns the cutscenes origin point location if it exists otherwise it will return null
+# - define origin_point <proc[dcutscene_get_origin_point].context[my_scene_name].if_null[null]>
+
 #===================
 
 #==== Planned ====
+#- Implement ability for cutscene locations to play relative to an origin location
 #- Implement entity animator
 #- Implement recording system for models and entity animators
 #- Implement ability for camera to follow a model or entity in the cutscene relative to it's location
-#- Implement ability for cutscene locations to play relative to an origin location
 #- Make it so camera or model spawns between the path and start there based on the timespot
 #- Implement ability to move or duplicate animators to another scene
 #=================

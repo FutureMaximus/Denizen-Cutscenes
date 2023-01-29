@@ -397,6 +397,7 @@ dcutscene_sub_keyframe_modify:
     - define camera <[keyframes.camera]||null>
     - define models <[keyframes.models]||null>
     - define elements <[keyframes.elements]||null>
+    - define origin <[data.settings.origin]||false>
     - define inv <player.open_inventory>
     - define slots <[inv].map_slots>
     #Reset inv
@@ -435,7 +436,10 @@ dcutscene_sub_keyframe_modify:
           - if <[tick_index]> > <[tick_page]>:
             - define cam_item <item[dcutscene_camera_keyframe]>
             - define cam_data <[camera.<[tick]>]>
-            - define cam_loc "<aqua>Location: <gray><location[<[cam_data.location]>].simple>"
+            - if <[origin].is_truthy>:
+              - define cam_loc "<aqua>Location Offset: <gray><[cam_data.origin_offset]||0,0,0>"
+            - else:
+              - define cam_loc "<aqua>Location: <gray><location[<[cam_data.location]>].simple>"
             - define cam_eye_loc <[cam_data.eye_loc.boolean]>
             - choose <[cam_eye_loc]>:
               - case true:
@@ -1147,7 +1151,7 @@ dcutscene_inventory_settings:
     slots:
     - [] [] [] [] [] [] [] [] []
     - [] [] [dcutscene_change_scene_name] [dcutscene_change_description_item] [dcutscene_change_show_bars] [dcutscene_duplicate_scene] [dcutscene_change_item] [] []
-    - [] [] [dcutscene_hide_players] [dcutscene_bound_to_camera] [dcutscene_save_file_item] [] [] [] []
+    - [] [] [dcutscene_hide_players] [dcutscene_bound_to_camera] [dcutscene_save_file_item] [dcutscene_set_origin_point] [dcutscene_origin_point_refresh] [] []
     - [] [] [] [] [] [] [] [] []
     - [] [] [] [] [] [] [] [] []
     - [dcutscene_back_page] [] [] [] [dcutscene_delete_cutscene] [] [] [] [dcutscene_exit]
