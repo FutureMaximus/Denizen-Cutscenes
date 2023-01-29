@@ -45,7 +45,7 @@ dcutscenes_config:
     config:
       #Compress the save file saving storage if you want to debug the save file put false
       #Note that allow write must be true in your Denizen config for this to function.
-      cutscene_compress_save_file: false
+      cutscene_compress_save_file: true
 
       #Prefix for messages (Use & for color codes)
       cutscene_prefix: &9&lDCutscenes
